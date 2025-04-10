@@ -28,6 +28,8 @@ from cogu.views import (
     SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, Landing,
 )
 from coguMSHP.services import twilio_whatsapp_webhook
+from coguMSHP.utils import notifications
+from coguMSHP.utils.notifications import send_whatsapp_message
 
 urlpatterns = [
                   path("__reload__/", include("django_browser_reload.urls")),
@@ -35,6 +37,7 @@ urlpatterns = [
                   path('api-auth/', include('rest_framework.urls')),
 
                   path('webhook/whatsapp/', twilio_whatsapp_webhook, name='twilio_whatsapp_webhook'),
+                  path('notifications/', send_whatsapp_message, name='send_whatsapp_notify'),
 
                   path('', CADashborad.as_view(), name='home'),
                   path('landing_page', Landing.as_view(), name='landing'),

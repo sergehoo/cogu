@@ -1,4 +1,8 @@
+import os
 import re
+
+from twilio.rest import Client
+
 
 
 def nettoyer_numero(numero):
@@ -16,3 +20,5 @@ def formater_numero_local(numero):
     elif len(numero) > 10:
         return f"+{numero}"
     return numero
+
+

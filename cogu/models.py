@@ -397,3 +397,18 @@ class IncidentReport(models.Model):
     class Meta:
         verbose_name = _("Rapport d'incident")
         verbose_name_plural = _("Rapports d'incidents")
+
+
+class WhatsAppMessage(models.Model):
+    DIRECTION_CHOICES = (
+        ('in', 'Reçu'),
+        ('out', 'Envoyé'),
+    )
+    direction = models.CharField(max_length=3, choices=DIRECTION_CHOICES)
+    sender = models.CharField(max_length=50)
+    recipient = models.CharField(max_length=50)
+    body = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.get_direction_display()} | {self.sender} → {self.recipient}"

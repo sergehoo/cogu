@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from cogu.models import IncidentType, SanitaryIncident, MajorEvent, Patient, Commune, DistrictSanitaire, HealthRegion, \
-    PolesRegionaux, EmployeeUser
+    PolesRegionaux, EmployeeUser, WhatsAppMessage
 
 
 # Register your models here.
@@ -67,3 +67,10 @@ class SanitaryIncidentAdmin(admin.ModelAdmin):
     list_filter = ('incident_type', 'outcome')
     search_fields = ('description', 'source')
     filter_horizontal = ('patients_related',)
+
+
+@admin.register(WhatsAppMessage)
+class WhatsAppMessageAdmin(admin.ModelAdmin):
+    list_display = ('timestamp', 'direction', 'sender', 'recipient', 'body')
+    list_filter = ('direction', 'timestamp')
+    search_fields = ('sender', 'recipient', 'body')
