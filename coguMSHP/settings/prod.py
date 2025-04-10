@@ -59,10 +59,12 @@ SLACK_ALERT_WEBHOOK = os.environ.get("SLACK_ALERT_WEBHOOK", default=None)
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST")
-EMAIL_PORT = os.environ.get("EMAIL_PORT", cast=int)
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", cast=bool)
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-EMAIL_ALERT_RECEIVERS = os.environ.get("EMAIL_ALERT_RECEIVERS", cast=lambda v: [s.strip() for s in v.split(",")])
+EMAIL_ALERT_RECEIVERS = [
+    s.strip() for s in os.environ.get("EMAIL_ALERT_RECEIVERS", "").split(",") if s.strip()
+]
