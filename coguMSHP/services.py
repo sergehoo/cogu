@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from twilio.twiml.messaging_response import MessagingResponse
-from cogu.models import SanitaryIncident
+
 from coguMSHP.MPIClient import MPIClient
 
 
@@ -71,6 +71,7 @@ def synchroniser_avec_mpi(patient_instance):
 
 @csrf_exempt
 def twilio_whatsapp_webhook(request):
+    from cogu.models import SanitaryIncident
     if request.method == 'POST':
         from_number = request.POST.get('From')
         message_body = request.POST.get('Body')
