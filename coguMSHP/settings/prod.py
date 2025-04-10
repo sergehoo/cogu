@@ -3,6 +3,9 @@ import sys
 
 from .base import *
 
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', default='localhost').split(',')
@@ -43,7 +46,7 @@ LOGGING = {
         "file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "logs/whatsapp_webhook.log",
+            'filename': os.path.join(LOG_DIR, 'whatsapp_webhook.log'),
         },
     },
     "loggers": {
