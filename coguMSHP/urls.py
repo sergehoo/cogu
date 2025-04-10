@@ -27,6 +27,7 @@ from cogu.views import (
     SanitaryIncidentListView, SanitaryIncidentCreateView, SanitaryIncidentDetailView,
     SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, Landing,
 )
+from coguMSHP.services import twilio_whatsapp_webhook
 
 urlpatterns = [
                   path("__reload__/", include("django_browser_reload.urls")),
