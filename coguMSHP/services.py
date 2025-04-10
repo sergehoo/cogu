@@ -153,7 +153,7 @@ def twilio_whatsapp_webhook(request):
     WhatsAppMessage.objects.create(
         direction='in',
         sender=sender,
-        recipient='twilio',
+        recipient=settings.TWILIO_WHATSAPP_NUMBER,
         body=message_body
     )
 
