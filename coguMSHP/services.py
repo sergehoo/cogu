@@ -74,11 +74,13 @@ def twilio_whatsapp_webhook(request):
     from cogu.models import IncidentType, SanitaryIncident, WhatsAppMessage
 
     if request.method == 'POST':
-        # 📩 Numéro réel de l’expéditeur
         from_number = request.POST.get('From', '').replace('whatsapp:', '')
         message_body = request.POST.get('Body', '').strip()
 
-        # ✅ Sauvegarder le message entrant
+        # Log minimum
+        print(f"📨 WhatsApp reçu de {from_number} : {message_body}")
+
+        # Sauvegarde du message entrant
         WhatsAppMessage.objects.create(
             direction='in',
             sender=from_number,
@@ -87,25 +89,73 @@ def twilio_whatsapp_webhook(request):
         )
 
         try:
-            incident_type = IncidentType.objects.get(name__iexact='Autre')
+            # Récupère ou crée l'IncidentType "Autre"
+            incident_type, _ = IncidentType.objects.get_or_create(name__iexact='Autre', defaults={'name': 'Autre'})
 
+            # Création de l'incident
             incident = SanitaryIncident.objects.create(
                 incident_type=incident_type,
                 description=message_body,
                 date_time=timezone.now(),
+                number_of_people_involved=1,
                 outcome='autre',
                 source='WhatsApp',
-                number_of_people_involved=1,
             )
 
+            print(f"✅ Incident enregistré : #{incident.id}")
+
+            # Réponse à Twilio
             response = MessagingResponse()
             response.message(f"✅ Merci ! Incident enregistré (#INC-{incident.id:04d}).")
+            return HttpResponse(str(response), content_type='application/xml')
 
         except Exception as e:
-            print(f"[❌ Erreur WhatsApp webhook] {e}")
+            import traceback
+            print("🚨 Erreur webhook WhatsApp :")
+            traceback.print_exc()
+
             response = MessagingResponse()
             response.message("❌ Une erreur est survenue. Veuillez réessayer plus tard.")
-
-        return HttpResponse(str(response), content_type='application/xml')
+            return HttpResponse(str(response), content_type='application/xml')
 
     return HttpResponse("OK", status=200)
+# @csrf_exempt
+# def twilio_whatsapp_webhook(request):
+#     from cogu.models import IncidentType, SanitaryIncident, WhatsAppMessage
+#
+#     if request.method == 'POST':
+#         # 📩 Numéro réel de l’expéditeur
+#         from_number = request.POST.get('From', '').replace('whatsapp:', '')
+#         message_body = request.POST.get('Body', '').strip()
+#
+#         # ✅ Sauvegarder le message entrant
+#         WhatsAppMessage.objects.create(
+#             direction='in',
+#             sender=from_number,
+#             recipient=settings.TWILIO_WHATSAPP_NUMBER,
+#             body=message_body
+#         )
+#
+#         try:
+#             incident_type = IncidentType.objects.get(name__iexact='Autre')
+#
+#             incident = SanitaryIncident.objects.create(
+#                 incident_type=incident_type,
+#                 description=message_body,
+#                 date_time=timezone.now(),
+#                 outcome='autre',
+#                 source='WhatsApp',
+#                 number_of_people_involved=1,
+#             )
+#
+#             response = MessagingResponse()
+#             response.message(f"✅ Merci ! Incident enregistré (#INC-{incident.id:04d}).")
+#
+#         except Exception as e:
+#             print(f"[❌ Erreur WhatsApp webhook] {e}")
+#             response = MessagingResponse()
+#             response.message("❌ Une erreur est survenue. Veuillez réessayer plus tard.")
+#
+#         return HttpResponse(str(response), content_type='application/xml')
+#
+#     return HttpResponse("OK", status=200)
