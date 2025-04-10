@@ -353,8 +353,6 @@ class CareFollowUp(models.Model):
         return f"Suivi {self.care.patient} - {self.statut} ({self.date.date()})"
 
 
-
-
 # 4. Resource: Ressources disponibles pour les urgences
 class Resource(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("Nom de la ressource"))
@@ -412,3 +410,11 @@ class WhatsAppMessage(models.Model):
 
     def __str__(self):
         return f"{self.get_direction_display()} | {self.sender} → {self.recipient}"
+
+
+class IncidentMedia(models.Model):
+    incident = models.ForeignKey(SanitaryIncident, on_delete=models.CASCADE, related_name="media")
+    file = models.FileField(upload_to="incident_media/")
+    media_type = models.CharField(max_length=50)  # image/jpeg, video/mp4, etc.
+    original_url = models.URLField()
+    created_at = models.DateTimeField(auto_now_add=True)

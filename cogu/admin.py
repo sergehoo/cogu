@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from cogu.models import IncidentType, SanitaryIncident, MajorEvent, Patient, Commune, DistrictSanitaire, HealthRegion, \
-    PolesRegionaux, EmployeeUser, WhatsAppMessage
+    PolesRegionaux, EmployeeUser, WhatsAppMessage, IncidentMedia
 
 
 # Register your models here.
@@ -74,3 +74,8 @@ class WhatsAppMessageAdmin(admin.ModelAdmin):
     list_display = ('timestamp', 'direction', 'sender', 'recipient', 'body')
     list_filter = ('direction', 'timestamp')
     search_fields = ('sender', 'recipient', 'body')
+
+
+@admin.register(IncidentMedia)
+class IncidentMediaAdmin(admin.ModelAdmin):
+    list_display = ["incident", "media_type", "file", "created_at"]
