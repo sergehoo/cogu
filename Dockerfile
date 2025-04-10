@@ -16,6 +16,7 @@ RUN apt-get update && \
     gcc \
     gdal-bin \
     libgdal-dev \
+    libgeos-dev \
     libpq-dev \
     software-properties-common \
     ca-certificates \
