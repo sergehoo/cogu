@@ -78,4 +78,4 @@ class WhatsAppMessageAdmin(admin.ModelAdmin):
 
 @admin.register(IncidentMedia)
 class IncidentMediaAdmin(admin.ModelAdmin):
-    list_display = ["incident", "media_type", "file", "created_at"]
+    list_display = ('incident', 'media_type', 'media_url', 'downloaded_file')
