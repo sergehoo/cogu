@@ -413,8 +413,10 @@ class WhatsAppMessage(models.Model):
 
 
 class IncidentMedia(models.Model):
-    incident = models.ForeignKey(SanitaryIncident, on_delete=models.CASCADE, related_name="media")
-    file = models.FileField(upload_to="incident_media/")
-    media_type = models.CharField(max_length=50)  # image/jpeg, video/mp4, etc.
-    original_url = models.URLField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    incident = models.ForeignKey("SanitaryIncident", on_delete=models.CASCADE, related_name="media")
+    media_url = models.URLField()
+    media_type = models.CharField(max_length=50)
+    downloaded_file = models.FileField(upload_to='incident_media/', null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.media_type} - {self.media_url}"
