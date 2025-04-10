@@ -1,0 +1,5 @@
+# contenu pour .gitignore
+*.log
+*.tmp
+
+.env
