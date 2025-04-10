@@ -35,3 +35,34 @@ MPI_API_KEY = os.environ.get('MPI_API_KEY', default='key')
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
 TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER', default='whatsapp:+14155238886')
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "logs/whatsapp_webhook.log",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+    },
+}
+
+SLACK_ALERT_WEBHOOK = os.environ.get("SLACK_ALERT_WEBHOOK", default=None)
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get("EMAIL_HOST")
+EMAIL_PORT = os.environ.get("EMAIL_PORT", cast=int)
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", cast=bool)
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+EMAIL_ALERT_RECEIVERS = os.environ.get("EMAIL_ALERT_RECEIVERS", cast=lambda v: [s.strip() for s in v.split(",")])
