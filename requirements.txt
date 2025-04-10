@@ -59,3 +59,4 @@ yarl==1.19.0
 zipp==3.21.0
 gunicorn
 psycopg2-binary
+
