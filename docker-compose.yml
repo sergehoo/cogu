@@ -1,23 +1,23 @@
 
 services:
 
-  rageweb:
+  coguweb:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 1524:8000  # port du server : port de l'application
+      - 2522:8000  # port du server : port de l'application
     volumes:
-      - .:/rage-app/
-      - static_volume:/rage-app/staticfiles
-      - media_volume:/rage-app/mediafiles
+      - .:/cogu-app/
+      - static_volume:/cogu-app/staticfiles
+      - media_volume:/cogu-app/mediafiles
     env_file:
       - ./.env
     restart: always
     depends_on:
-      - rageDB
+      - coguDB
 
-  rageDB:
+  coguDB:
     image: postgis/postgis:16-3.4
     platform: linux/amd64
     restart: always
@@ -28,18 +28,18 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 #    networks:
-#      - rage_default
+#      - cogu_default
 
   adminer:
     image: adminer
     restart: always
     ports:
-      - 2058:8080
+      - 2310:8080
 #    networks:
-#      - rage_default
+#      - cogu_default
 
 #networks:
-#  rage_default:
+#  cogu_default:
 
 volumes:
   pgdata:

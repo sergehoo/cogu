@@ -1,0 +1,48 @@
+{% extends 'layout/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="main-content">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Modifier le Type d'Incident</h5>
+            <a href="{% url 'incidenttype_detail' object.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Annuler
+            </a>
+        </div>
+
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Nom du type</label>
+                            {% render_field form.name class="form-control" %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.parent_type.id_for_label }}" class="form-label">Type parent</label>
+                            {% render_field form.parent_type class="form-select" %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i> Enregistrer
+                    </button>
+                    <a href="{% url 'incidenttype_delete' object.id %}" class="btn btn-outline-danger">
+                        <i class="fas fa-trash me-2"></i> Supprimer
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

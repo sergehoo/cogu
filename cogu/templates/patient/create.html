@@ -1,0 +1,177 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="main-content bg-dark-o-45">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title">{{ title }}</h5>
+        </div>
+
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row">
+                    <!-- Colonne 1 -->
+                    <div class="col-md-6">
+                        <h6 class="section-title mb-4">Informations personnelles</h6>
+
+                        <div class="mb-3">
+                            {{ form.nom.label_tag }}
+                            {{ form.nom}}
+                            <div class="invalid-feedback">
+                                {{ form.nom.errors }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.prenoms.label_tag }}
+                            {{ form.prenoms }}
+                            <div class="invalid-feedback">
+                                {{ form.prenoms.errors }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.sexe.label_tag }}
+                            {{ form.sexe}}
+                            <div class="invalid-feedback">
+                                {{ form.sexe.errors }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.date_naissance.label_tag }}
+                            {{ form.date_naissance }}
+                            <div class="invalid-feedback">
+                                {{ form.date_naissance.errors }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Colonne 2 -->
+                    <div class="col-md-6">
+                        <h6 class="section-title mb-4">Coordonnées</h6>
+
+                        <div class="mb-3">
+                            {{ form.contact.label_tag }}
+                            {{ form.contact}}
+                            <div class="invalid-feedback">
+                                {{ form.contact.errors }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.commune.label_tag }}
+                            {{ form.commune}}
+                            <div class="invalid-feedback">
+                                {{ form.commune.errors }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.quartier.label_tag }}
+                            {{ form.quartier }}
+                            <div class="invalid-feedback">
+                                {{ form.quartier.errors }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section mineur/accompagnateur -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6 class="section-title mb-3">Statut</h6>
+
+                        <div class="form-check">
+                            {{ form.patient_mineur }}
+                            <label class="form-check-label" for="{{ form.patient_mineur.id_for_label }}">
+                                {{ form.patient_mineur.label }}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row accompagnateur-section mt-3" {% if not form.instance.patient_mineur %}style="display: none;"{% endif %}>
+                    <div class="col-12">
+                        <h6 class="section-title mb-4">Informations accompagnateur</h6>
+
+                        <div class="mb-3">
+                            {{ form.accompagnateur.label_tag }}
+                            {{ form.accompagnateur }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.accompagnateur_contact.label_tag }}
+                            {{ form.accompagnateur_contact }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.accompagnateur_nature.label_tag }}
+                            {{ form.accompagnateur_nature }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-save me-2"></i>
+                        Enregistrer
+                    </button>
+                    <a href="{% url 'patient_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>
+                        Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Afficher/masquer la section accompagnateur
+    const mineurCheckbox = document.querySelector('#id_patient_mineur');
+    const accompagnateurSection = document.querySelector('.accompagnateur-section');
+
+    if (mineurCheckbox && accompagnateurSection) {
+        mineurCheckbox.addEventListener('change', function() {
+            accompagnateurSection.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    // Initialisation du datepicker (exemple avec flatpickr)
+    // Vous devrez installer et configurer flatpickr ou un autre datepicker
+    /*
+    flatpickr(".datepicker", {
+        dateFormat: "d/m/Y",
+        locale: "fr",
+        allowInput: true
+    });
+    */
+});
+</script>
+
+<style>
+.section-title {
+    color: #555;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+}
+
+.invalid-feedback {
+    display: block;
+    color: #dc3545;
+}
+
+/* Style pour les champs invalides */
+.is-invalid {
+    border-color: #dc3545;
+}
+</style>
+{% endblock %}

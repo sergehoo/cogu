@@ -1,0 +1,121 @@
+{% extends 'layout/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="main-content">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Modifier l'Incident</h5>
+            <div class="btn-group">
+                <a href="{% url 'sanitaryincident_detail' object.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Annuler
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <!-- Type d'incident -->
+                        <div class="mb-3">
+                            <label class="form-label">Type d'incident*</label>
+                            {% render_field form.incident_type class="form-select" %}
+                        </div>
+
+                        <!-- Date et heure -->
+                        <div class="mb-3">
+                            <label class="form-label">Date et heure*</label>
+                            <div class="input-group">
+                                {% render_field form.date_time type="datetime-local" class="form-control" %}
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            {% render_field form.description class="form-control" rows="3" %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <!-- Localisation -->
+                        <div class="mb-3">
+                            <label class="form-label">Ville</label>
+                            {% render_field form.city class="form-select" %}
+                        </div>
+
+                        <!-- Coordonnées -->
+                        <div class="mb-3">
+                            <label class="form-label">Coordonnées GPS</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                {% render_field form.location_text class="form-control" %}
+                            </div>
+                        </div>
+
+                        <!-- Nombre de personnes -->
+                        <div class="mb-3">
+                            <label class="form-label">Nombre de personnes*</label>
+                            {% render_field form.number_of_people_involved class="form-control" min="1" %}
+                        </div>
+
+                        <!-- Résultat -->
+                        <div class="mb-3">
+                            <label class="form-label">Résultat*</label>
+                            {% render_field form.outcome class="form-select" %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Événement lié -->
+                <div class="mb-3">
+                    <label class="form-label">Événement majeur lié</label>
+                    {% render_field form.event class="form-select" %}
+                </div>
+
+                <!-- Patients concernés -->
+                <div class="mb-4">
+                    <label class="form-label">Patients concernés</label>
+                    {% render_field form.patients_related class="form-select" multiple="multiple" %}
+                </div>
+
+                <!-- Source -->
+                <div class="mb-4">
+                    <label class="form-label">Source d'information*</label>
+                    {% render_field form.source class="form-control" %}
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i> Enregistrer
+                    </button>
+                    <a href="{% url 'sanitaryincident_delete' object.id %}" class="btn btn-outline-danger">
+                        <i class="fas fa-trash me-2"></i> Supprimer
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+select[multiple] {
+    min-height: 150px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialisation des sélecteurs multiples avec Select2 (optionnel)
+    $('select[multiple]').select2({
+        placeholder: "Sélectionnez les patients concernés",
+        width: '100%'
+    });
+});
+</script>
+{% endblock %}

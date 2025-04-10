@@ -1,0 +1,40 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="main-content bg-dark">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Confirmer la suppression</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> Attention !</h4>
+                <p>Vous êtes sur le point de supprimer définitivement l'événement suivant :</p>
+                <hr>
+                <h5>{{ object.name }}</h5>
+                <p class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    {{ object.start_date|date:"d/m/Y H:i" }} - {{ object.end_date|date:"d/m/Y H:i" }}
+                </p>
+            </div>
+
+            <p class="mb-4">Cette action est irréversible. Voulez-vous vraiment continuer ?</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'majorevent_detail' object.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Annuler
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i> Confirmer la suppression
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

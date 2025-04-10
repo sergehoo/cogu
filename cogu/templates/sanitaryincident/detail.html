@@ -1,0 +1,150 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="main-content">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Détails de l'Incident</h5>
+            <div class="btn-group">
+                <a href="{% url 'sanitaryincident_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Retour
+                </a>
+                <a href="{% url 'sanitaryincident_update' incident.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-edit me-2"></i> Modifier
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2 class="mb-3">{{ incident.incident_type }}</h2>
+
+                    <!-- Statut badge -->
+                    <div class="d-flex align-items-center mb-4">
+                        <span class="badge
+                            {% if incident.outcome == 'mort' %}bg-danger
+                            {% elif incident.outcome == 'blessure' %}bg-warning text-dark
+                            {% elif incident.outcome == 'sauvé' %}bg-success
+                            {% else %}bg-secondary{% endif %} me-3 fs-6">
+                            {{ incident.get_outcome_display }}
+                        </span>
+                        <span class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            {{ incident.date_time|date:"d/m/Y H:i" }}
+                        </span>
+                    </div>
+
+                    <!-- Description -->
+                    {% if incident.description %}
+                    <div class="mb-4">
+                        <h5>Description</h5>
+                        <div class="card bg-light p-3">
+                            {{ incident.description|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Informations -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h5><i class="fas fa-users me-2"></i>Personnes impliquées</h5>
+                                <p class="fs-4">{{ incident.number_of_people_involved }}</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <h5><i class="fas fa-city me-2"></i>Ville</h5>
+                                <p>{{ incident.city|default:"Non spécifié" }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h5><i class="fas fa-info-circle me-2"></i>Source</h5>
+                                <p>{{ incident.source }}</p>
+                            </div>
+
+                            {% if incident.event %}
+                            <div class="mb-3">
+                                <h5><i class="fas fa-calendar-star me-2"></i>Événement lié</h5>
+                                <a href="{% url 'majorevent_detail' incident.event.id %}">
+                                    {{ incident.event.name }}
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <!-- Carte -->
+                    {% if incident.location %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Localisation</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="incidentMap" style="height: 250px; width: 100%;"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Patients -->
+                    {% if incident.patients_related.exists %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Patients concernés</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                {% for patient in incident.patients_related.all %}
+                                <li class="list-group-item">
+                                    <a href="#">
+                                        <i class="fas fa-user-injured me-2"></i>
+                                        {{ patient.nom }}  {{ patient.prenoms }} | {{ patient.sexe }} - {{ patient.calculate_age }} ans
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if incident.location %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const coords = [{{ incident.location.y }}, {{ incident.location.x }}];
+    const map = L.map('incidentMap').setView(coords, 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    L.marker(coords).addTo(map)
+        .bindPopup("<b>{{ incident.incident_type }}</b><br>{{ incident.date_time|date:'d/m/Y H:i' }}");
+});
+</script>
+{% endif %}
+
+<style>
+.badge {
+    font-size: 1em;
+    padding: 0.5em 0.8em;
+}
+
+.card-header h5 {
+    font-size: 1.1rem;
+}
+
+#incidentMap {
+    border-radius: 0 0 0.25rem 0.25rem;
+}
+</style>
+{% endblock %}

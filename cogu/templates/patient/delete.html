@@ -1,0 +1,39 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="main-content bg-dark-o-45">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Confirmer la suppression</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="center">
+                <i class="material-icons-round large red-text">warning</i>
+                <h5>Êtes-vous sûr de vouloir supprimer ce patient ?</h5>
+                <p>Cette action est irréversible et supprimera toutes les données associées à ce patient.</p>
+
+                <div class="patient-info">
+                    <strong>{{ patient.nom }} {{ patient.prenoms }}</strong><br>
+                    Code: {{ patient.code_patient }}<br>
+                    Contact: {{ patient.contact_formatte }}
+                </div>
+
+                <form method="post" class="center">
+                    {% csrf_token %}
+                    <button type="submit" class="btn waves-effect waves-light red">
+                        <i class="material-icons-round left">delete</i>
+                        Confirmer la suppression
+                    </button>
+                    <a href="{% url 'patient_detail' patient.code_patient %}" class="btn waves-effect waves-light grey">
+                        <i class="material-icons-round left">cancel</i>
+                        Annuler
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

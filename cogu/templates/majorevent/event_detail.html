@@ -1,0 +1,106 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="main-content bg-dark-o-45">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Détails de l'Événement</h5>
+            <div class="btn-group">
+                <a href="{% url 'majorevent_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Retour
+                </a>
+                <a href="{% url 'majorevent_update' event.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-edit me-2"></i> Modifier
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2 class="mb-3">{{ event.name }}</h2>
+
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge {% if event.is_current %}bg-success{% elif event.is_past %}bg-secondary{% else %}bg-primary{% endif %} me-3">
+                                {{ event.get_status_display }}
+                            </span>
+                            <span>
+                                <i class="fas fa-calendar-alt me-2"></i>
+                                Du {{ event.start_date|date:"d/m/Y H:i" }} au {{ event.end_date|date:"d/m/Y H:i" }}
+                            </span>
+                        </div>
+
+                        {% if event.organizer %}
+                        <div class="mb-2">
+                            <i class="fas fa-user-tie me-2"></i>
+                            Organisé par: <strong>{{ event.organizer }}</strong>
+                        </div>
+                        {% endif %}
+
+                        {% if event.parent_event %}
+                        <div class="mb-2">
+                            <i class="fas fa-project-diagram me-2"></i>
+                            Événement parent:
+                            <a href="{% url 'majorevent_detail' event.parent_event.id %}">
+                                {{ event.parent_event.name }}
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if event.location %}
+                        <div class="mb-2">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            Lieu: {{ event.location }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if event.description %}
+                    <div class="mb-4">
+                        <h5 class="mb-2">Description</h5>
+                        <p class="text-justify">{{ event.description|linebreaks }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    {% if event.image %}
+                    <div class="mb-4">
+                        <img src="{{ event.image.url }}" alt="{{ event.name }}" class="img-fluid rounded">
+                    </div>
+                    {% endif %}
+
+                    {% if event.location %}
+                    <div id="detailMap" style="height: 300px; width: 100%;" class="rounded"></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if event.location %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const map = L.map('detailMap').setView([51.505, -0.09], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    const eventCoords = {{ event.location.geojson|safe }};
+    const geoJsonLayer = L.geoJSON(eventCoords).addTo(map);
+    map.fitBounds(geoJsonLayer.getBounds(), {padding: [20, 20]});
+});
+</script>
+{% endif %}
+
+<style>
+.badge {
+    font-size: 1em;
+    padding: 0.5em 0.8em;
+}
+</style>
+{% endblock %}

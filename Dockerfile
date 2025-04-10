@@ -1,7 +1,7 @@
 FROM python:3.9-slim
 LABEL authors="ogahserge"
 
-WORKDIR /rage-app
+WORKDIR /cogu-app
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
@@ -32,15 +32,15 @@ ENV C_INCLUDE_PATH=/usr/include/gdal
 ENV GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
 
 # Copy the requirements.txt and install Python dependencies
-COPY requirements.txt /rage-app/requirements.txt
+COPY requirements.txt /cogu-app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
-COPY . /rage-app/
+COPY . /cogu-app/
 
 # Expose port 8000
 EXPOSE 8000
 
 # Start the application using Gunicorn
-CMD ["gunicorn", "rage_INHP.wsgi:application", "--bind=0.0.0.0:8000", "--workers=4", "--timeout=180", "--log-level=debug"]
+CMD ["gunicorn", "coguMSHP.wsgi:application", "--bind=0.0.0.0:8000", "--workers=4", "--timeout=180", "--log-level=debug"]
 

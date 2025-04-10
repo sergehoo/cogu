@@ -1,0 +1,55 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="main-content">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Détails du Type d'Incident</h5>
+            <div class="btn-group">
+                <a href="{% url 'incidenttype_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Retour
+                </a>
+                <a href="{% url 'incidenttype_update' type.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-edit me-2"></i> Modifier
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h2>{{ type.name }}</h2>
+
+                    {% if type.parent_type %}
+                    <div class="mt-4">
+                        <h5>Type parent</h5>
+                        <div class="card bg-light p-3">
+                            <a href="{% url 'incidenttype_detail' type.parent_type.id %}">
+                                {{ type.parent_type.name }}
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    {% if child_types.exists %}
+                    <div class="mt-4">
+                        <h5>Sous-types</h5>
+                        <div class="list-group">
+                            {% for child in child_types %}
+                            <a href="{% url 'incidenttype_detail' child.id %}" class="list-group-item list-group-item-action">
+                                {{ child.name }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

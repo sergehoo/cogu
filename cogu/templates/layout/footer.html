@@ -1,0 +1,99 @@
+{% load static %}
+<!-- Footer Section -->
+<!-- Footer - Admin Panel -->
+<div class="footer bg-light-primary py-6" id="kt_footer">
+    <div class="container-fluid">
+        <div class="d-flex flex-column flex-md-row align-items-center justify-content-between">
+            <!-- Left Section - Copyright & Logo -->
+            <div class="d-flex align-items-center order-2 order-md-1">
+                <!-- Logo -->
+                <a href="https://afriqconsulting.com" target="_blank" class="d-flex align-items-center mr-5">
+                    <img src="{% static 'assets/media/logo-AFRIQ-CONSULTING.png' %}"
+                         alt="AfriqConsulting"
+                         class="h-35px"
+                         style="filter: brightness(0) invert(1);">
+                </a>
+
+                <!-- Copyright -->
+                <div class="text-white font-weight-bold">
+                    <span class="opacity-70 mr-2">&copy; <script>document.write(new Date().getFullYear())</script></span>
+                    <a href="https://afriqconsulting.com" target="_blank" class="text-white text-hover-white opacity-75">
+                        AfriqConsulting
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Section - Quick Links -->
+            <div class="nav nav-dark order-1 order-md-2">
+                <div class="d-flex flex-wrap">
+                    <!-- System Info -->
+                    <div class="d-flex align-items-center mr-5 mb-2 mb-md-0">
+                        <i class="flaticon2-protection text-white opacity-70 mr-2"></i>
+                        <span class="text-white opacity-70 font-weight-bold">
+                            Système de Gestion Anti-Rabique <span class="version-badge">v2.0.1</span>
+                        </span>
+
+                    </div>
+
+                    <!-- Quick Links -->
+                    <div class="d-flex mr-10">
+                        <a href="#" class="text-white opacity-70 text-hover-white font-weight-bold mr-4"
+                           data-toggle="tooltip" title="Documentation">
+                            <i class="flaticon2-file mr-1"></i> Docs
+                        </a>
+                        <a href="#" class="text-white opacity-70 text-hover-white font-weight-bold mr-4"
+                           data-toggle="tooltip" title="Support technique">
+                            <i class="flaticon2-help mr-1"></i> Support
+                        </a>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Ministry Badge (Mobile) -->
+        <div class="text-center mt-4 d-md-none">
+            <span class="badge badge-pill badge-light">
+                <i class="flaticon2-heart-rate-monitor mr-2"></i>
+                Programme National Anti-Rabique
+            </span>
+        </div>
+    </div>
+</div>
+<style>
+.version-badge {
+    position: fixed;
+    bottom: 20px;
+    right: 10px;
+    background: #4CAF50;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+}
+</style>
+<style>
+    #kt_footer {
+        background: linear-gradient(90deg, #ff5800  40%,  #0b2001 80%);
+        border-top: 1px solid rgb(29, 85, 1);
+    }
+
+    #kt_footer a:hover {
+        opacity: 1 !important;
+    }
+
+    @media (max-width: 768px) {
+        #kt_footer {
+            text-align: center;
+        }
+    }
+</style>
+
+<script>
+    // Initialize tooltips
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip({
+            placement: 'top'
+        });
+    });
+</script>

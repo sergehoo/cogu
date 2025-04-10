@@ -1,0 +1,446 @@
+{% extends 'layout/base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="main-content bg-dark">
+    <!-- Header -->
+    {% include 'layout/nav-head.html' %}
+
+    <!-- Alert Card - Basé sur le dernier incident critique -->
+    {% with critical_incident=incidents_critical.first %}
+    {% if critical_incident %}
+    <div class="card alert-card" data-aos="fade-up">
+        <div class="card-body">
+            <div class="alert-content">
+                <div class="alert-icon">
+                    <i class="material-icons-round">warning</i>
+                </div>
+                <div class="alert-text">
+                    <h6>ALERTE: {{ critical_incident.incident_type }} à {{ critical_incident.city|default:"Localité inconnue" }}</h6>
+                    <p>{{ critical_incident.description|truncatechars:100 }}</p>
+                </div>
+                <a href="{% url 'sanitaryincident_detail' critical_incident.id %}" class="btn waves-effect waves-light right ml-10" style="background-color: var(--ci-accent); float: right">Intervenir</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Stats Cards - Données réelles -->
+    <div class="row">
+        <div class="col s12 m6 l3" data-aos="fade-up" data-aos-delay="0">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="icon">
+                        <i class="material-icons-round">healing</i>
+                    </div>
+                    <div class="value">{{ incidents_count|intcomma }}</div>
+                    <div class="label">Incidents signalés</div>
+                    <div class="progress">
+                        <div class="determinate" style="width: {{ incidents_percentage }}%; background-color: var(--ci-primary);"></div>
+                    </div>
+                    <small class="grey-text">{{ incidents_monthly_change }}% ce mois</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col s12 m6 l3" data-aos="fade-up" data-aos-delay="100">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="icon">
+                        <i class="material-icons-round">sick</i>
+                    </div>
+                    <div class="value">{{ active_cases|intcomma }}</div>
+                    <div class="label">Cas actifs</div>
+                    <div class="progress">
+                        <div class="determinate" style="width: {{ active_cases_percentage }}%; background-color: #FF9800;"></div>
+                    </div>
+                    <small class="grey-text">{{ active_cases_change }}% ce mois</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col s12 m6 l3" data-aos="fade-up" data-aos-delay="200">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="icon">
+                        <i class="material-icons-round">ambulance</i>
+                    </div>
+                    <div class="value">{{ interventions_count|intcomma }}</div>
+                    <div class="label">Interventions</div>
+                    <div class="progress">
+                        <div class="determinate" style="width: {{ interventions_percentage }}%; background-color: #2196F3;"></div>
+                    </div>
+                    <small class="grey-text">{{ interventions_change }}% ce mois</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col s12 m6 l3" data-aos="fade-up" data-aos-delay="300">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="icon">
+                        <i class="material-icons-round">check_circle</i>
+                    </div>
+                    <div class="value">{{ resolved_cases|intcomma }}</div>
+                    <div class="label">Cas résolus</div>
+                    <div class="progress">
+                        <div class="determinate" style="width: {{ resolved_percentage }}%; background-color: #4CAF50;"></div>
+                    </div>
+                    <small class="grey-text">{{ resolved_change }}% ce mois</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map and Region Chart -->
+    <div class="row">
+        <div class="col-md-6" data-aos="fade-up">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Cartographie des Incidents</h5>
+                    <select id="incidentTypeFilter" class="form-select" style="width: 180px; margin: 0;">
+                        <option value="" selected>Tous les types</option>
+                        {% for type in incident_types %}
+                        <option value="{{ type.id }}">{{ type.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div id="map" class="map-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Répartition par région</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="regionChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <div class="col s12 l6" data-aos="fade-up">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Évolution mensuelle des incidents</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyTrendChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col s12 l6" data-aos="fade-up" data-aos-delay="100">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Types d'incidents</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="incidentTypeChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incidents Table -->
+    <div class="row">
+        <div class="col s12" data-aos="fade-up">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Derniers Incidents Signalés</h5>
+                    <a href="{% url 'sanitaryincident_create' %}" class="btn waves-effect waves-light" style="background-color: var(--ci-primary);">
+                        <i class="material-icons-round left">add</i> Nouvel Incident
+                    </a>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Localisation</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                            <th>Personnes</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody style="text-align: center" class="center">
+                        {% for incident in recent_incidents %}
+                        <tr style="text-align: center; " class="center">
+                            <td>#INC-{{ incident.id|stringformat:"04d" }}</td>
+                            <td>
+                                <i class="material-icons-round
+                                    {% if incident.outcome == 'mort' %}red-text
+                                    {% elif incident.outcome == 'blessure' %}orange-text
+                                    {% else %}green-text{% endif %}"
+                                   style="font-size: 1.2rem; vertical-align: middle;">
+                                    {% if incident.incident_type.name|lower == 'cholera' %}coronavirus
+                                    {% elif incident.incident_type.name|lower == 'intoxication' %}emoji_food_beverage
+                                    {% else %}healing{% endif %}
+                                </i>
+                                {{ incident.incident_type }}
+                            </td>
+                            <td>{{ incident.city|default:"Non spécifié" }}</td>
+                            <td>{{ incident.date_time|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge
+                                    {% if incident.outcome == 'mort' %}critical
+                                    {% elif incident.outcome == 'blessure' %}in-progress
+                                    {% else %}resolved{% endif %}">
+                                    {{ incident.get_outcome_display }}
+                                </span>
+                            </td>
+                            <td style="text-align: center">{{ incident.number_of_people_involved }}</td>
+                            <td>
+                                <a href="{% url 'sanitaryincident_detail' incident.id %}" class="btn-flat waves-effect">
+                                    <i class="material-icons-round grey-text">visibility</i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">Aucun incident récent</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% if recent_incidents.has_other_pages %}
+                    <ul class="pagination center">
+                        {% if recent_incidents.has_previous %}
+                        <li class="waves-effect"><a href="?page={{ recent_incidents.previous_page_number }}"><i class="material-icons-round">chevron_left</i></a></li>
+                        {% else %}
+                        <li class="disabled"><a href="#!"><i class="material-icons-round">chevron_left</i></a></li>
+                        {% endif %}
+
+                        {% for i in recent_incidents.paginator.page_range %}
+                        {% if recent_incidents.number == i %}
+                        <li class="active"><a href="#!">{{ i }}</a></li>
+                        {% else %}
+                        <li class="waves-effect"><a href="?page={{ i }}">{{ i }}</a></li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if recent_incidents.has_next %}
+                        <li class="waves-effect"><a href="?page={{ recent_incidents.next_page_number }}"><i class="material-icons-round">chevron_right</i></a></li>
+                        {% else %}
+                        <li class="disabled"><a href="#!"><i class="material-icons-round">chevron_right</i></a></li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts pour les graphiques et la carte -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Données pour les graphiques (passées depuis la vue)
+    const regionData = {
+        labels: {{ regions_labels|safe }},
+        datasets: [{
+            label: 'Incidents par région',
+            data: {{ regions_data|safe }},
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.7)',
+                'rgba(54, 162, 235, 0.7)',
+                'rgba(255, 206, 86, 0.7)',
+                'rgba(75, 192, 192, 0.7)',
+                'rgba(153, 102, 255, 0.7)',
+                'rgba(255, 159, 64, 0.7)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const monthlyTrendData = {
+        labels: {{ monthly_labels|safe }},
+        datasets: [{
+            label: 'Incidents',
+            data: {{ monthly_data|safe }},
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            fill: true,
+            tension: 0.4
+        }]
+    };
+
+    const incidentTypeData = {
+        labels: {{ incident_types_labels|safe }},
+        datasets: [{
+            label: 'Répartition par type',
+            data: {{ incident_types_data|safe }},
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.7)',
+                'rgba(54, 162, 235, 0.7)',
+                'rgba(255, 206, 86, 0.7)',
+                'rgba(75, 192, 192, 0.7)',
+                'rgba(153, 102, 255, 0.7)'
+            ]
+        }]
+    };
+
+    // Initialisation des graphiques
+    new Chart(document.getElementById('regionChart'), {
+        type: 'bar',
+        data: regionData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('monthlyTrendChart'), {
+        type: 'line',
+        data: monthlyTrendData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('incidentTypeChart'), {
+        type: 'doughnut',
+        data: incidentTypeData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+
+    // Initialisation de la carte Leaflet
+    const map = L.map('map').setView([7.5399, -5.5471], 7); // Centré sur la Côte d'Ivoire
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // Ajout des marqueurs pour chaque incident
+    const incidentsData = {{ incidents_map_data|safe }};
+    const markers = L.markerClusterGroup();
+
+    incidentsData.forEach(incident => {
+        if (incident.location) {
+            const marker = L.marker([incident.location.y, incident.location.x])
+                .bindPopup(`
+                    <b>${incident.incident_type}</b><br>
+                    ${incident.city || 'Localité inconnue'}<br>
+                    ${new Date(incident.date_time).toLocaleDateString()}<br>
+                    <a href="/sanitaryincident/${incident.id}/" class="btn btn-sm btn-primary">Détails</a>
+                `);
+            markers.addLayer(marker);
+        }
+    });
+
+    map.addLayer(markers);
+
+    // Filtrage des incidents par type
+    document.getElementById('incidentTypeFilter').addEventListener('change', function() {
+        const typeId = this.value;
+        markers.clearLayers();
+
+        incidentsData.forEach(incident => {
+            if (incident.location && (!typeId || incident.incident_type_id == typeId)) {
+                const marker = L.marker([incident.location.y, incident.location.x])
+                    .bindPopup(`
+                        <b>${incident.incident_type}</b><br>
+                        ${incident.city || 'Localité inconnue'}<br>
+                        ${new Date(incident.date_time).toLocaleDateString()}<br>
+                        <a href="/sanitaryincident/${incident.id}/" class="btn btn-sm btn-primary">Détails</a>
+                    `);
+                markers.addLayer(marker);
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.alert-card {
+    background-color: #FFF3E0;
+    border-left: 4px solid #FF9800;
+}
+
+.stat-card {
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.map-container {
+    height: 400px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badge.critical {
+    background-color: #FFEBEE;
+    color: #C62828;
+}
+
+.badge.in-progress {
+    background-color: #FFF8E1;
+    color: #FF8F00;
+}
+
+.badge.resolved {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    background-color: #f5f5f5;
+    font-weight: 500;
+}
+
+.data-table td, .data-table th {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.data-table tr:hover {
+    background-color: #f9f9f9;
+}
+</style>
+{% endblock %}

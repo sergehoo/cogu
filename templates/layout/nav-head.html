@@ -1,0 +1,66 @@
+{% load static %}
+<div class="header-fixed ">
+                <!--begin::Container-->
+                <div class=" container-fluid  d-flex align-items-stretch justify-content-between">
+                    <!--begin::Header Menu Wrapper-->
+                    <div class="header-menu-wrapper header-menu-wrapper-left" id="kt_header_menu_wrapper">
+                        <!--begin::Header Menu-->
+                        <div id="kt_header_menu" class="header-menu header-menu-mobile  header-menu-layout-default ">
+                            <!--begin::Header Nav-->
+
+                            <ul class="menu-nav ">
+                                <li class="menu-item  menu-item-active h2 "><img alt="Logo" src="{% static 'assets/media/logoMSHPCMU.png' %}" class="max-h-50px"/></li>
+                                <li class="menu-item  menu-item-active h2 text-warning">COGU-Comite de Gestion des Urgence Sanitaire</li>
+                                <li class="menu-item  menu-item-active h2 text-primary">{{ request.user.centre.nom }}</li>
+                                <li class="menu-item  menu-item-active h6 text-muted">{{ request.user.centre.district }}</li>
+                            </ul>
+
+                        </div>
+                        <!--end::Header Menu-->
+                    </div>
+                    <!--end::Header Menu Wrapper-->
+
+                    <!--begin::Topbar-->
+                    <div class="topbar">
+
+                        <!--begin::Notifications-->
+{#                  {% include 'layout/notification.html' %}#}
+                        <!--end::Notifications-->
+
+
+                        <!--begin::User-->
+                        <div class="topbar-item">
+                            <div class="btn btn-icon w-auto btn-clean d-flex align-items-center btn-lg px-2"
+                                 id="kt_quick_user_toggle">
+                                <span class="text-muted font-weight-bold font-size-base d-none d-md-inline mr-1">Hi,</span>
+                                <span class="text-dark-50 font-weight-bolder font-size-base d-none d-md-inline mr-3">{{ request.user.username }}</span>
+                                <span class="symbol symbol-35 symbol-light-success">
+		                        <span class="symbol-label font-size-h5 font-weight-bold">{{ request.user.username|first|upper }}</span>
+		                    </span>
+                            </div>
+                        </div>
+                        <!--end::User-->
+                    </div>
+                    <!--end::Topbar-->
+                </div>
+                <!--end::Container-->
+            </div>
+{# <div class="main-header">#}
+{#            <div class="page-title">#}
+{#                <h4>Tableau de Bord</h4>#}
+{#                <nav class="breadcrumb">#}
+{#                    <span>Gestion des Incidents Sanitaires</span>#}
+{#                </nav>#}
+{#            </div>#}
+{##}
+{#            <div class="header-actions">#}
+{#                <div class="search-bar">#}
+{#                    <i class="material-icons-round">search</i>#}
+{#                    <input type="text" placeholder="Rechercher...">#}
+{#                </div>#}
+{##}
+{#                <a href="#" class="menu-toggle btn-flat waves-effect" style="display: none;">#}
+{#                    <i class="material-icons-round">menu</i>#}
+{#                </a>#}
+{#            </div>#}
+{#        </div>#}

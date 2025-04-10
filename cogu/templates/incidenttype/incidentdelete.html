@@ -1,0 +1,46 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="main-content">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Confirmer la suppression</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> Attention !</h4>
+                <p>Vous êtes sur le point de supprimer définitivement le type d'incident suivant :</p>
+                <hr>
+                <h5>{{ object.name }}</h5>
+
+                {% if child_types.exists %}
+                <div class="mt-3">
+                    <p class="mb-2"><strong>Ce type contient des sous-types :</strong></p>
+                    <ul>
+                        {% for child in child_types %}
+                        <li>{{ child.name }}</li>
+                        {% endfor %}
+                    </ul>
+                    <p class="mb-0">Ces sous-types deviendront des types principaux après suppression.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'incidenttype_detail' object.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Annuler
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i> Confirmer la suppression
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,7 +1,11 @@
 import requests
 from django.conf import settings
-
-from rage_INHP.MPIClient import MPIClient
+from django.http import HttpResponse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from twilio.twiml.messaging_response import MessagingResponse
+from cogu.models import SanitaryIncident
+from coguMSHP.MPIClient import MPIClient
 
 
 def synchroniser_avec_mpi(patient_instance):
@@ -64,3 +68,26 @@ def synchroniser_avec_mpi(patient_instance):
 #
 #     data = response.json()
 #     return data.get("upi")
+
+@csrf_exempt
+def twilio_whatsapp_webhook(request):
+    if request.method == 'POST':
+        from_number = request.POST.get('From')
+        message_body = request.POST.get('Body')
+
+        # Enregistrer un incident basique
+        SanitaryIncident.objects.create(
+            incident_type_id=1,  # à adapter
+            description=message_body,
+            date_time=timezone.now(),
+            outcome='autre',
+            source='WhatsApp',
+            number_of_people_involved=1,
+        )
+
+        # Réponse automatique
+        response = MessagingResponse()
+        response.message("✅ Merci ! Votre message a été reçu et enregistré.")
+        return HttpResponse(str(response), content_type='application/xml')
+
+    return HttpResponse("OK", status=200)

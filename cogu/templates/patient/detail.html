@@ -1,0 +1,128 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="main-content bg-dark-o-45">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0">{{ title }}</h5>
+            <div class="btn-group">
+                <a href="{% url 'patient_update' patient.code_patient %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-edit me-2"></i>Modifier
+                </a>
+                <a href="{% url 'patient_delete' patient.code_patient %}" class="btn btn-danger btn-sm">
+                    <i class="fas fa-trash me-2"></i>Supprimer
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-4">
+                <!-- Colonne Informations personnelles -->
+                <div class="col-md-6">
+                    <div class="info-section border p-3 rounded">
+                        <h6 class="fw-bold border-bottom pb-2 mb-3">Informations personnelles</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Code Patient</dt>
+                            <dd class="col-sm-8">{{ patient.code_patient }}</dd>
+
+                            <dt class="col-sm-4">Nom complet</dt>
+                            <dd class="col-sm-8">{{ patient.nom }} {{ patient.prenoms }}</dd>
+
+                            <dt class="col-sm-4">Sexe</dt>
+                            <dd class="col-sm-8">{{ patient.get_sexe_display }}</dd>
+
+                            <dt class="col-sm-4">Date de naissance</dt>
+                            <dd class="col-sm-8">{{ patient.date_naissance|date:"d/m/Y" }} ({{ patient.calculate_age }} ans)</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Colonne Coordonnées -->
+                <div class="col-md-6">
+                    <div class="info-section border p-3 rounded">
+                        <h6 class="fw-bold border-bottom pb-2 mb-3">Coordonnées</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Contact</dt>
+                            <dd class="col-sm-8">{{ patient.contact_formatte }}</dd>
+
+                            <dt class="col-sm-4">Localisation</dt>
+                            <dd class="col-sm-8">
+                                {{ patient.commune }}{% if patient.quartier %}, {{ patient.quartier }}{% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Section Accomplagnateur (conditionnelle) -->
+                {% if patient.patient_mineur %}
+                <div class="col-12">
+                    <div class="info-section border p-3 rounded">
+                        <h6 class="fw-bold border-bottom pb-2 mb-3">Informations accompagnateur</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-2">Nom</dt>
+                            <dd class="col-sm-4">{{ patient.accompagnateur }}</dd>
+
+                            <dt class="col-sm-2">Contact</dt>
+                            <dd class="col-sm-4">{{ patient.accompagnateur_contact_formatte }}</dd>
+
+                            <dt class="col-sm-2">Lien</dt>
+                            <dd class="col-sm-4">{{ patient.get_accompagnateur_nature_display }}</dd>
+                        </dl>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Section Statut médical -->
+                <div class="col-12">
+                    <div class="info-section border p-3 rounded">
+                        <h6 class="fw-bold border-bottom pb-2 mb-3">Statut médical</h6>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-2">Statut</dt>
+                            <dd class="col-sm-10">
+                                {% if patient.gueris %}
+                                    <span class="badge bg-success">Guéri</span>
+                                {% elif patient.decede %}
+                                    <span class="badge bg-danger">Décédé</span>
+                                    ({{ patient.date_deces|date:"d/m/Y" }})
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">{{ patient.get_status_display|default:"Actif" }}</span>
+                                {% endif %}
+                            </dd>
+
+                            {% if patient.decede and patient.cause_deces %}
+                            <dt class="col-sm-2">Cause du décès</dt>
+                            <dd class="col-sm-10">{{ patient.cause_deces }}</dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<style>
+.info-section {
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.info-section:hover {
+    background-color: #fff;
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,0.125);
+}
+
+.badge {
+    font-size: 0.875em;
+    padding: 0.35em 0.65em;
+    font-weight: 500;
+}
+</style>
