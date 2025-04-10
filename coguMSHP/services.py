@@ -3,6 +3,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
 from coguMSHP.MPIClient import MPIClient
 
@@ -71,21 +72,22 @@ def synchroniser_avec_mpi(patient_instance):
 @csrf_exempt
 def twilio_whatsapp_webhook(request):
     from cogu.models import IncidentType, SanitaryIncident, WhatsAppMessage
+
     if request.method == 'POST':
+        # 📩 Numéro réel de l’expéditeur
         from_number = request.POST.get('From', '').replace('whatsapp:', '')
         message_body = request.POST.get('Body', '').strip()
 
-        # (Optionnel) Sauvegarde du message reçu
+        # ✅ Sauvegarder le message entrant
         WhatsAppMessage.objects.create(
             direction='in',
             sender=from_number,
-            recipient='twilio',
+            recipient=settings.TWILIO_WHATSAPP_NUMBER,
             body=message_body
         )
 
         try:
-            # Exemple : on associe à un incident type "Autre" (à adapter selon ton système)
-            incident_type = IncidentType.objects.get(name__iexact='Autre')  # ou id=1 si fixe
+            incident_type = IncidentType.objects.get(name__iexact='Autre')
 
             incident = SanitaryIncident.objects.create(
                 incident_type=incident_type,
@@ -96,14 +98,13 @@ def twilio_whatsapp_webhook(request):
                 number_of_people_involved=1,
             )
 
-            # Réponse de confirmation
             response = MessagingResponse()
             response.message(f"✅ Merci ! Incident enregistré (#INC-{incident.id:04d}).")
 
         except Exception as e:
+            print(f"[❌ Erreur WhatsApp webhook] {e}")
             response = MessagingResponse()
             response.message("❌ Une erreur est survenue. Veuillez réessayer plus tard.")
-            print(f"Erreur webhook WhatsApp : {e}")
 
         return HttpResponse(str(response), content_type='application/xml')
 
