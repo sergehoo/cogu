@@ -30,7 +30,7 @@ WORKDIR /cogu-app
 
 COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt
-
+RUN mkdir -p /cogu-app/logs
 COPY . .
 
 EXPOSE 8000
