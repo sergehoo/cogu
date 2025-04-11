@@ -293,9 +293,9 @@ def twilio_whatsapp_webhook(request):
         matched_commune = Commune.objects.filter(name__icontains=message_body).first()
         location = matched_commune.location if matched_commune else None
 
-        incident_type = IncidentType.objects.filter(name__iexact=info['incident_type_name']).first()
+        incident_type = IncidentType.objects.filter(name__icontains=info['incident_type_name']).first()
         if not incident_type:
-            incident_type = IncidentType.objects.filter(name__iexact='Autre').first()
+            incident_type = IncidentType.objects.filter(name__icontains='Autre').first()
 
         incident = SanitaryIncident.objects.create(
             incident_type=incident_type,
