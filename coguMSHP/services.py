@@ -172,90 +172,71 @@ def save_twilio_media(request):
 
     return media_files
 
+
 @csrf_exempt
 def twilio_whatsapp_webhook(request):
     from cogu.models import Commune, WhatsAppMessage, IncidentType, SanitaryIncident, IncidentMedia
-    from twilio.rest import Client
-    from django.core.files.temp import NamedTemporaryFile
-    import mimetypes
-
     if request.method != 'POST':
         return HttpResponse("OK", status=200)
 
     sender = request.POST.get('From', '').replace('whatsapp:', '')
-    message_body = request.POST.get('Body', '').strip()
-    num_media = int(request.POST.get('NumMedia', '0'))
+    body = request.POST.get('Body', '').strip()
+    num_media = int(request.POST.get('NumMedia', 0))
 
-    # Save the message
-    message = WhatsAppMessage.objects.create(
+    WhatsAppMessage.objects.create(
         direction='in',
         sender=sender,
         recipient=settings.TWILIO_WHATSAPP_NUMBER,
-        body=message_body
+        body=body
     )
 
     response = MessagingResponse()
 
     try:
-        matched_commune = Commune.objects.filter(name__icontains=message_body).first()
-
-        location = None
-        if matched_commune:
-            location = matched_commune.location
-        else:
-            location = get_location_from_text(message_body)
-
+        commune = Commune.objects.filter(name__icontains=body).first()
+        location = commune.location if commune else get_location_from_text(body)
         incident_type = IncidentType.objects.filter(name__iexact='Autre').first()
 
         incident = SanitaryIncident.objects.create(
             incident_type=incident_type,
-            description=message_body,
+            description=body,
             date_time=timezone.now(),
             location=location,
-            city=matched_commune,
+            city=commune,
             outcome='autre',
             source='WhatsApp',
             number_of_people_involved=1,
         )
 
-        # Process medias
+        # ✅ Sauvegarde des médias (images/vidéos)
         for i in range(num_media):
             media_url = request.POST.get(f"MediaUrl{i}")
-            media_type = request.POST.get(f"MediaContentType{i}", "unknown")
+            media_type = request.POST.get(f"MediaContentType{i}")
 
-            media = IncidentMedia.objects.create(
-                incident=incident,
-                media_url=media_url,
-                media_type=media_type
-            )
+            if media_url:
+                response_media = requests.get(media_url, stream=True)
+                if response_media.status_code == 200:
+                    filename = f"incident_{incident.id}_{i}.{media_type.split('/')[-1]}"
+                    media_file = ContentFile(response_media.content)
 
-            # Optionally download and save locally
-            try:
-                twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-                media_content = twilio_client.request("GET", media_url).content
-                ext = mimetypes.guess_extension(media_type.split(';')[0])
-                if not ext:
-                    ext = ".bin"
-
-                temp_file = NamedTemporaryFile(delete=True)
-                temp_file.write(media_content)
-                temp_file.flush()
-                media.downloaded_file.save(f"media_{media.id}{ext}", temp_file)
-                media.save()
-
-            except Exception as e:
-                logger.warning(f"Erreur téléchargement du média: {e}")
+                    media = IncidentMedia(
+                        incident=incident,
+                        media_url=media_url,
+                        media_type=media_type,
+                    )
+                    media.downloaded_file.save(filename, media_file)
+                    media.save()
 
         response.message(f"✅ Merci ! Incident enregistré (#INC-{incident.id:04d}).")
+        logger.info(f"[WhatsApp] Incident #{incident.id} avec {num_media} médias")
 
-        if "mort" in message_body.lower() or "urgence" in message_body.lower():
-            send_slack_alert(f"🚨 Incident critique signalé via WhatsApp: {message_body}")
-            send_email_alert("ALERTE INCIDENT", message_body)
-
-        logger.info(f"[WhatsApp] Incident #{incident.id} enregistré avec {num_media} médias.")
+        # ✅ Alertes Slack + Email si mots clés
+        if any(x in body.lower() for x in ['mort', 'décès', 'urgence']):
+            send_slack_alert(f"🚨 URGENCE WhatsApp: {body}")
+            send_email_alert("🚨 URGENCE SANITAIRE", body)
 
     except Exception as e:
-        logger.exception("Erreur lors du traitement de l'incident WhatsApp")
+        logger.exception("Erreur webhook WhatsApp")
         response.message("❌ Une erreur est survenue. Veuillez réessayer plus tard.")
 
     return HttpResponse(str(response), content_type='application/xml')

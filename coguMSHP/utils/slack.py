@@ -1,27 +1,38 @@
 import requests
 import logging
 from django.conf import settings
+from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
 
 
-def send_slack_alert(message: str, username="🛑 COGU Incident Bot"):
-    if not settings.SLACK_ALERT_WEBHOOK:
-        logger.warning("SLACK_ALERT_WEBHOOK n’est pas configuré.")
-        return
-
+def send_slack_alert(message: str):
     try:
-        payload = {
-            "text": message,
-            "username": username,
-            "icon_emoji": ":rotating_light:"
-        }
-        resp = requests.post(
+        if not settings.SLACK_ALERT_WEBHOOK:
+            logger.warning("SLACK_ALERT_WEBHOOK non défini")
+            return
+        requests.post(
             settings.SLACK_ALERT_WEBHOOK,
-            json=payload,
+            json={"text": message, "username": "🛑 COGU Bot", "icon_emoji": ":rotating_light:"},
             timeout=5
         )
-        resp.raise_for_status()
-        logger.info("✅ Alerte Slack envoyée.")
+        logger.info("✅ Slack alert envoyé")
     except Exception as e:
-        logger.error(f"Erreur d’envoi Slack : {e}")
+        logger.error(f"❌ Slack error: {e}")
+
+
+def send_email_alert(subject, body):
+    try:
+        if not settings.EMAIL_ALERT_RECEIVERS:
+            logger.warning("EMAIL_ALERT_RECEIVERS non défini")
+            return
+        send_mail(
+            subject,
+            body,
+            settings.DEFAULT_FROM_EMAIL,
+            settings.EMAIL_ALERT_RECEIVERS,
+            fail_silently=False,
+        )
+        logger.info("✅ Email alert envoyé")
+    except Exception as e:
+        logger.error(f"❌ Email error: {e}")
