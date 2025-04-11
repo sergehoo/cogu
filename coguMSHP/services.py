@@ -2,6 +2,7 @@ import logging
 import mimetypes
 import re
 import uuid
+from datetime import date
 
 import requests
 from django.conf import settings
@@ -246,16 +247,12 @@ def save_twilio_media(request):
 
 
 
+
 def get_or_create_patient_from_full_name(full_name):
     from cogu.models import Patient
-    from datetime import date
-    """
-    Extrait nom + prénoms d'un nom complet et retourne le Patient existant ou le crée.
-    """
     parts = full_name.strip().split()
     if len(parts) < 2:
         return None
-
     nom = parts[0]
     prenoms = ' '.join(parts[1:])
 
@@ -265,9 +262,9 @@ def get_or_create_patient_from_full_name(full_name):
         defaults={
             'nom': nom,
             'prenoms': prenoms,
-            'contact': '',  # tu peux tenter d'extraire du message si tu veux
-            'date_naissance': date(2000, 1, 1),  # valeur par défaut arbitraire
-            'sexe': 'M',  # à adapter ou deviner
+            'contact': '0100000000',
+            'date_naissance': date(2000, 1, 1),
+            'sexe': 'M',
         }
     )
     return patient
@@ -370,9 +367,10 @@ def extract_info_from_message(message):
     }
 
 
+
 @csrf_exempt
 def twilio_whatsapp_webhook(request):
-    from cogu.models import Commune, WhatsAppMessage, IncidentType, SanitaryIncident, IncidentMedia, Patient
+    from cogu.models import Commune, WhatsAppMessage, IncidentType, SanitaryIncident, IncidentMedia
 
     if request.method != 'POST':
         return HttpResponse("OK", status=200)
@@ -395,7 +393,6 @@ def twilio_whatsapp_webhook(request):
         matched_commune = Commune.objects.filter(name__icontains=message_body).first()
         location = matched_commune.location if matched_commune else None
 
-        # 🔒 Sécurise le nom d'incident
         incident_type_name = info.get('incident_type_name')
         if incident_type_name:
             incident_type = IncidentType.objects.filter(name__icontains=incident_type_name).first()
@@ -417,24 +414,41 @@ def twilio_whatsapp_webhook(request):
             status='pending'
         )
 
-        # 🔒 Sécurise la liste de patients
         patients = []
         for full_name in info.get('patients', []):
             patient = get_or_create_patient_from_full_name(full_name)
             if patient:
                 patients.append(patient)
-
         incident.patients_related.set(patients)
 
-        incident.patients_related.set(patients)
-        incident.patients_related.set(patients)
+        for i in range(num_media):
+            media_url = request.POST.get(f"MediaUrl{i}")
+            media_type = request.POST.get(f"MediaContentType{i}", "application/octet-stream")
+
+            media = IncidentMedia.objects.create(
+                incident=incident,
+                media_url=media_url,
+                media_type=media_type
+            )
+
+            try:
+                resp = requests.get(media_url, auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN))
+                if resp.status_code == 200:
+                    ext = mimetypes.guess_extension(media_type) or ".bin"
+                    filename = f"incident_media/{timezone.now().strftime('%Y%m%d%H%M%S')}_{i}{ext}"
+                    media.downloaded_file.save(filename, ContentFile(resp.content))
+            except Exception as e:
+                logger.warning(f"Erreur téléchargement média : {e}")
+
+        response.message(f"✅ Merci ! Incident enregistré (#INC-{incident.id:04d}).")
 
     except Exception as e:
         logger.exception("Erreur webhook WhatsApp")
         response.message("❌ Une erreur est survenue. Veuillez réessayer plus tard.")
-        response.message(f"❌ Une erreur est survenue : {str(e)}")
+        response.message(f"❌ Détail : {str(e)}")
 
     return HttpResponse(str(response), content_type='application/xml')
+
 
 
 def get_location_from_text(text):
