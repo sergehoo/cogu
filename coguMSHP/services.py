@@ -342,6 +342,7 @@ def twilio_whatsapp_webhook(request):
     except Exception as e:
         logger.exception("Erreur webhook WhatsApp")
         response.message("❌ Une erreur est survenue. Veuillez réessayer plus tard.")
+        response.message(f"❌ Une erreur est survenue : {str(e)}")
 
     return HttpResponse(str(response), content_type='application/xml')
 
