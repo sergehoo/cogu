@@ -242,11 +242,13 @@ def save_twilio_media(request):
 #
 #     return HttpResponse(str(response), content_type='application/xml')
 
-from cogu.models import Patient
-from datetime import date
+
+
 
 
 def get_or_create_patient_from_full_name(full_name):
+    from cogu.models import Patient
+    from datetime import date
     """
     Extrait nom + prénoms d'un nom complet et retourne le Patient existant ou le crée.
     """

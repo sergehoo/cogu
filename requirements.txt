@@ -62,7 +62,5 @@ yarl==1.19.0
 zipp==3.21.0
 gunicorn
 psycopg2-binary
-
-
 beautifulsoup4~=4.13.3
 tqdm~=4.67.1
