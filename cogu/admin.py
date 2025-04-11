@@ -48,6 +48,14 @@ class HealthRegionResource(resources.ModelResource):
         fields = ('id', 'name', 'poles')
 
 
+@admin.register(HealthRegion)
+class HealthRegionAdmin(ImportExportModelAdmin):
+    resource_class = HealthRegionResource
+    list_display = ('name', 'poles')
+    search_fields = ('name',)
+    list_filter = ('poles',)
+
+
 # 🔹 Ajout du module ImportExportModelAdmin
 @admin.register(Commune)
 class CommuneAdmin(ImportExportModelAdmin, LeafletGeoAdmin):
