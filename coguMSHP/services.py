@@ -242,36 +242,135 @@ def save_twilio_media(request):
 #
 #     return HttpResponse(str(response), content_type='application/xml')
 
+from cogu.models import Patient
+from datetime import date
+
+
+def get_or_create_patient_from_full_name(full_name):
+    """
+    Extrait nom + prénoms d'un nom complet et retourne le Patient existant ou le crée.
+    """
+    parts = full_name.strip().split()
+    if len(parts) < 2:
+        return None
+
+    nom = parts[0]
+    prenoms = ' '.join(parts[1:])
+
+    patient, created = Patient.objects.get_or_create(
+        nom__iexact=nom,
+        prenoms__iexact=prenoms,
+        defaults={
+            'nom': nom,
+            'prenoms': prenoms,
+            'contact': '',  # tu peux tenter d'extraire du message si tu veux
+            'date_naissance': date(2000, 1, 1),  # valeur par défaut arbitraire
+            'sexe': 'M',  # à adapter ou deviner
+        }
+    )
+    return patient
+
 
 def extract_info_from_message(message):
     keywords = {
-        "épidémie": "Épidémie",
-        "accident": "Accident",
-        "blessé": "Blessure",
-        "mort": "Décès"
+        # Accidents et incidents divers
+        "accident de la route": "Accidents de la route",
+        "accident ferroviaire": "Accidents ferroviaires",
+        "accident aérien": "Accidents aériens",
+        "accident maritime": "Accidents maritimes",
+        "accident du travail": "Accidents du travail",
+        "accident industriel": "Accidents industriels",
+        "accident domestique": "Accidents domestiques",
+        "incendie": "Incendies",
+        "explosion": "Explosions",
+
+        # Urgences médicales
+        "crise cardiaque": "Crise cardiaque",
+        "infarctus": "Crise cardiaque",
+        "avc": "Accident vasculaire cérébral",
+        "arrêt cardiaque": "Arrêt cardiorespiratoire",
+        "overdose": "Overdose",
+        "intoxication": "Intoxication",
+        "anaphylaxie": "Réactions allergiques graves",
+        "blessé": "Blessures sévères",
+        "traumatisme": "Blessures sévères",
+        "brûlure": "Brûlures graves",
+        "diabète": "Crises diabétiques",
+
+        # Violences
+        "violence domestique": "Violence domestique",
+        "violence sexuelle": "Violence sexuelle",
+        "violence conjugale": "Violences conjugales",
+        "harcèlement": "Harcèlement et intimidation",
+        "maltraitance": "Maltraitance d’enfants",
+
+        # Santé mentale
+        "suicide": "Suicide",
+        "automutilation": "Automutilation",
+        "psychose": "Crises psychotiques",
+        "dépression": "Dépression sévère",
+        "attaque de panique": "Attaques de panique",
+
+        # Maladies épidémiques
+        "covid": "COVID-19",
+        "grippe": "Grippe saisonnière",
+        "fièvre jaune": "Fièvre jaune",
+        "ebola": "Ebola",
+        "mpox": "Mpox",
+        "méningite": "Méningite",
+        "sida": "VIH/SIDA",
+        "choléra": "Choléra",
+        "paludisme": "Paludisme",
+        "dengue": "Dengue",
+        "zika": "Zika",
+        "tuberculose": "Tuberculose",
+        "rougeole": "Rougeole",
+        "polio": "Poliomyélite",
+
+        # Catastrophes naturelles
+        "inondation": "Inondations",
+        "sécheresse": "Sécheresses",
+        "canicule": "Canicules",
+        "cyclone": "Cyclones",
+        "ouragan": "Cyclones",
+        "tornade": "Tornades",
+        "séisme": "Séismes",
+        "tremblement de terre": "Séismes",
+        "tsunami": "Tsunamis",
+        "éruption": "Éruptions volcaniques",
+        "feu de forêt": "Feux de forêt",
+
+        # Sécurité publique
+        "attentat": "Actes terroristes",
+        "prise d'otage": "Actes terroristes",
+        "fusillade": "Tirs / fusillades",
+        "émeute": "Émeutes",
+        "kidnapping": "Kidnappings",
+        "conflit armé": "Conflits armés",
     }
     incident_type = None
-    gravité = "modérée"
+    gravite = "modérée"
     personnes = 1
 
     for mot, label in keywords.items():
         if mot in message.lower():
             incident_type = label
             if mot == "mort":
-                gravité = "critique"
+                gravite = "critique"
 
     possible_names = re.findall(r"[A-Z][a-z]+\s[A-Z][a-z]+", message)
 
     return {
         "incident_type_name": incident_type,
-        "gravité": gravité,
+        "gravité": gravite,
         "patients": possible_names,
         "nombre": personnes,
     }
 
+
 @csrf_exempt
 def twilio_whatsapp_webhook(request):
-    from cogu.models import Commune, WhatsAppMessage, IncidentType, SanitaryIncident, IncidentMedia,Patient
+    from cogu.models import Commune, WhatsAppMessage, IncidentType, SanitaryIncident, IncidentMedia, Patient
 
     if request.method != 'POST':
         return HttpResponse("OK", status=200)
@@ -319,13 +418,11 @@ def twilio_whatsapp_webhook(request):
         # 🔒 Sécurise la liste de patients
         patients = []
         for full_name in info.get('patients', []):
-            parts = full_name.strip().split()
-            if len(parts) >= 2:
-                nom = parts[0]
-                prenoms = ' '.join(parts[1:])
-                match = Patient.objects.filter(nom__iexact=nom, prenoms__icontains=prenoms).first()
-                if match:
-                    patients.append(match)
+            patient = get_or_create_patient_from_full_name(full_name)
+            if patient:
+                patients.append(patient)
+
+        incident.patients_related.set(patients)
 
         incident.patients_related.set(patients)
         incident.patients_related.set(patients)
