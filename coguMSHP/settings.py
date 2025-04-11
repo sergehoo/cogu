@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "cogu.apps.CoguConfig",
     'simple_history',
+    'import_export',
 
 ]
 

@@ -242,7 +242,6 @@ def save_twilio_media(request):
 #
 #     return HttpResponse(str(response), content_type='application/xml')
 
-logger = logging.getLogger(__name__)
 
 
 @csrf_exempt

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'django_select2',
     'leaflet',
+    'import_export',
 
 ]
 
