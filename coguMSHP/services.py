@@ -317,7 +317,17 @@ def twilio_whatsapp_webhook(request):
         )
 
         # 🔒 Sécurise la liste de patients
-        patients = Patient.objects.filter(full_name__in=info.get('patients', []))
+        patients = []
+        for full_name in info.get('patients', []):
+            parts = full_name.strip().split()
+            if len(parts) >= 2:
+                nom = parts[0]
+                prenoms = ' '.join(parts[1:])
+                match = Patient.objects.filter(nom__iexact=nom, prenoms__icontains=prenoms).first()
+                if match:
+                    patients.append(match)
+
+        incident.patients_related.set(patients)
         incident.patients_related.set(patients)
 
     except Exception as e:
