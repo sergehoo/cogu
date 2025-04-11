@@ -5,6 +5,7 @@ import uuid
 
 import requests
 from django.conf import settings
+from django.contrib.gis.geos import Point
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.mail import send_mail
@@ -13,7 +14,6 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
-
 
 from coguMSHP.MPIClient import MPIClient
 from coguMSHP.utils.notifications import send_email_alert
@@ -154,6 +154,7 @@ def get_location_from_text(text):
         logger.warning(f"Géocodage échoué pour: {text} | Erreur: {e}")
         return None
 
+
 def save_twilio_media(request):
     media_count = int(request.POST.get('NumMedia', 0))
     media_files = []
@@ -173,6 +174,77 @@ def save_twilio_media(request):
     return media_files
 
 
+# @csrf_exempt
+# def twilio_whatsapp_webhook(request):
+#     from cogu.models import Commune, WhatsAppMessage, IncidentType, SanitaryIncident, IncidentMedia
+#     if request.method != 'POST':
+#         return HttpResponse("OK", status=200)
+#
+#     sender = request.POST.get('From', '').replace('whatsapp:', '')
+#     body = request.POST.get('Body', '').strip()
+#     num_media = int(request.POST.get('NumMedia', 0))
+#
+#     WhatsAppMessage.objects.create(
+#         direction='in',
+#         sender=sender,
+#         recipient=settings.TWILIO_WHATSAPP_NUMBER,
+#         body=body
+#     )
+#
+#     response = MessagingResponse()
+#
+#     try:
+#         commune = Commune.objects.filter(name__icontains=body).first()
+#         location = commune.location if commune else get_location_from_text(body)
+#         incident_type = IncidentType.objects.filter(name__iexact='Autre').first()
+#
+#         incident = SanitaryIncident.objects.create(
+#             incident_type=incident_type,
+#             description=body,
+#             date_time=timezone.now(),
+#             location=location,
+#             city=commune,
+#             outcome='autre',
+#             source='WhatsApp',
+#             number_of_people_involved=1,
+#         )
+#
+#         # ✅ Sauvegarde des médias (images/vidéos)
+#         for i in range(num_media):
+#             media_url = request.POST.get(f"MediaUrl{i}")
+#             media_type = request.POST.get(f"MediaContentType{i}")
+#
+#             if media_url:
+#                 response_media = requests.get(media_url, stream=True)
+#                 if response_media.status_code == 200:
+#                     filename = f"incident_{incident.id}_{i}.{media_type.split('/')[-1]}"
+#                     media_file = ContentFile(response_media.content)
+#
+#                     media = IncidentMedia(
+#                         incident=incident,
+#                         media_url=media_url,
+#                         media_type=media_type,
+#                     )
+#                     media.downloaded_file.save(filename, media_file)
+#                     media.save()
+#
+#         response.message(f"✅ Merci ! Incident enregistré (#INC-{incident.id:04d}).")
+#         logger.info(f"[WhatsApp] Incident #{incident.id} avec {num_media} médias")
+#
+#         # ✅ Alertes Slack + Email si mots clés
+#         if any(x in body.lower() for x in ['mort', 'décès', 'urgence']):
+#             send_slack_alert(f"🚨 URGENCE WhatsApp: {body}")
+#             send_email_alert("🚨 URGENCE SANITAIRE", body)
+#
+#     except Exception as e:
+#         logger.exception("Erreur webhook WhatsApp")
+#         response.message("❌ Une erreur est survenue. Veuillez réessayer plus tard.")
+#
+#     return HttpResponse(str(response), content_type='application/xml')
+
+logger = logging.getLogger(__name__)
+
+
 @csrf_exempt
 def twilio_whatsapp_webhook(request):
     from cogu.models import Commune, WhatsAppMessage, IncidentType, SanitaryIncident, IncidentMedia
@@ -180,60 +252,60 @@ def twilio_whatsapp_webhook(request):
         return HttpResponse("OK", status=200)
 
     sender = request.POST.get('From', '').replace('whatsapp:', '')
-    body = request.POST.get('Body', '').strip()
-    num_media = int(request.POST.get('NumMedia', 0))
+    message_body = request.POST.get('Body', '').strip()
+    num_media = int(request.POST.get('NumMedia', '0'))
 
     WhatsAppMessage.objects.create(
         direction='in',
         sender=sender,
         recipient=settings.TWILIO_WHATSAPP_NUMBER,
-        body=body
+        body=message_body
     )
 
     response = MessagingResponse()
 
     try:
-        commune = Commune.objects.filter(name__icontains=body).first()
-        location = commune.location if commune else get_location_from_text(body)
+        matched_commune = Commune.objects.filter(name__icontains=message_body).first()
+        location = matched_commune.location if matched_commune else get_location_from_text(message_body)
         incident_type = IncidentType.objects.filter(name__iexact='Autre').first()
 
         incident = SanitaryIncident.objects.create(
             incident_type=incident_type,
-            description=body,
+            description=message_body,
             date_time=timezone.now(),
             location=location,
-            city=commune,
+            city=matched_commune,
             outcome='autre',
             source='WhatsApp',
             number_of_people_involved=1,
         )
 
-        # ✅ Sauvegarde des médias (images/vidéos)
         for i in range(num_media):
             media_url = request.POST.get(f"MediaUrl{i}")
-            media_type = request.POST.get(f"MediaContentType{i}")
+            media_type = request.POST.get(f"MediaContentType{i}", "application/octet-stream")
 
-            if media_url:
-                response_media = requests.get(media_url, stream=True)
-                if response_media.status_code == 200:
-                    filename = f"incident_{incident.id}_{i}.{media_type.split('/')[-1]}"
-                    media_file = ContentFile(response_media.content)
+            media = IncidentMedia.objects.create(
+                incident=incident,
+                media_url=media_url,
+                media_type=media_type
+            )
 
-                    media = IncidentMedia(
-                        incident=incident,
-                        media_url=media_url,
-                        media_type=media_type,
-                    )
-                    media.downloaded_file.save(filename, media_file)
-                    media.save()
+            try:
+                resp = requests.get(media_url, auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN))
+                if resp.status_code == 200:
+                    ext = mimetypes.guess_extension(media_type) or ".bin"
+                    filename = f"incident_media/{timezone.now().strftime('%Y%m%d%H%M%S')}_{i}{ext}"
+                    media.downloaded_file.save(filename, ContentFile(resp.content))
+            except Exception as e:
+                logger.warning(f"Erreur téléchargement média : {e}")
 
         response.message(f"✅ Merci ! Incident enregistré (#INC-{incident.id:04d}).")
-        logger.info(f"[WhatsApp] Incident #{incident.id} avec {num_media} médias")
 
-        # ✅ Alertes Slack + Email si mots clés
-        if any(x in body.lower() for x in ['mort', 'décès', 'urgence']):
-            send_slack_alert(f"🚨 URGENCE WhatsApp: {body}")
-            send_email_alert("🚨 URGENCE SANITAIRE", body)
+        if "mort" in message_body.lower() or "urgence" in message_body.lower():
+            send_slack_alert(f"🚨 Incident critique via WhatsApp: {message_body}")
+            send_email_alert("Alerte Critique", message_body)
+
+        logger.info(f"[WhatsApp] Incident #{incident.id} enregistré avec {num_media} médias.")
 
     except Exception as e:
         logger.exception("Erreur webhook WhatsApp")
@@ -241,62 +313,40 @@ def twilio_whatsapp_webhook(request):
 
     return HttpResponse(str(response), content_type='application/xml')
 
-# @csrf_exempt
-# def twilio_whatsapp_webhook(request):
-#     from cogu.models import Commune, WhatsAppMessage, IncidentType, SanitaryIncident
-#     if request.method != 'POST':
-#         return HttpResponse("OK", status=200)
-#
-#     sender = request.POST.get('From', '').replace('whatsapp:', '')
-#     message_body = request.POST.get('Body', '').strip()
-#
-#     WhatsAppMessage.objects.create(
-#         direction='in',
-#         sender=sender,
-#         recipient=settings.TWILIO_WHATSAPP_NUMBER,
-#         body=message_body
-#     )
-#
-#     response = MessagingResponse()
-#
-#     try:
-#         # 🔍 Tentative de détection automatique de la commune
-#         matched_commune = Commune.objects.filter(name__icontains=message_body).first()
-#
-#         # 📍 Géolocalisation automatique (optionnel)
-#         location = None
-#         if matched_commune:
-#             location = matched_commune.location
-#         else:
-#             geocode = get_location_from_text(message_body)
-#             if geocode:
-#                 location = geocode
-#
-#         # 🎯 Type d'incident : fallback "Autre"
-#         incident_type = IncidentType.objects.filter(name__iexact='Autre').first()
-#
-#         incident = SanitaryIncident.objects.create(
-#             incident_type=incident_type,
-#             description=message_body,
-#             date_time=timezone.now(),
-#             location=location,
-#             city=matched_commune,
-#             outcome='autre',
-#             source='WhatsApp',
-#             number_of_people_involved=1,
-#         )
-#
-#         response.message(f"✅ Merci ! Incident enregistré (#INC-{incident.id:04d}).")
-#         logger.info(f"[WhatsApp] Incident enregistré : #{incident.id}")
-#
-#         # 🔔 Alerte Slack / Email
-#         if "mort" in message_body.lower() or "urgence" in message_body.lower():
-#             send_slack_alert(f"🚨 Incident critique signalé via WhatsApp: {message_body}")
-#             send_email_alert("ALERTE INCIDENT", message_body)
-#
-#     except Exception as e:
-#         logger.exception("Erreur lors de l'enregistrement de l'incident WhatsApp")
-#         response.message("❌ Une erreur est survenue. Veuillez réessayer plus tard.")
-#
-#     return HttpResponse(str(response), content_type='application/xml')
 
+def get_location_from_text(text):
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {"q": text, "format": "json", "limit": 1}
+        headers = {"User-Agent": "cogu-bot"}
+        resp = requests.get(url, params=params, headers=headers, timeout=5)
+        if resp.status_code == 200 and resp.json():
+            data = resp.json()[0]
+            return Point(float(data['lon']), float(data['lat']))
+    except Exception as e:
+        logger.warning(f"Géolocalisation échouée: {e}")
+    return None
+
+
+def send_slack_alert(message: str, username="🛑 Alerte Incident"):
+    webhook = getattr(settings, "SLACK_ALERT_WEBHOOK", None)
+    if not webhook:
+        logger.warning("SLACK_ALERT_WEBHOOK non configuré")
+        return
+    try:
+        requests.post(webhook, json={"text": message, "username": username}, timeout=5)
+        logger.info("Slack : message envoyé")
+    except Exception as e:
+        logger.error(f"Slack : erreur d'envoi - {e}")
+
+
+def send_email_alert(subject: str, message: str):
+    receivers = getattr(settings, "EMAIL_ALERT_RECEIVERS", [])
+    if not receivers:
+        logger.warning("EMAIL_ALERT_RECEIVERS non configuré")
+        return
+    try:
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, receivers, fail_silently=False)
+        logger.info("Email : alerte envoyée")
+    except Exception as e:
+        logger.error(f"Email : erreur d'envoi - {e}")
