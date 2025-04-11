@@ -286,6 +286,12 @@ class IncidentType(models.Model):
 
 
 class SanitaryIncident(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'À valider'),
+        ('validated', 'Validé'),
+        ('rejected', 'Rejeté'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     incident_type = models.ForeignKey(IncidentType, on_delete=models.CASCADE, db_index=True)
     description = models.TextField()
     date_time = models.DateTimeField()

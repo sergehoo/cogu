@@ -1,1286 +1,1502 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Alerte Sanitaire CI - Ministère de la Santé</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COGU | Plateforme de Gestion des Urgences Sanitaires</title>
 
   <!-- Favicon -->
-  <link rel="icon" href="https://www.sante.gouv.ci/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="assets/img/cogu-favicon.png" type="image/png">
 
-  <!-- Bootstrap CSS -->
+  <!-- CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <!-- AOS -->
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
   <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
 
-  <!-- Font Awesome -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
-  <!-- Animate.css -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-  <!-- Custom CSS -->
   <style>
     :root {
-      --ci-green: #009e60;
-      --ci-orange: #ff8200;
-      --ci-dark: #1a3e2f;
-      --ci-light: #f8f9fa;
+      --cogu-red: #d32f2f;
+      --cogu-blue: #1976d2;
+      --cogu-dark: #2c3e50;
+      --cogu-light: #f5f7fa;
     }
 
     body {
-      font-family: 'Segoe UI', 'Roboto', sans-serif;
-      scroll-behavior: smooth;
-      line-height: 1.6;
-      color: #333;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background-color: var(--cogu-light);
     }
 
-    .hero {
-      background: linear-gradient(135deg, var(--ci-green), var(--ci-orange));
+    /* Navbar */
+    .navbar-cogu {
+      background-color: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 15px 0;
+    }
+
+    .navbar-brand img {
+      height: 40px;
+    }
+
+    /* Header */
+    .cogu-header {
+      background: linear-gradient(135deg, var(--cogu-blue), var(--cogu-dark));
       color: white;
-      padding: 150px 0 100px;
-      text-align: center;
+      padding: 100px 0 80px;
       position: relative;
       overflow: hidden;
     }
 
-    .hero::before {
+    .cogu-header::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
+      background-image: url('assets/img/pattern.png');
       opacity: 0.1;
     }
 
-    .section-title {
-      font-size: 2.5rem;
-      margin-bottom: 2rem;
-      font-weight: 700;
-      position: relative;
-      display: inline-block;
+    /* Alertes */
+    .alert-cogu {
+      border-left: 4px solid var(--cogu-red);
     }
 
-    .section-title::after {
-      content: '';
-      width: 80px;
-      height: 5px;
-      background: var(--ci-orange);
-      position: absolute;
-      bottom: -15px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-radius: 3px;
-    }
-
-    .stats {
-      background-color: var(--ci-light);
-      padding: 80px 0;
-    }
-
-    .stat-card {
-      border-radius: 12px;
-      overflow: hidden;
-      transition: all 0.3s ease;
+    /* Cartes */
+    .cogu-card {
+      border-radius: 8px;
       border: none;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-
-    .stat-card:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-    }
-
-    .stat-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .map-container {
-      height: 500px;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    }
-
-    .testimonial-card {
-      border-left: 4px solid var(--ci-green);
+      box-shadow: 0 2px 15px rgba(0,0,0,0.05);
       transition: all 0.3s ease;
     }
 
-    .testimonial-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-
-    .feature-card {
-      border-radius: 12px;
-      overflow: hidden;
-      transition: all 0.3s ease;
-      height: 100%;
-    }
-
-    .feature-card:hover {
+    .cogu-card:hover {
       transform: translateY(-5px);
       box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
 
-    .feature-icon {
-      font-size: 2.5rem;
-      color: var(--ci-green);
-      margin-bottom: 1rem;
+    .cogu-card-header {
+      background-color: var(--cogu-blue);
+      color: white;
+      border-radius: 8px 8px 0 0 !important;
     }
 
-    .timeline {
+    /* Tableau */
+    .table-cogu thead {
+      background-color: var(--cogu-blue);
+      color: white;
+    }
+
+    /* Badges */
+    .badge-urgence {
+      background-color: #ff5252;
+      color: white;
+    }
+
+    .badge-alerte {
+      background-color: #ff9800;
+      color: white;
+    }
+
+    .badge-surveillance {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    /* Timeline */
+    .timeline-cogu {
       position: relative;
-      max-width: 1200px;
-      margin: 0 auto;
+      padding-left: 50px;
     }
 
-    .timeline::after {
+    .timeline-cogu::before {
       content: '';
       position: absolute;
-      width: 6px;
-      background-color: var(--ci-green);
+      left: 20px;
       top: 0;
       bottom: 0;
-      left: 50%;
-      margin-left: -3px;
-      border-radius: 3px;
+      width: 4px;
+      background-color: var(--cogu-blue);
     }
 
     .timeline-item {
-      padding: 10px 40px;
       position: relative;
-      width: 50%;
-      box-sizing: border-box;
+      margin-bottom: 30px;
     }
 
-    .timeline-item::after {
+    .timeline-item::before {
       content: '';
       position: absolute;
-      width: 25px;
-      height: 25px;
-      right: -12px;
-      background-color: white;
-      border: 4px solid var(--ci-green);
-      top: 15px;
+      left: -40px;
+      top: 5px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
-      z-index: 1;
-    }
-
-    .left {
-      left: 0;
-    }
-
-    .right {
-      left: 50%;
-    }
-
-    .left::before {
-      content: " ";
-      height: 0;
-      position: absolute;
-      top: 22px;
-      width: 0;
-      z-index: 1;
-      right: 30px;
-      border: medium solid var(--ci-green);
-      border-width: 10px 0 10px 10px;
-      border-color: transparent transparent transparent var(--ci-green);
-    }
-
-    .right::before {
-      content: " ";
-      height: 0;
-      position: absolute;
-      top: 22px;
-      width: 0;
-      z-index: 1;
-      left: 30px;
-      border: medium solid var(--ci-green);
-      border-width: 10px 10px 10px 0;
-      border-color: transparent var(--ci-green) transparent transparent;
-    }
-
-    .right::after {
-      left: -12px;
-    }
-
-    .timeline-content {
-      padding: 20px 30px;
       background-color: white;
-      position: relative;
-      border-radius: 6px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      border: 4px solid var(--cogu-blue);
     }
 
-    .partner-logo {
-      height: 80px;
-      filter: grayscale(100%);
-      opacity: 0.7;
-      transition: all 0.3s ease;
-    }
-
-    .partner-logo:hover {
-      filter: grayscale(0);
-      opacity: 1;
-    }
-
-    .news-card {
-      transition: all 0.3s ease;
-      height: 100%;
-    }
-
-    .news-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-
-    .news-date {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background-color: var(--ci-green);
+    /* Footer */
+    .footer-cogu {
+      background-color: var(--cogu-dark);
       color: white;
-      padding: 5px 10px;
-      border-radius: 4px;
-      font-size: 0.8rem;
+      padding: 50px 0 20px;
     }
 
-    .wave {
-      position: relative;
-      top: -1px;
-      margin-bottom: -6px;
-    }
-
-    .navbar {
-      transition: all 0.3s ease;
-    }
-
-    .navbar.scrolled {
-      background-color: var(--ci-dark) !important;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-
-    .btn-ci {
-      background-color: var(--ci-green);
-      color: white;
-      border: none;
-      padding: 10px 25px;
-      border-radius: 30px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .btn-ci:hover {
-      background-color: var(--ci-dark);
-      color: white;
-      transform: translateY(-3px);
-    }
-
-    .btn-ci-outline {
-      border: 2px solid var(--ci-green);
-      color: var(--ci-green);
-      background-color: transparent;
-    }
-
-    .btn-ci-outline:hover {
-      background-color: var(--ci-green);
-      color: white;
-    }
-
-    @media screen and (max-width: 768px) {
-      .timeline::after {
-        left: 31px;
-      }
-
-      .timeline-item {
-        width: 100%;
-        padding-left: 70px;
-        padding-right: 25px;
-      }
-
-      .timeline-item::before {
-        left: 60px;
-        border: medium solid var(--ci-green);
-        border-width: 10px 10px 10px 0;
-        border-color: transparent var(--ci-green) transparent transparent;
-      }
-
-      .left::after, .right::after {
-        left: 18px;
-      }
-
-      .right {
-        left: 0%;
+    /* Responsive */
+    @media (max-width: 768px) {
+      .cogu-header {
+        padding: 80px 0 60px;
       }
     }
   </style>
 </head>
 <body>
   <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-success fixed-top">
+  <nav class="navbar navbar-expand-lg navbar-cogu fixed-top">
     <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
-        <img src="https://www.sante.gouv.ci/images/logo.png" alt="Logo Ministère" height="40" class="me-2">
-        Santé CI
+      <a class="navbar-brand" href="#">
+        <img src="assets/img/cogu-logo.png" alt="COGU Logo">
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link active" href="#hero">Accueil</a></li>
-          <li class="nav-item"><a class="nav-link" href="#apropos">Plateforme</a></li>
-          <li class="nav-item"><a class="nav-link" href="#stats">Statistiques</a></li>
-          <li class="nav-item"><a class="nav-link" href="#fonctionnalites">Fonctionnalités</a></li>
-          <li class="nav-item"><a class="nav-link" href="#carte">Carte</a></li>
-          <li class="nav-item"><a class="nav-link" href="#actualites">Actualités</a></li>
-          <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
-          <li class="nav-item ms-2">
-            <a href="#signaler" class="btn btn-outline-light btn-sm">Signaler un incident</a>
+          <li class="nav-item">
+            <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i> Tableau de bord</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#"><i class="fas fa-bell me-1"></i> Alertes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#"><i class="fas fa-map-marked-alt me-1"></i> Cartographie</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#"><i class="fas fa-users me-1"></i> Équipes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#"><i class="fas fa-file-alt me-1"></i> Rapports</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+              <i class="fas fa-user-circle me-1"></i> Admin
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Paramètres</a></li>
+              <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i> Déconnexion</a></li>
+            </ul>
           </li>
         </ul>
       </div>
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <section class="hero" id="hero">
+  <!-- Header -->
+  <header class="cogu-header">
     <div class="container position-relative">
-      <div class="row justify-content-center">
-        <div class="col-lg-8 text-center">
-          <h1 class="display-3 fw-bold mb-4 animate__animated animate__fadeInDown">Système National d'Alerte Sanitaire</h1>
-          <p class="lead mb-5 animate__animated animate__fadeInUp">Une plateforme innovante pour la surveillance et la réponse aux urgences sanitaires en Côte d'Ivoire</p>
-          <div class="d-flex justify-content-center gap-3">
-            <a href="#signaler" class="btn btn-light btn-lg px-4 animate__animated animate__pulse animate__infinite">Signaler un incident <i class="fas fa-arrow-right ms-2"></i></a>
-            <a href="#fonctionnalites" class="btn btn-outline-light btn-lg px-4">Découvrir <i class="fas fa-info-circle ms-2"></i></a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Wave SVG -->
-  <div class="wave">
-    <svg viewBox="0 0 1440 100" preserveAspectRatio="none"><path fill="#f8f9fa" d="M0,32L60,42.7C120,53,240,75,360,69.3C480,64,600,32,720,26.7C840,21,960,43,1080,42.7C1200,43,1320,21,1380,10.7L1440,0L1440,100L1380,100C1320,100,1200,100,1080,100C960,100,840,100,720,100C600,100,480,100,360,100C240,100,120,100,60,100L0,100Z"></path></svg>
-  </div>
-
-  <!-- À propos -->
-  <section id="apropos" class="py-5 bg-light">
-    <div class="container">
       <div class="row align-items-center">
-        <div class="col-lg-6 mb-5 mb-lg-0" data-aos="fade-right">
-          <h2 class="section-title text-start">À propos de la plateforme</h2>
-          <p class="lead">Un outil complet pour la surveillance épidémiologique et la gestion des urgences sanitaires.</p>
-          <p>Le Système National d'Alerte Sanitaire (SNAS) est une initiative du Ministère de la Santé, de l'Hygiène Publique et de la Couverture Maladie Universelle pour renforcer la détection précoce et la réponse rapide aux menaces sanitaires sur l'ensemble du territoire ivoirien.</p>
-          <p>Cette plateforme digitale permet aux professionnels de santé, aux autorités locales et aux citoyens de signaler en temps réel tout incident sanitaire suspect ou avéré.</p>
-          <a href="#" class="btn-ci mt-3">En savoir plus <i class="fas fa-arrow-right ms-2"></i></a>
+        <div class="col-md-8">
+          <h1 class="display-4 fw-bold mb-3">Plateforme COGU</h1>
+          <p class="lead mb-4">Système intégré de gestion des urgences sanitaires en Côte d'Ivoire</p>
+          <div class="d-flex gap-3">
+            <a href="#" class="btn btn-light btn-lg px-4">
+              <i class="fas fa-plus-circle me-2"></i> Nouvelle alerte
+            </a>
+            <a href="#" class="btn btn-outline-light btn-lg px-4">
+              <i class="fas fa-play-circle me-2"></i> Vidéo explicative
+            </a>
+          </div>
         </div>
-        <div class="col-lg-6" data-aos="fade-left">
-          <div class="ratio ratio-16x9">
-            <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="Présentation de la plateforme" allowfullscreen></iframe>
+        <div class="col-md-4 d-none d-md-block">
+          <img src="assets/img/emergency-team.png" alt="Équipe d'urgence" class="img-fluid">
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container my-5" style="margin-top: 100px !important;">
+    <!-- Alertes urgentes -->
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="alert alert-cogu alert-dismissible fade show" role="alert">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0 me-3">
+              <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+            </div>
+            <div>
+              <h5 class="alert-heading mb-1">ALERTE ÉPIDÉMIOLOGIQUE</h5>
+              <p class="mb-0">5 nouveaux cas suspects de choléra signalés à Abidjan (Cocody) dans les dernières 24 heures.</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- Statistiques -->
-  <section id="stats" class="stats py-5">
-    <div class="container">
-      <h2 class="section-title text-center mb-5">Notre impact en chiffres</h2>
-      <div class="row g-4">
-        <div class="col-md-3" data-aos="fade-up" data-aos-delay="0">
-          <div class="stat-card text-center p-4 bg-white">
-            <div class="stat-icon text-primary">
-              <i class="fas fa-bell"></i>
-            </div>
-            <h3 class="display-5 fw-bold mb-2">1,248</h3>
-            <p class="mb-0">Alertes traitées</p>
-            <div class="progress mt-3" style="height: 6px;">
-              <div class="progress-bar bg-primary" style="width: 75%"></div>
-            </div>
-            <small class="text-muted">+12% ce mois</small>
+    <!-- Cartes indicateurs -->
+    <div class="row mb-5">
+      <div class="col-md-3 mb-4">
+        <div class="cogu-card h-100">
+          <div class="card-body text-center">
+            <h3 class="text-danger mb-3"><i class="fas fa-bell fa-2x"></i></h3>
+            <h2 class="mb-2">24</h2>
+            <p class="text-muted mb-0">Alertes actives</p>
           </div>
         </div>
-        <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
-          <div class="stat-card text-center p-4 bg-white">
-            <div class="stat-icon text-success">
-              <i class="fas fa-map-marked-alt"></i>
-            </div>
-            <h3 class="display-5 fw-bold mb-2">89</h3>
-            <p class="mb-0">Communes couvertes</p>
-            <div class="progress mt-3" style="height: 6px;">
-              <div class="progress-bar bg-success" style="width: 65%"></div>
-            </div>
-            <small class="text-muted">+8% ce trimestre</small>
+      </div>
+      <div class="col-md-3 mb-4">
+        <div class="cogu-card h-100">
+          <div class="card-body text-center">
+            <h3 class="text-warning mb-3"><i class="fas fa-ambulance fa-2x"></i></h3>
+            <h2 class="mb-2">15</h2>
+            <p class="text-muted mb-0">Interventions en cours</p>
           </div>
         </div>
-        <div class="col-md-3" data-aos="fade-up" data-aos-delay="200">
-          <div class="stat-card text-center p-4 bg-white">
-            <div class="stat-icon text-warning">
-              <i class="fas fa-user-md"></i>
-            </div>
-            <h3 class="display-5 fw-bold mb-2">1,542</h3>
-            <p class="mb-0">Professionnels actifs</p>
-            <div class="progress mt-3" style="height: 6px;">
-              <div class="progress-bar bg-warning" style="width: 85%"></div>
-            </div>
-            <small class="text-muted">+22% cette année</small>
+      </div>
+      <div class="col-md-3 mb-4">
+        <div class="cogu-card h-100">
+          <div class="card-body text-center">
+            <h3 class="text-primary mb-3"><i class="fas fa-users fa-2x"></i></h3>
+            <h2 class="mb-2">42</h2>
+            <p class="text-muted mb-0">Équipes mobilisées</p>
           </div>
         </div>
-        <div class="col-md-3" data-aos="fade-up" data-aos-delay="300">
-          <div class="stat-card text-center p-4 bg-white">
-            <div class="stat-icon text-danger">
-              <i class="fas fa-clock"></i>
-            </div>
-            <h3 class="display-5 fw-bold mb-2">2.1h</h3>
-            <p class="mb-0">Temps moyen de réponse</p>
-            <div class="progress mt-3" style="height: 6px;">
-              <div class="progress-bar bg-danger" style="width: 45%"></div>
-            </div>
-            <small class="text-muted">-30% depuis 2023</small>
+      </div>
+      <div class="col-md-3 mb-4">
+        <div class="cogu-card h-100">
+          <div class="card-body text-center">
+            <h3 class="text-success mb-3"><i class="fas fa-check-circle fa-2x"></i></h3>
+            <h2 class="mb-2">78</h2>
+            <p class="text-muted mb-0">Cas résolus</p>
           </div>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- Fonctionnalités -->
-  <section id="fonctionnalites" class="py-5 bg-white">
-    <div class="container">
-      <h2 class="section-title text-center mb-5">Fonctionnalités clés</h2>
-      <div class="row g-4">
-        <div class="col-md-4" data-aos="fade-up" data-aos-delay="0">
-          <div class="feature-card p-4 border">
-            <div class="feature-icon">
-              <i class="fas fa-mobile-alt"></i>
-            </div>
-            <h4>Signalement en temps réel</h4>
-            <p>Permet aux utilisateurs de signaler des incidents sanitaires via une interface simple et intuitive, disponible sur tous les appareils.</p>
-            <ul class="list-unstyled">
-              <li><i class="fas fa-check-circle text-success me-2"></i> Photos et géolocalisation</li>
-              <li><i class="fas fa-check-circle text-success me-2"></i> Catégorisation automatique</li>
-              <li><i class="fas fa-check-circle text-success me-2"></i> Notifications instantanées</li>
-            </ul>
+    <!-- Cartographie et alertes récentes -->
+    <div class="row mb-5">
+      <div class="col-lg-8 mb-4">
+        <div class="cogu-card h-100">
+          <div class="card-header py-3">
+            <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i> Cartographie des alertes</h5>
+          </div>
+          <div class="card-body p-0">
+            <div id="cogu-map" style="height: 400px;"></div>
           </div>
         </div>
-        <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
-          <div class="feature-card p-4 border">
-            <div class="feature-icon">
-              <i class="fas fa-chart-line"></i>
-            </div>
-            <h4>Tableau de bord analytique</h4>
-            <p>Visualisez les tendances épidémiologiques, les points chauds et les indicateurs clés de performance en temps réel.</p>
-            <ul class="list-unstyled">
-              <li><i class="fas fa-check-circle text-success me-2"></i> Cartes thermiques</li>
-              <li><i class="fas fa-check-circle text-success me-2"></i> Prévisions épidémiologiques</li>
-              <li><i class="fas fa-check-circle text-success me-2"></i> Export de données</li>
-            </ul>
+      </div>
+      <div class="col-lg-4 mb-4">
+        <div class="cogu-card h-100">
+          <div class="card-header py-3">
+            <h5 class="mb-0"><i class="fas fa-history me-2"></i> Dernières alertes</h5>
           </div>
-        </div>
-        <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
-          <div class="feature-card p-4 border">
-            <div class="feature-icon">
-              <i class="fas fa-users-cog"></i>
+          <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+              <a href="#" class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">Suspicion choléra</h6>
+                  <small class="text-muted">Il y a 15 min</small>
+                </div>
+                <p class="mb-1">Abidjan, Cocody - 5 cas</p>
+                <span class="badge badge-urgence">Urgence</span>
+              </a>
+              <a href="#" class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">Intoxication alimentaire</h1>
+                  <small class="text-muted">Il y a 2h</small>
+                </div>
+                <p class="mb-1">Bouaké - 12 personnes</p>
+                <span class="badge badge-alerte">Alerte</span>
+              </a>
+              <a href="#" class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">Accident routier</h6>
+                  <small class="text-muted">Il y a 3h</small>
+                </div>
+                <p class="mb-1">Yamoussoukro - 8 blessés</p>
+                <span class="badge badge-urgence">Urgence</span>
+              </a>
+              <a href="#" class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">Prolifération moustiques</h6>
+                  <small class="text-muted">Il y a 5h</small>
+                </div>
+                <p class="mb-1">San-Pédro - Quartier Kennedy</p>
+                <span class="badge badge-surveillance">Surveillance</span>
+              </a>
+              <a href="#" class="list-group-item list-group-item-action text-center">
+                <small>Voir toutes les alertes <i class="fas fa-arrow-right ms-1"></i></small>
+              </a>
             </div>
-            <h4>Gestion des interventions</h4>
-            <p>Coordonnez les équipes sur le terrain, assignez des tâches et suivez l'avancement des interventions sanitaires.</p>
-            <ul class="list-unstyled">
-              <li><i class="fas fa-check-circle text-success me-2"></i> Assignation d'équipes</li>
-              <li><i class="fas fa-check-circle text-success me-2"></i> Suivi en temps réel</li>
-              <li><i class="fas fa-check-circle text-success me-2"></i> Rapports automatisés</li>
-            </ul>
           </div>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- Timeline -->
-  <section class="py-5 bg-light">
-    <div class="container">
-      <h2 class="section-title text-center mb-5">Évolution du projet</h2>
-      <div class="timeline">
-        <div class="timeline-item left" data-aos="fade-right">
-          <div class="timeline-content">
-            <h5>Lancement du projet</h5>
-            <small class="text-muted">Janvier 2022</small>
-            <p>Conception initiale et développement de la plateforme pilote en collaboration avec l'OMS et les partenaires techniques.</p>
+    <!-- Tableau des interventions -->
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="cogu-card">
+          <div class="card-header py-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Interventions en cours</h5>
+              <button class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i> Nouvelle intervention
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="timeline-item right" data-aos="fade-left">
-          <div class="timeline-content">
-            <h5>Phase pilote</h5>
-            <small class="text-muted">Juillet 2022</small>
-            <p>Déploiement dans 3 districts sanitaires (Abidjan, Bouaké, San-Pédro) avec formation des premiers utilisateurs.</p>
-          </div>
-        </div>
-        <div class="timeline-item left" data-aos="fade-right">
-          <div class="timeline-content">
-            <h5>Extension nationale</h5>
-            <small class="text-muted">Janvier 2023</small>
-            <p>Généralisation à l'ensemble des 14 districts sanitaires du pays avec intégration des données historiques.</p>
-          </div>
-        </div>
-        <div class="timeline-item right" data-aos="fade-left">
-          <div class="timeline-content">
-            <h5>Version 2.0</h5>
-            <small class="text-muted">Septembre 2023</small>
-            <p>Ajout de l'IA pour la détection précoce des épidémies et intégration avec le système de santé communautaire.</p>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-cogu table-hover" id="interventionsTable">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Localisation</th>
+                    <th>Équipe</th>
+                    <th>Statut</th>
+                    <th>Début</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>INT-2023-156</td>
+                    <td>Choléra</td>
+                    <td>Cocody, Abidjan</td>
+                    <td>Équipe Alpha</td>
+                    <td><span class="badge bg-warning">En cours</span></td>
+                    <td>15/06/23 08:30</td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>INT-2023-155</td>
+                    <td>Intoxication</td>
+                    <td>Bouaké Centre</td>
+                    <td>Équipe Bravo</td>
+                    <td><span class="badge bg-info">En attente</span></td>
+                    <td>14/06/23 14:15</td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>INT-2023-154</td>
+                    <td>Accident routier</td>
+                    <td>Yamoussoukro</td>
+                    <td>Équipe Charlie</td>
+                    <td><span class="badge bg-success">Terminé</span></td>
+                    <td>13/06/23 10:45</td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>INT-2023-153</td>
+                    <td>Paludisme</td>
+                    <td>San-Pédro</td>
+                    <td>Équipe Delta</td>
+                    <td><span class="badge bg-secondary">Archivé</span></td>
+                    <td>12/06/23 09:20</td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- Carte -->
-  <section id="carte" class="py-5 bg-white">
-    <div class="container">
-      <h2 class="section-title text-center mb-5">Surveillance en temps réel</h2>
-      <div class="row">
-        <div class="col-lg-8 mb-4 mb-lg-0">
-          <div class="map-container" id="map" data-aos="zoom-in"></div>
-        </div>
-        <div class="col-lg-4">
-          <div class="card border-0 shadow-sm h-100" data-aos="fade-left">
-            <div class="card-header bg-success text-white">
-              <h5 class="mb-0">Dernières alertes</h5>
-            </div>
-            <div class="card-body p-0">
-              <div class="list-group list-group-flush">
-                <a href="#" class="list-group-item list-group-item-action">
-                  <div class="d-flex w-100 justify-content-between">
-                    <h6 class="mb-1">Suspicion de choléra</h6>
-                    <small>Il y a 15 min</small>
-                  </div>
-                  <p class="mb-1 small">Abidjan, Cocody - 5 cas signalés</p>
-                </a>
-                <a href="#" class="list-group-item list-group-item-action">
-                  <div class="d-flex w-100 justify-content-between">
-                    <h6 class="mb-1">Intoxication alimentaire</h6>
-                    <small>Il y a 1h</small>
-                  </div>
-                  <p class="mb-1 small">Bouaké - 12 personnes affectées</p>
-                </a>
-                <a href="#" class="list-group-item list-group-item-action">
-                  <div class="d-flex w-100 justify-content-between">
-                    <h6 class="mb-1">Accident de la route</h6>
-                    <small>Il y a 2h</small>
-                  </div>
-                  <p class="mb-1 small">Yamoussoukro - Urgence médicale</p>
-                </a>
-                <a href="#" class="list-group-item list-group-item-action">
-                  <div class="d-flex w-100 justify-content-between">
-                    <h6 class="mb-1">Moustiques prolifération</h6>
-                    <small>Il y a 3h</small>
-                  </div>
-                  <p class="mb-1 small">San-Pédro - Risque paludisme</p>
-                </a>
+    <!-- Chronologie des actions -->
+    <div class="row">
+      <div class="col-12">
+        <div class="cogu-card">
+          <div class="card-header py-3">
+            <h5 class="mb-0"><i class="fas fa-history me-2"></i> Chronologie des actions récentes</h5>
+          </div>
+          <div class="card-body">
+            <div class="timeline-cogu">
+              <div class="timeline-item">
+                <h6>Nouvelle alerte enregistrée</h6>
+                <p class="text-muted small mb-2">Suspicion de choléra à Cocody</p>
+                <p class="small mb-0"><i class="far fa-clock me-1"></i> 15/06/2023 08:30 par Dr. Konan</p>
+              </div>
+              <div class="timeline-item">
+                <h6>Intervention assignée</h6>
+                <p class="text-muted small mb-2">Équipe Alpha déployée sur place</p>
+                <p class="small mb-0"><i class="far fa-clock me-1"></i> 15/06/2023 09:15 par Lt. Traoré</p>
+              </div>
+              <div class="timeline-item">
+                <h6>Premier rapport reçu</h6>
+                <p class="text-muted small mb-2">5 cas confirmés, mesures d'isolement</p>
+                <p class="small mb-0"><i class="far fa-clock me-1"></i> 15/06/2023 11:45 par Éq. Alpha</p>
+              </div>
+              <div class="timeline-item">
+                <h6>Réponse coordonnée</h6>
+                <p class="text-muted small mb-2">Mise en place cellule de crise régionale</p>
+                <p class="small mb-0"><i class="far fa-clock me-1"></i> 15/06/2023 14:30 par Dr. Coulibaly</p>
               </div>
             </div>
-            <div class="card-footer bg-light">
-              <a href="#" class="btn btn-sm btn-success">Voir toutes les alertes</a>
-            </div>
           </div>
         </div>
       </div>
     </div>
-  </section>
-
-  <!-- Actualités -->
-  <section id="actualites" class="py-5 bg-light">
-    <div class="container">
-      <h2 class="section-title text-center mb-5">Actualités et alertes</h2>
-      <div class="row g-4">
-        <div class="col-md-4" data-aos="fade-up">
-          <div class="card news-card border-0 h-100">
-            <div class="position-relative">
-              <img src="https://via.placeholder.com/400x250?text=Choléra+Abidjan" class="card-img-top" alt="Actualité 1">
-              <div class="news-date">15 Juin 2023</div>
-            </div>
-            <div class="card-body">
-              <h5 class="card-title">Situation choléra à Abidjan</h5>
-              <p class="card-text">Le ministère de la Santé renforce les mesures préventives face à la recrudescence des cas de choléra dans le district d'Abidjan.</p>
-              <a href="#" class="btn-ci-outline btn-sm">Lire plus</a>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
-          <div class="card news-card border-0 h-100">
-            <div class="position-relative">
-              <img src="https://via.placeholder.com/400x250?text=Formation+Agents" class="card-img-top" alt="Actualité 2">
-              <div class="news-date">2 Juin 2023</div>
-            </div>
-            <div class="card-body">
-              <h5 class="card-title">Formation des agents communautaires</h5>
-              <p class="card-text">500 nouveaux agents de santé communautaire formés à l'utilisation de la plateforme SNAS dans les régions du nord.</p>
-              <a href="#" class="btn-ci-outline btn-sm">Lire plus</a>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
-          <div class="card news-card border-0 h-100">
-            <div class="position-relative">
-              <img src="https://via.placeholder.com/400x250?text=Partenariat+OMS" class="card-img-top" alt="Actualité 3">
-              <div class="news-date">20 Mai 2023</div>
-            </div>
-            <div class="card-body">
-              <h5 class="card-title">Partenariat avec l'OMS</h5>
-              <p class="card-text">L'Organisation Mondiale de la Santé reconnaît le SNAS comme modèle de surveillance épidémiologique en Afrique de l'Ouest.</p>
-              <a href="#" class="btn-ci-outline btn-sm">Lire plus</a>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="text-center mt-4">
-        <a href="#" class="btn-ci">Voir toutes les actualités</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Partenaires -->
-  <section class="py-5 bg-white">
-    <div class="container">
-      <h2 class="section-title text-center mb-5">Nos partenaires</h2>
-      <div class="row justify-content-center align-items-center g-4">
-        <div class="col-6 col-md-2 text-center">
-          <img src="https://www.sante.gouv.ci/images/logo-oms.png" alt="OMS" class="img-fluid partner-logo">
-        </div>
-        <div class="col-6 col-md-2 text-center">
-          <img src="https://www.sante.gouv.ci/images/logo-unicef.png" alt="UNICEF" class="img-fluid partner-logo">
-        </div>
-        <div class="col-6 col-md-2 text-center">
-          <img src="https://www.sante.gouv.ci/images/logo-mshp.png" alt="Ministère Santé" class="img-fluid partner-logo">
-        </div>
-        <div class="col-6 col-md-2 text-center">
-          <img src="https://www.sante.gouv.ci/images/logo-union-africaine.png" alt="Union Africaine" class="img-fluid partner-logo">
-        </div>
-        <div class="col-6 col-md-2 text-center">
-          <img src="https://www.sante.gouv.ci/images/logo-usaid.png" alt="USAID" class="img-fluid partner-logo">
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Signaler un incident -->
-  <section id="signaler" class="py-5 bg-success text-white">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-lg-8 text-center">
-          <h2 class="display-5 fw-bold mb-4">Signaler un incident sanitaire</h2>
-          <p class="lead mb-5">Vous avez constaté une situation sanitaire préoccupante ? Aidez-nous à protéger la population en signalant rapidement tout incident.</p>
-          <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
-            <a href="#" class="btn btn-light btn-lg px-4">
-              <i class="fas fa-mobile-alt me-2"></i> Application mobile
-            </a>
-            <a href="#" class="btn btn-outline-light btn-lg px-4">
-              <i class="fas fa-desktop me-2"></i> Version web
-            </a>
-            <a href="#" class="btn btn-outline-light btn-lg px-4">
-              <i class="fas fa-phone-alt me-2"></i> Urgence: 143
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Contact -->
-  <section id="contact" class="py-5 bg-light">
-    <div class="container">
-      <div class="row">
-        <div class="col-lg-5 mb-5 mb-lg-0" data-aos="fade-right">
-          <h2 class="section-title text-start mb-4">Contactez-nous</h2>
-          <p class="mb-4">Pour toute question, suggestion ou demande d'information sur le Système National d'Alerte Sanitaire.</p>
-
-          <div class="mb-4">
-            <h5><i class="fas fa-map-marker-alt text-success me-2"></i> Adresse</h5>
-            <p>Ministère de la Santé et de l'Hygiène Publique<br>
-            Plateau, Boulevard Angoulvant<br>
-            Abidjan, Côte d'Ivoire</p>
-          </div>
-
-          <div class="mb-4">
-            <h5><i class="fas fa-phone-alt text-success me-2"></i> Téléphone</h5>
-            <p>+225 20 30 40 50<br>
-            Urgence: 143 (24h/24)</p>
-          </div>
-
-          <div class="mb-4">
-            <h5><i class="fas fa-envelope text-success me-2"></i> Email</h5>
-            <p>snas@sante.gouv.ci<br>
-            support@snas.ci</p>
-          </div>
-        </div>
-
-        <div class="col-lg-7" data-aos="fade-left">
-          <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-              <h4 class="mb-4">Envoyez-nous un message</h4>
-              <form>
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label for="name" class="form-label">Nom complet</label>
-                    <input type="text" class="form-control" id="name" required>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" required>
-                  </div>
-                  <div class="col-12">
-                    <label for="subject" class="form-label">Sujet</label>
-                    <input type="text" class="form-control" id="subject" required>
-                  </div>
-                  <div class="col-12">
-                    <label for="message" class="form-label">Message</label>
-                    <textarea class="form-control" id="message" rows="5" required></textarea>
-                  </div>
-                  <div class="col-12">
-                    <button type="submit" class="btn-ci">Envoyer le message</button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+  </main>
 
   <!-- Footer -->
-  <footer class="py-5">#}
-{#        <div class="container">#}
-{#            <div class="row g-4">#}
-{#                <div class="col-lg-4">#}
-{#                    <h5 class="text-white mb-4">COGU</h5>#}
-{#                    <p>Plateforme de gestion des urgences sanitaires du Ministère de la Santé et de l'Hygiène Publique de Côte d'Ivoire.</p>#}
-{#                    <div class="social-icons mt-4">#}
-{#                        <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>#}
-{#                        <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>#}
-{#                        <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>#}
-{#                        <a href="#" class="text-white"><i class="fab fa-youtube"></i></a>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-lg-2 col-md-6">#}
-{#                    <h5 class="text-white mb-4">Liens rapides</h5>#}
-{#                    <ul class="list-unstyled">#}
-{#                        <li class="mb-2"><a href="#" class="text-white-50">Accueil</a></li>#}
-{#                        <li class="mb-2"><a href="#features" class="text-white-50">Fonctionnalités</a></li>#}
-{#                        <li class="mb-2"><a href="#about" class="text-white-50">À propos</a></li>#}
-{#                        <li class="mb-2"><a href="#demo" class="text-white-50">Démo</a></li>#}
-{#                        <li><a href="#contact" class="text-white-50">Contact</a></li>#}
-{#                    </ul>#}
-{#                </div>#}
-{#                <div class="col-lg-3 col-md-6">#}
-{#                    <h5 class="text-white mb-4">Contact</h5>#}
-{#                    <ul class="list-unstyled text-white-50">#}
-{#                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i> Abidjan, Plateau, Côte d'Ivoire</li>#}
-{#                        <li class="mb-2"><i class="fas fa-phone me-2"></i> +225 XX XX XX XX</li>#}
-{#                        <li class="mb-2"><i class="fas fa-envelope me-2"></i> contact@cogu.ci</li>#}
-{#                        <li><i class="fas fa-clock me-2"></i> Lun-Ven: 8h-17h</li>#}
-{#                    </ul>#}
-{#                </div>#}
-{#                <div class="col-lg-3">#}
-{#                    <h5 class="text-white mb-4">Newsletter</h5>#}
-{#                    <p class="text-white-50">Abonnez-vous pour recevoir nos dernières actualités.</p>#}
-{#                    <form class="mt-3">#}
-{#                        <div class="input-group">#}
-{#                            <input type="email" class="form-control" placeholder="Votre email">#}
-{#                            <button class="btn btn-cogu" type="submit">S'abonner</button>#}
-{#                        </div>#}
-{#                    </form>#}
-{#                </div>#}
-{#            </div>#}
-{#            <hr class="my-4 bg-secondary">#}
-{#            <div class="row">#}
-{#                <div class="col-md-6 text-center text-md-start">#}
-{#                    <p class="mb-0 text-white-50">&copy; 2023 COGU. Tous droits réservés.</p>#}
-{#                </div>#}
-{#                <div class="col-md-6 text-center text-md-end">#}
-{#                    <a href="#" class="text-white-50 me-3">Politique de confidentialité</a>#}
-{#                    <a href="#" class="text-white-50">Conditions d'utilisation</a>#}
-{#                </div>#}
-{#            </div>#}
-{#        </div>#}
-{#    </footer>#}
-{##}
-{#    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>#}
+  <footer class="footer-cogu">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-4 mb-4">
+          <img src="assets/img/cogu-logo-white.png" alt="COGU Logo" class="mb-3" height="40">
+          <p>Plateforme officielle du Comité de Gestion des Urgences Sanitaires du Ministère de la Santé, de l'Hygiène Publique et de la Couverture Maladie Universelle de Côte d'Ivoire.</p>
+          <div class="social-icons mt-3">
+            <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>
+            <a href="#" class="text-white"><i class="fab fa-youtube"></i></a>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-6 mb-4">
+          <h5>Accès rapide</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="#" class="text-white">Tableau de bord</a></li>
+            <li class="mb-2"><a href="#" class="text-white">Alertes</a></li>
+            <li class="mb-2"><a href="#" class="text-white">Interventions</a></li>
+            <li class="mb-2"><a href="#" class="text-white">Rapports</a></li>
+            <li><a href="#" class="text-white">Paramètres</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-2 col-md-6 mb-4">
+          <h5>Ressources</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="#" class="text-white">Documentation</a></li>
+            <li class="mb-2"><a href="#" class="text-white">Formations</a></li>
+            <li class="mb-2"><a href="#" class="text-white">Protocoles</a></li>
+            <li class="mb-2"><a href="#" class="text-white">FAQ</a></li>
+            <li><a href="#" class="text-white">Support</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-4 mb-4">
+          <h5>Contacts d'urgence</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><i class="fas fa-phone-alt me-2"></i> Urgence COGU: 143</li>
+            <li class="mb-2"><i class="fas fa-envelope me-2"></i> alertes@cogu.ci</li>
+            <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i> Plateau, Tour D, 12ème étage</li>
+            <li class="mb-2"><i class="fas fa-clock me-2"></i> 24h/24 - 7j/7</li>
+          </ul>
+        </div>
+      </div>
+      <hr class="my-4 bg-light">
+      <div class="row">
+        <div class="col-md-6 text-center text-md-start">
+          <p class="small mb-0">© 2023 COGU - Tous droits réservés</p>
+        </div>
+        <div class="col-md-6 text-center text-md-end">
+          <p class="small mb-0">Version 2.1.0 | Dernière mise à jour: 15/06/2023</p>
+        </div>
+      </div>
+    </div>
+  </footer>
 
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 
+  <script>
+    // Initialisation AOS
+    AOS.init({
+      duration: 800,
+      once: true
+    });
 
+    // Initialisation DataTable
+    $(document).ready(function() {
+      $('#interventionsTable').DataTable({
+        language: {
+          url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+        },
+        responsive: true
+      });
+    });
+
+    // Initialisation de la carte
+    const map = L.map('cogu-map').setView([7.54, -5.55], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Ajout de marqueurs pour les alertes
+    const alertes = [
+      {
+        position: [5.32, -4.03],
+        title: "Suspicion choléra",
+        description: "5 cas suspects à Cocody",
+        type: "urgence"
+      },
+      {
+        position: [7.69, -5.03],
+        title: "Intoxication alimentaire",
+        description: "12 personnes affectées",
+        type: "alerte"
+      },
+      {
+        position: [6.82, -5.28],
+        title: "Accident routier",
+        description: "8 blessés dont 2 graves",
+        type: "urgence"
+      },
+      {
+        position: [4.75, -6.64],
+        title: "Prolifération moustiques",
+        description: "Quartier Kennedy",
+        type: "surveillance"
+      }
+    ];
+
+    alertes.forEach(alerte => {
+      let iconColor;
+      if (alerte.type === "urgence") iconColor = "red";
+      else if (alerte.type === "alerte") iconColor = "orange";
+      else iconColor = "green";
+
+      const icon = L.divIcon({
+        className: `cogu-marker-${alerte.type}`,
+        html: `<div style="background-color: ${iconColor}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>`,
+        iconSize: [24, 24]
+      });
+
+      L.marker(alerte.position, { icon: icon })
+        .addTo(map)
+        .bindPopup(`<b>${alerte.title}</b><br>${alerte.description}`);
+    });
+
+    // Gestion du scroll de la navbar
+    window.addEventListener('scroll', function() {
+      const navbar = document.querySelector('.navbar-cogu');
+      if (window.scrollY > 50) {
+        navbar.classList.add('shadow-lg');
+      } else {
+        navbar.classList.remove('shadow-lg');
+      }
+    });
+  </script>
+</body>
+</html>
 
 {#<!DOCTYPE html>#}
 {#<html lang="fr">#}
 {#<head>#}
-{#    <meta charset="UTF-8">#}
-{#    <meta name="viewport" content="width=device-width, initial-scale=1.0">#}
-{#    <title>COGU - Gestion des Urgences Sanitaires en Côte d'Ivoire</title>#}
-{#    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">#}
-{#    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">#}
-{#    <style>#}
-{#        :root {#}
-{#            --cogu-primary: #0056b3;#}
-{#            --cogu-secondary: #e67e22;#}
-{#            --cogu-accent: #27ae60;#}
-{#        }#}
+{#  <meta charset="UTF-8">#}
+{#  <meta name="viewport" content="width=device-width, initial-scale=1">#}
+{#  <title>Alerte Sanitaire CI - Ministère de la Santé</title>#}
 {##}
-{#        body {#}
-{#            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;#}
-{#        }#}
+{#  <!-- Favicon -->#}
+{#  <link rel="icon" href="https://www.sante.gouv.ci/favicon.ico" type="image/x-icon">#}
+{#    <link rel="shortcut icon" href="{% static 'assets/media/logos/favicon.ico' %}"/>#}
 {##}
-{#        .hero-section {#}
-{#            background: linear-gradient(rgba(0, 86, 179, 0.8), rgba(0, 86, 179, 0.8)),#}
-{#                        url('https://images.unsplash.com/photo-1584036561566-baf8f5f1b144?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1632&q=80');#}
-{#            background-size: cover;#}
-{#            background-position: center;#}
-{#            color: white;#}
-{#            padding: 100px 0;#}
-{#        }#}
+{#  <!-- Bootstrap CSS -->#}
+{#  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">#}
 {##}
-{#        .feature-icon {#}
-{#            font-size: 2.5rem;#}
-{#            color: var(--cogu-primary);#}
-{#            margin-bottom: 1rem;#}
-{#        }#}
+{#  <!-- AOS -->#}
+{#  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">#}
 {##}
-{#        .stat-card {#}
-{#            border-left: 4px solid var(--cogu-primary);#}
-{#            transition: transform 0.3s;#}
-{#        }#}
+{#  <!-- Font Awesome -->#}
+{#  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">#}
 {##}
-{#        .stat-card:hover {#}
-{#            transform: translateY(-5px);#}
-{#        }#}
+{#  <!-- Animate.css -->#}
+{#  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />#}
 {##}
-{#        .btn-cogu {#}
-{#            background-color: var(--cogu-primary);#}
-{#            color: white;#}
-{#            padding: 10px 25px;#}
-{#            border-radius: 30px;#}
-{#            font-weight: 600;#}
-{#        }#}
+{#  <!-- Leaflet -->#}
+{#  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />#}
 {##}
-{#        .btn-cogu:hover {#}
-{#            background-color: #004494;#}
-{#            color: white;#}
-{#        }#}
+{#  <!-- Custom CSS -->#}
+{#  <style>#}
+{#    :root {#}
+{#      --ci-green: #009e60;#}
+{#      --ci-orange: #ff8200;#}
+{#      --ci-dark: #1a3e2f;#}
+{#      --ci-light: #f8f9fa;#}
+{#    }#}
 {##}
-{#        .nav-pills .nav-link.active {#}
-{#            background-color: var(--cogu-primary);#}
-{#        }#}
+{#    body {#}
+{#      font-family: 'Segoe UI', 'Roboto', sans-serif;#}
+{#      scroll-behavior: smooth;#}
+{#      line-height: 1.6;#}
+{#      color: #333;#}
+{#    }#}
 {##}
-{#        footer {#}
-{#            background-color: #1a1a1a;#}
-{#            color: white;#}
-{#        }#}
-{#    </style>#}
+{#    .hero {#}
+{#      background: linear-gradient(135deg, var(--ci-green), var(--ci-orange));#}
+{#      color: white;#}
+{#      padding: 150px 0 100px;#}
+{#      text-align: center;#}
+{#      position: relative;#}
+{#      overflow: hidden;#}
+{#    }#}
+{##}
+{#    .hero::before {#}
+{#      content: '';#}
+{#      position: absolute;#}
+{#      top: 0;#}
+{#      left: 0;#}
+{#      width: 100%;#}
+{#      height: 100%;#}
+{#      background-image: url('https://www.transparenttextures.com/patterns/cubes.png');#}
+{#      opacity: 0.1;#}
+{#    }#}
+{##}
+{#    .section-title {#}
+{#      font-size: 2.5rem;#}
+{#      margin-bottom: 2rem;#}
+{#      font-weight: 700;#}
+{#      position: relative;#}
+{#      display: inline-block;#}
+{#    }#}
+{##}
+{#    .section-title::after {#}
+{#      content: '';#}
+{#      width: 80px;#}
+{#      height: 5px;#}
+{#      background: var(--ci-orange);#}
+{#      position: absolute;#}
+{#      bottom: -15px;#}
+{#      left: 50%;#}
+{#      transform: translateX(-50%);#}
+{#      border-radius: 3px;#}
+{#    }#}
+{##}
+{#    .stats {#}
+{#      background-color: var(--ci-light);#}
+{#      padding: 80px 0;#}
+{#    }#}
+{##}
+{#    .stat-card {#}
+{#      border-radius: 12px;#}
+{#      overflow: hidden;#}
+{#      transition: all 0.3s ease;#}
+{#      border: none;#}
+{#      box-shadow: 0 5px 15px rgba(0,0,0,0.05);#}
+{#    }#}
+{##}
+{#    .stat-card:hover {#}
+{#      transform: translateY(-10px);#}
+{#      box-shadow: 0 15px 30px rgba(0,0,0,0.1);#}
+{#    }#}
+{##}
+{#    .stat-icon {#}
+{#      font-size: 2.5rem;#}
+{#      margin-bottom: 1rem;#}
+{#    }#}
+{##}
+{#    .map-container {#}
+{#      height: 500px;#}
+{#      border-radius: 12px;#}
+{#      overflow: hidden;#}
+{#      box-shadow: 0 10px 30px rgba(0,0,0,0.1);#}
+{#    }#}
+{##}
+{#    .testimonial-card {#}
+{#      border-left: 4px solid var(--ci-green);#}
+{#      transition: all 0.3s ease;#}
+{#    }#}
+{##}
+{#    .testimonial-card:hover {#}
+{#      transform: translateY(-5px);#}
+{#      box-shadow: 0 10px 20px rgba(0,0,0,0.1);#}
+{#    }#}
+{##}
+{#    .feature-card {#}
+{#      border-radius: 12px;#}
+{#      overflow: hidden;#}
+{#      transition: all 0.3s ease;#}
+{#      height: 100%;#}
+{#    }#}
+{##}
+{#    .feature-card:hover {#}
+{#      transform: translateY(-5px);#}
+{#      box-shadow: 0 10px 25px rgba(0,0,0,0.1);#}
+{#    }#}
+{##}
+{#    .feature-icon {#}
+{#      font-size: 2.5rem;#}
+{#      color: var(--ci-green);#}
+{#      margin-bottom: 1rem;#}
+{#    }#}
+{##}
+{#    .timeline {#}
+{#      position: relative;#}
+{#      max-width: 1200px;#}
+{#      margin: 0 auto;#}
+{#    }#}
+{##}
+{#    .timeline::after {#}
+{#      content: '';#}
+{#      position: absolute;#}
+{#      width: 6px;#}
+{#      background-color: var(--ci-green);#}
+{#      top: 0;#}
+{#      bottom: 0;#}
+{#      left: 50%;#}
+{#      margin-left: -3px;#}
+{#      border-radius: 3px;#}
+{#    }#}
+{##}
+{#    .timeline-item {#}
+{#      padding: 10px 40px;#}
+{#      position: relative;#}
+{#      width: 50%;#}
+{#      box-sizing: border-box;#}
+{#    }#}
+{##}
+{#    .timeline-item::after {#}
+{#      content: '';#}
+{#      position: absolute;#}
+{#      width: 25px;#}
+{#      height: 25px;#}
+{#      right: -12px;#}
+{#      background-color: white;#}
+{#      border: 4px solid var(--ci-green);#}
+{#      top: 15px;#}
+{#      border-radius: 50%;#}
+{#      z-index: 1;#}
+{#    }#}
+{##}
+{#    .left {#}
+{#      left: 0;#}
+{#    }#}
+{##}
+{#    .right {#}
+{#      left: 50%;#}
+{#    }#}
+{##}
+{#    .left::before {#}
+{#      content: " ";#}
+{#      height: 0;#}
+{#      position: absolute;#}
+{#      top: 22px;#}
+{#      width: 0;#}
+{#      z-index: 1;#}
+{#      right: 30px;#}
+{#      border: medium solid var(--ci-green);#}
+{#      border-width: 10px 0 10px 10px;#}
+{#      border-color: transparent transparent transparent var(--ci-green);#}
+{#    }#}
+{##}
+{#    .right::before {#}
+{#      content: " ";#}
+{#      height: 0;#}
+{#      position: absolute;#}
+{#      top: 22px;#}
+{#      width: 0;#}
+{#      z-index: 1;#}
+{#      left: 30px;#}
+{#      border: medium solid var(--ci-green);#}
+{#      border-width: 10px 10px 10px 0;#}
+{#      border-color: transparent var(--ci-green) transparent transparent;#}
+{#    }#}
+{##}
+{#    .right::after {#}
+{#      left: -12px;#}
+{#    }#}
+{##}
+{#    .timeline-content {#}
+{#      padding: 20px 30px;#}
+{#      background-color: white;#}
+{#      position: relative;#}
+{#      border-radius: 6px;#}
+{#      box-shadow: 0 3px 10px rgba(0,0,0,0.1);#}
+{#    }#}
+{##}
+{#    .partner-logo {#}
+{#      height: 80px;#}
+{#      filter: grayscale(100%);#}
+{#      opacity: 0.7;#}
+{#      transition: all 0.3s ease;#}
+{#    }#}
+{##}
+{#    .partner-logo:hover {#}
+{#      filter: grayscale(0);#}
+{#      opacity: 1;#}
+{#    }#}
+{##}
+{#    .news-card {#}
+{#      transition: all 0.3s ease;#}
+{#      height: 100%;#}
+{#    }#}
+{##}
+{#    .news-card:hover {#}
+{#      transform: translateY(-5px);#}
+{#      box-shadow: 0 10px 25px rgba(0,0,0,0.1);#}
+{#    }#}
+{##}
+{#    .news-date {#}
+{#      position: absolute;#}
+{#      top: 10px;#}
+{#      right: 10px;#}
+{#      background-color: var(--ci-green);#}
+{#      color: white;#}
+{#      padding: 5px 10px;#}
+{#      border-radius: 4px;#}
+{#      font-size: 0.8rem;#}
+{#    }#}
+{##}
+{#    .wave {#}
+{#      position: relative;#}
+{#      top: -1px;#}
+{#      margin-bottom: -6px;#}
+{#    }#}
+{##}
+{#    .navbar {#}
+{#      transition: all 0.3s ease;#}
+{#    }#}
+{##}
+{#    .navbar.scrolled {#}
+{#      background-color: var(--ci-dark) !important;#}
+{#      box-shadow: 0 2px 10px rgba(0,0,0,0.1);#}
+{#    }#}
+{##}
+{#    .btn-ci {#}
+{#      background-color: var(--ci-green);#}
+{#      color: white;#}
+{#      border: none;#}
+{#      padding: 10px 25px;#}
+{#      border-radius: 30px;#}
+{#      font-weight: 600;#}
+{#      transition: all 0.3s ease;#}
+{#    }#}
+{##}
+{#    .btn-ci:hover {#}
+{#      background-color: var(--ci-dark);#}
+{#      color: white;#}
+{#      transform: translateY(-3px);#}
+{#    }#}
+{##}
+{#    .btn-ci-outline {#}
+{#      border: 2px solid var(--ci-green);#}
+{#      color: var(--ci-green);#}
+{#      background-color: transparent;#}
+{#    }#}
+{##}
+{#    .btn-ci-outline:hover {#}
+{#      background-color: var(--ci-green);#}
+{#      color: white;#}
+{#    }#}
+{##}
+{#    @media screen and (max-width: 768px) {#}
+{#      .timeline::after {#}
+{#        left: 31px;#}
+{#      }#}
+{##}
+{#      .timeline-item {#}
+{#        width: 100%;#}
+{#        padding-left: 70px;#}
+{#        padding-right: 25px;#}
+{#      }#}
+{##}
+{#      .timeline-item::before {#}
+{#        left: 60px;#}
+{#        border: medium solid var(--ci-green);#}
+{#        border-width: 10px 10px 10px 0;#}
+{#        border-color: transparent var(--ci-green) transparent transparent;#}
+{#      }#}
+{##}
+{#      .left::after, .right::after {#}
+{#        left: 18px;#}
+{#      }#}
+{##}
+{#      .right {#}
+{#        left: 0%;#}
+{#      }#}
+{#    }#}
+{#  </style>#}
 {#</head>#}
 {#<body>#}
-{#    <!-- Navigation -->#}
-{#    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">#}
-{#        <div class="container">#}
-{#            <a class="navbar-brand" href="#">#}
-{#                <img src="https://via.placeholder.com/50x50" alt="COGU Logo" class="me-2">#}
-{#                COGU#}
+{#  <!-- Navbar -->#}
+{#  <nav class="navbar navbar-expand-lg navbar-dark bg-success fixed-top">#}
+{#    <div class="container">#}
+{#      <a class="navbar-brand fw-bold d-flex align-items-center" href="#">#}
+{#        <img src="{% static 'assets/media/logoMSHPCMU.svg' %}" alt="Logo Ministère" height="40" class="me-2">#}
+{#   MSHP-CMU#}
+{#      </a>#}
+{#      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">#}
+{#        <span class="navbar-toggler-icon"></span>#}
+{#      </button>#}
+{#      <div class="collapse navbar-collapse" id="navbarNav">#}
+{#        <ul class="navbar-nav ms-auto">#}
+{#          <li class="nav-item"><a class="nav-link active" href="#hero">Accueil</a></li>#}
+{#          <li class="nav-item"><a class="nav-link" href="#apropos">Plateforme</a></li>#}
+{#          <li class="nav-item"><a class="nav-link" href="#stats">Statistiques</a></li>#}
+{#          <li class="nav-item"><a class="nav-link" href="#fonctionnalites">Fonctionnalités</a></li>#}
+{#          <li class="nav-item"><a class="nav-link" href="#carte">Carte</a></li>#}
+{#          <li class="nav-item"><a class="nav-link" href="#actualites">Actualités</a></li>#}
+{#          <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>#}
+{#          <li class="nav-item ms-2">#}
+{#            <a href="#signaler" class="btn btn-outline-light btn-sm">Signaler un incident</a>#}
+{#          </li>#}
+{#        </ul>#}
+{#      </div>#}
+{#    </div>#}
+{#  </nav>#}
+{##}
+{#  <!-- Hero Section -->#}
+{#  <section class="hero" id="hero">#}
+{#    <div class="container position-relative">#}
+{#      <div class="row justify-content-center">#}
+{#        <div class="col-lg-8 text-center">#}
+{#          <h1 class="display-3 fw-bold mb-4 animate__animated animate__fadeInDown">Système National d'Alerte Sanitaire</h1>#}
+{#          <p class="lead mb-5 animate__animated animate__fadeInUp">Une plateforme innovante pour la surveillance et la réponse aux urgences sanitaires en Côte d'Ivoire</p>#}
+{#          <div class="d-flex justify-content-center gap-3">#}
+{#            <a href="#signaler" class="btn btn-light btn-lg px-4 animate__animated animate__pulse animate__infinite">Signaler un incident <i class="fas fa-arrow-right ms-2"></i></a>#}
+{#            <a href="#fonctionnalites" class="btn btn-outline-light btn-lg px-4">Découvrir <i class="fas fa-info-circle ms-2"></i></a>#}
+{#          </div>#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
+{##}
+{#  <!-- Wave SVG -->#}
+{#  <div class="wave">#}
+{#    <svg viewBox="0 0 1440 100" preserveAspectRatio="none"><path fill="#f8f9fa" d="M0,32L60,42.7C120,53,240,75,360,69.3C480,64,600,32,720,26.7C840,21,960,43,1080,42.7C1200,43,1320,21,1380,10.7L1440,0L1440,100L1380,100C1320,100,1200,100,1080,100C960,100,840,100,720,100C600,100,480,100,360,100C240,100,120,100,60,100L0,100Z"></path></svg>#}
+{#  </div>#}
+{##}
+{#  <!-- À propos -->#}
+{#  <section id="apropos" class="py-5 bg-light">#}
+{#    <div class="container">#}
+{#      <div class="row align-items-center">#}
+{#        <div class="col-lg-6 mb-5 mb-lg-0" data-aos="fade-right">#}
+{#          <h2 class="section-title text-start">À propos de la plateforme</h2>#}
+{#          <p class="lead">Un outil complet pour la surveillance épidémiologique et la gestion des urgences sanitaires.</p>#}
+{#          <p>Le Système National d'Alerte Sanitaire (SNAS) est une initiative du Ministère de la Santé, de l'Hygiène Publique et de la Couverture Maladie Universelle pour renforcer la détection précoce et la réponse rapide aux menaces sanitaires sur l'ensemble du territoire ivoirien.</p>#}
+{#          <p>Cette plateforme digitale permet aux professionnels de santé, aux autorités locales et aux citoyens de signaler en temps réel tout incident sanitaire suspect ou avéré.</p>#}
+{#          <a href="#" class="btn-ci mt-3">En savoir plus <i class="fas fa-arrow-right ms-2"></i></a>#}
+{#        </div>#}
+{#        <div class="col-lg-6" data-aos="fade-left">#}
+{#          <div class="ratio ratio-16x9">#}
+{#            <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="Présentation de la plateforme" allowfullscreen></iframe>#}
+{#          </div>#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
+{##}
+{#  <!-- Statistiques -->#}
+{#  <section id="stats" class="stats py-5">#}
+{#    <div class="container">#}
+{#      <h2 class="section-title text-center mb-5">Notre impact en chiffres</h2>#}
+{#      <div class="row g-4">#}
+{#        <div class="col-md-3" data-aos="fade-up" data-aos-delay="0">#}
+{#          <div class="stat-card text-center p-4 bg-white">#}
+{#            <div class="stat-icon text-primary">#}
+{#              <i class="fas fa-bell"></i>#}
+{#            </div>#}
+{#            <h3 class="display-5 fw-bold mb-2">1,248</h3>#}
+{#            <p class="mb-0">Alertes traitées</p>#}
+{#            <div class="progress mt-3" style="height: 6px;">#}
+{#              <div class="progress-bar bg-primary" style="width: 75%"></div>#}
+{#            </div>#}
+{#            <small class="text-muted">+12% ce mois</small>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">#}
+{#          <div class="stat-card text-center p-4 bg-white">#}
+{#            <div class="stat-icon text-success">#}
+{#              <i class="fas fa-map-marked-alt"></i>#}
+{#            </div>#}
+{#            <h3 class="display-5 fw-bold mb-2">89</h3>#}
+{#            <p class="mb-0">Communes couvertes</p>#}
+{#            <div class="progress mt-3" style="height: 6px;">#}
+{#              <div class="progress-bar bg-success" style="width: 65%"></div>#}
+{#            </div>#}
+{#            <small class="text-muted">+8% ce trimestre</small>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="col-md-3" data-aos="fade-up" data-aos-delay="200">#}
+{#          <div class="stat-card text-center p-4 bg-white">#}
+{#            <div class="stat-icon text-warning">#}
+{#              <i class="fas fa-user-md"></i>#}
+{#            </div>#}
+{#            <h3 class="display-5 fw-bold mb-2">1,542</h3>#}
+{#            <p class="mb-0">Professionnels actifs</p>#}
+{#            <div class="progress mt-3" style="height: 6px;">#}
+{#              <div class="progress-bar bg-warning" style="width: 85%"></div>#}
+{#            </div>#}
+{#            <small class="text-muted">+22% cette année</small>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="col-md-3" data-aos="fade-up" data-aos-delay="300">#}
+{#          <div class="stat-card text-center p-4 bg-white">#}
+{#            <div class="stat-icon text-danger">#}
+{#              <i class="fas fa-clock"></i>#}
+{#            </div>#}
+{#            <h3 class="display-5 fw-bold mb-2">2.1h</h3>#}
+{#            <p class="mb-0">Temps moyen de réponse</p>#}
+{#            <div class="progress mt-3" style="height: 6px;">#}
+{#              <div class="progress-bar bg-danger" style="width: 45%"></div>#}
+{#            </div>#}
+{#            <small class="text-muted">-30% depuis 2023</small>#}
+{#          </div>#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
+{##}
+{#  <!-- Fonctionnalités -->#}
+{#  <section id="fonctionnalites" class="py-5 bg-white">#}
+{#    <div class="container">#}
+{#      <h2 class="section-title text-center mb-5">Fonctionnalités clés</h2>#}
+{#      <div class="row g-4">#}
+{#        <div class="col-md-4" data-aos="fade-up" data-aos-delay="0">#}
+{#          <div class="feature-card p-4 border">#}
+{#            <div class="feature-icon">#}
+{#              <i class="fas fa-mobile-alt"></i>#}
+{#            </div>#}
+{#            <h4>Signalement en temps réel</h4>#}
+{#            <p>Permet aux utilisateurs de signaler des incidents sanitaires via une interface simple et intuitive, disponible sur tous les appareils.</p>#}
+{#            <ul class="list-unstyled">#}
+{#              <li><i class="fas fa-check-circle text-success me-2"></i> Photos et géolocalisation</li>#}
+{#              <li><i class="fas fa-check-circle text-success me-2"></i> Catégorisation automatique</li>#}
+{#              <li><i class="fas fa-check-circle text-success me-2"></i> Notifications instantanées</li>#}
+{#            </ul>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">#}
+{#          <div class="feature-card p-4 border">#}
+{#            <div class="feature-icon">#}
+{#              <i class="fas fa-chart-line"></i>#}
+{#            </div>#}
+{#            <h4>Tableau de bord analytique</h4>#}
+{#            <p>Visualisez les tendances épidémiologiques, les points chauds et les indicateurs clés de performance en temps réel.</p>#}
+{#            <ul class="list-unstyled">#}
+{#              <li><i class="fas fa-check-circle text-success me-2"></i> Cartes thermiques</li>#}
+{#              <li><i class="fas fa-check-circle text-success me-2"></i> Prévisions épidémiologiques</li>#}
+{#              <li><i class="fas fa-check-circle text-success me-2"></i> Export de données</li>#}
+{#            </ul>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">#}
+{#          <div class="feature-card p-4 border">#}
+{#            <div class="feature-icon">#}
+{#              <i class="fas fa-users-cog"></i>#}
+{#            </div>#}
+{#            <h4>Gestion des interventions</h4>#}
+{#            <p>Coordonnez les équipes sur le terrain, assignez des tâches et suivez l'avancement des interventions sanitaires.</p>#}
+{#            <ul class="list-unstyled">#}
+{#              <li><i class="fas fa-check-circle text-success me-2"></i> Assignation d'équipes</li>#}
+{#              <li><i class="fas fa-check-circle text-success me-2"></i> Suivi en temps réel</li>#}
+{#              <li><i class="fas fa-check-circle text-success me-2"></i> Rapports automatisés</li>#}
+{#            </ul>#}
+{#          </div>#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
+{##}
+{#  <!-- Timeline -->#}
+{#  <section class="py-5 bg-light">#}
+{#    <div class="container">#}
+{#      <h2 class="section-title text-center mb-5">Évolution du projet</h2>#}
+{#      <div class="timeline">#}
+{#        <div class="timeline-item left" data-aos="fade-right">#}
+{#          <div class="timeline-content">#}
+{#            <h5>Lancement du projet</h5>#}
+{#            <small class="text-muted">Janvier 2022</small>#}
+{#            <p>Conception initiale et développement de la plateforme pilote en collaboration avec l'OMS et les partenaires techniques.</p>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="timeline-item right" data-aos="fade-left">#}
+{#          <div class="timeline-content">#}
+{#            <h5>Phase pilote</h5>#}
+{#            <small class="text-muted">Juillet 2022</small>#}
+{#            <p>Déploiement dans 3 districts sanitaires (Abidjan, Bouaké, San-Pédro) avec formation des premiers utilisateurs.</p>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="timeline-item left" data-aos="fade-right">#}
+{#          <div class="timeline-content">#}
+{#            <h5>Extension nationale</h5>#}
+{#            <small class="text-muted">Janvier 2023</small>#}
+{#            <p>Généralisation à l'ensemble des 14 districts sanitaires du pays avec intégration des données historiques.</p>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="timeline-item right" data-aos="fade-left">#}
+{#          <div class="timeline-content">#}
+{#            <h5>Version 2.0</h5>#}
+{#            <small class="text-muted">Septembre 2023</small>#}
+{#            <p>Ajout de l'IA pour la détection précoce des épidémies et intégration avec le système de santé communautaire.</p>#}
+{#          </div>#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
+{##}
+{#  <!-- Carte -->#}
+{#  <section id="carte" class="py-5 bg-white">#}
+{#    <div class="container">#}
+{#      <h2 class="section-title text-center mb-5">Surveillance en temps réel</h2>#}
+{#      <div class="row">#}
+{#        <div class="col-lg-8 mb-4 mb-lg-0">#}
+{#          <div class="map-container" id="map" data-aos="zoom-in"></div>#}
+{#        </div>#}
+{#        <div class="col-lg-4">#}
+{#          <div class="card border-0 shadow-sm h-100" data-aos="fade-left">#}
+{#            <div class="card-header bg-success text-white">#}
+{#              <h5 class="mb-0">Dernières alertes</h5>#}
+{#            </div>#}
+{#            <div class="card-body p-0">#}
+{#              <div class="list-group list-group-flush">#}
+{#                <a href="#" class="list-group-item list-group-item-action">#}
+{#                  <div class="d-flex w-100 justify-content-between">#}
+{#                    <h6 class="mb-1">Suspicion de choléra</h6>#}
+{#                    <small>Il y a 15 min</small>#}
+{#                  </div>#}
+{#                  <p class="mb-1 small">Abidjan, Cocody - 5 cas signalés</p>#}
+{#                </a>#}
+{#                <a href="#" class="list-group-item list-group-item-action">#}
+{#                  <div class="d-flex w-100 justify-content-between">#}
+{#                    <h6 class="mb-1">Intoxication alimentaire</h6>#}
+{#                    <small>Il y a 1h</small>#}
+{#                  </div>#}
+{#                  <p class="mb-1 small">Bouaké - 12 personnes affectées</p>#}
+{#                </a>#}
+{#                <a href="#" class="list-group-item list-group-item-action">#}
+{#                  <div class="d-flex w-100 justify-content-between">#}
+{#                    <h6 class="mb-1">Accident de la route</h6>#}
+{#                    <small>Il y a 2h</small>#}
+{#                  </div>#}
+{#                  <p class="mb-1 small">Yamoussoukro - Urgence médicale</p>#}
+{#                </a>#}
+{#                <a href="#" class="list-group-item list-group-item-action">#}
+{#                  <div class="d-flex w-100 justify-content-between">#}
+{#                    <h6 class="mb-1">Moustiques prolifération</h6>#}
+{#                    <small>Il y a 3h</small>#}
+{#                  </div>#}
+{#                  <p class="mb-1 small">San-Pédro - Risque paludisme</p>#}
+{#                </a>#}
+{#              </div>#}
+{#            </div>#}
+{#            <div class="card-footer bg-light">#}
+{#              <a href="#" class="btn btn-sm btn-success">Voir toutes les alertes</a>#}
+{#            </div>#}
+{#          </div>#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
+{##}
+{#  <!-- Actualités -->#}
+{#  <section id="actualites" class="py-5 bg-light">#}
+{#    <div class="container">#}
+{#      <h2 class="section-title text-center mb-5">Actualités et alertes</h2>#}
+{#      <div class="row g-4">#}
+{#        <div class="col-md-4" data-aos="fade-up">#}
+{#          <div class="card news-card border-0 h-100">#}
+{#            <div class="position-relative">#}
+{#              <img src="https://via.placeholder.com/400x250?text=Choléra+Abidjan" class="card-img-top" alt="Actualité 1">#}
+{#              <div class="news-date">15 Juin 2023</div>#}
+{#            </div>#}
+{#            <div class="card-body">#}
+{#              <h5 class="card-title">Situation choléra à Abidjan</h5>#}
+{#              <p class="card-text">Le ministère de la Santé renforce les mesures préventives face à la recrudescence des cas de choléra dans le district d'Abidjan.</p>#}
+{#              <a href="#" class="btn-ci-outline btn-sm">Lire plus</a>#}
+{#            </div>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">#}
+{#          <div class="card news-card border-0 h-100">#}
+{#            <div class="position-relative">#}
+{#              <img src="https://via.placeholder.com/400x250?text=Formation+Agents" class="card-img-top" alt="Actualité 2">#}
+{#              <div class="news-date">2 Juin 2023</div>#}
+{#            </div>#}
+{#            <div class="card-body">#}
+{#              <h5 class="card-title">Formation des agents communautaires</h5>#}
+{#              <p class="card-text">500 nouveaux agents de santé communautaire formés à l'utilisation de la plateforme SNAS dans les régions du nord.</p>#}
+{#              <a href="#" class="btn-ci-outline btn-sm">Lire plus</a>#}
+{#            </div>#}
+{#          </div>#}
+{#        </div>#}
+{#        <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">#}
+{#          <div class="card news-card border-0 h-100">#}
+{#            <div class="position-relative">#}
+{#              <img src="https://via.placeholder.com/400x250?text=Partenariat+OMS" class="card-img-top" alt="Actualité 3">#}
+{#              <div class="news-date">20 Mai 2023</div>#}
+{#            </div>#}
+{#            <div class="card-body">#}
+{#              <h5 class="card-title">Partenariat avec l'OMS</h5>#}
+{#              <p class="card-text">L'Organisation Mondiale de la Santé reconnaît le SNAS comme modèle de surveillance épidémiologique en Afrique de l'Ouest.</p>#}
+{#              <a href="#" class="btn-ci-outline btn-sm">Lire plus</a>#}
+{#            </div>#}
+{#          </div>#}
+{#        </div>#}
+{#      </div>#}
+{#      <div class="text-center mt-4">#}
+{#        <a href="#" class="btn-ci">Voir toutes les actualités</a>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
+{##}
+{#  <!-- Partenaires -->#}
+{#  <section class="py-5 bg-white">#}
+{#    <div class="container">#}
+{#      <h2 class="section-title text-center mb-5">Nos partenaires</h2>#}
+{#      <div class="row justify-content-center align-items-center g-4">#}
+{#        <div class="col-6 col-md-2 text-center">#}
+{#          <img src="https://www.sante.gouv.ci/images/logo-oms.png" alt="OMS" class="img-fluid partner-logo">#}
+{#        </div>#}
+{#        <div class="col-6 col-md-2 text-center">#}
+{#          <img src="https://www.sante.gouv.ci/images/logo-unicef.png" alt="UNICEF" class="img-fluid partner-logo">#}
+{#        </div>#}
+{#        <div class="col-6 col-md-2 text-center">#}
+{#          <img src="https://www.sante.gouv.ci/images/logo-mshp.png" alt="Ministère Santé" class="img-fluid partner-logo">#}
+{#        </div>#}
+{#        <div class="col-6 col-md-2 text-center">#}
+{#          <img src="https://www.sante.gouv.ci/images/logo-union-africaine.png" alt="Union Africaine" class="img-fluid partner-logo">#}
+{#        </div>#}
+{#        <div class="col-6 col-md-2 text-center">#}
+{#          <img src="https://www.sante.gouv.ci/images/logo-usaid.png" alt="USAID" class="img-fluid partner-logo">#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
+{##}
+{#  <!-- Signaler un incident -->#}
+{#  <section id="signaler" class="py-5 bg-success text-white">#}
+{#    <div class="container">#}
+{#      <div class="row justify-content-center">#}
+{#        <div class="col-lg-8 text-center">#}
+{#          <h2 class="display-5 fw-bold mb-4">Signaler un incident sanitaire</h2>#}
+{#          <p class="lead mb-5">Vous avez constaté une situation sanitaire préoccupante ? Aidez-nous à protéger la population en signalant rapidement tout incident.</p>#}
+{#          <div class="d-flex flex-column flex-md-row justify-content-center gap-3">#}
+{#            <a href="#" class="btn btn-light btn-lg px-4">#}
+{#              <i class="fas fa-mobile-alt me-2"></i> Application mobile#}
 {#            </a>#}
-{#            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">#}
-{#                <span class="navbar-toggler-icon"></span>#}
-{#            </button>#}
-{#            <div class="collapse navbar-collapse" id="navbarNav">#}
-{#                <ul class="navbar-nav ms-auto">#}
-{#                    <li class="nav-item">#}
-{#                        <a class="nav-link active" href="#">Accueil</a>#}
-{#                    </li>#}
-{#                    <li class="nav-item">#}
-{#                        <a class="nav-link" href="#features">Fonctionnalités</a>#}
-{#                    </li>#}
-{#                    <li class="nav-item">#}
-{#                        <a class="nav-link" href="#about">À propos</a>#}
-{#                    </li>#}
-{#                    <li class="nav-item">#}
-{#                        <a class="nav-link" href="#contact">Contact</a>#}
-{#                    </li>#}
-{#                    <li class="nav-item ms-lg-3">#}
-{#                        <a href="#login" class="btn btn-cogu">Connexion</a>#}
-{#                    </li>#}
-{#                </ul>#}
-{#            </div>#}
+{#            <a href="#" class="btn btn-outline-light btn-lg px-4">#}
+{#              <i class="fas fa-desktop me-2"></i> Version web#}
+{#            </a>#}
+{#            <a href="#" class="btn btn-outline-light btn-lg px-4">#}
+{#              <i class="fas fa-phone-alt me-2"></i> Urgence: 143#}
+{#            </a>#}
+{#          </div>#}
 {#        </div>#}
-{#    </nav>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
 {##}
-{#    <!-- Hero Section -->#}
-{#    <section class="hero-section text-center">#}
-{#        <div class="container">#}
-{#            <h1 class="display-4 fw-bold mb-4">Plateforme COGU de Gestion des Urgences Sanitaires</h1>#}
-{#            <p class="lead mb-5">Système intégré pour la surveillance, la prévention et la réponse aux urgences sanitaires en Côte d'Ivoire</p>#}
-{#            <div class="d-flex justify-content-center gap-3">#}
-{#                <a href="#demo" class="btn btn-cogu btn-lg">#}
-{#                    <i class="fas fa-play-circle me-2"></i>Voir la démo#}
-{#                </a>#}
-{#                <a href="#contact" class="btn btn-outline-light btn-lg">#}
-{#                    <i class="fas fa-info-circle me-2"></i>En savoir plus#}
-{#                </a>#}
-{#            </div>#}
+{#  <!-- Contact -->#}
+{#  <section id="contact" class="py-5 bg-light">#}
+{#    <div class="container">#}
+{#      <div class="row">#}
+{#        <div class="col-lg-5 mb-5 mb-lg-0" data-aos="fade-right">#}
+{#          <h2 class="section-title text-start mb-4">Contactez-nous</h2>#}
+{#          <p class="mb-4">Pour toute question, suggestion ou demande d'information sur le Système National d'Alerte Sanitaire.</p>#}
+{##}
+{#          <div class="mb-4">#}
+{#            <h5><i class="fas fa-map-marker-alt text-success me-2"></i> Adresse</h5>#}
+{#            <p>Ministère de la Santé et de l'Hygiène Publique<br>#}
+{#            Plateau, Boulevard Angoulvant<br>#}
+{#            Abidjan, Côte d'Ivoire</p>#}
+{#          </div>#}
+{##}
+{#          <div class="mb-4">#}
+{#            <h5><i class="fas fa-phone-alt text-success me-2"></i> Téléphone</h5>#}
+{#            <p>+225 20 30 40 50<br>#}
+{#            Urgence: 143 (24h/24)</p>#}
+{#          </div>#}
+{##}
+{#          <div class="mb-4">#}
+{#            <h5><i class="fas fa-envelope text-success me-2"></i> Email</h5>#}
+{#            <p>snas@sante.gouv.ci<br>#}
+{#            support@snas.ci</p>#}
+{#          </div>#}
 {#        </div>#}
-{#    </section>#}
 {##}
-{#    <!-- Stats Section -->#}
-{#    <section class="py-5 bg-light">#}
-{#        <div class="container">#}
-{#            <div class="row g-4">#}
-{#                <div class="col-md-3">#}
-{#                    <div class="stat-card bg-white p-4 shadow-sm">#}
-{#                        <h3 class="text-cogu-primary">250+</h3>#}
-{#                        <p class="mb-0">Structures sanitaires connectées</p>#}
-{#                    </div>#}
+{#        <div class="col-lg-7" data-aos="fade-left">#}
+{#          <div class="card border-0 shadow-sm">#}
+{#            <div class="card-body p-4">#}
+{#              <h4 class="mb-4">Envoyez-nous un message</h4>#}
+{#              <form>#}
+{#                <div class="row g-3">#}
+{#                  <div class="col-md-6">#}
+{#                    <label for="name" class="form-label">Nom complet</label>#}
+{#                    <input type="text" class="form-control" id="name" required>#}
+{#                  </div>#}
+{#                  <div class="col-md-6">#}
+{#                    <label for="email" class="form-label">Email</label>#}
+{#                    <input type="email" class="form-control" id="email" required>#}
+{#                  </div>#}
+{#                  <div class="col-12">#}
+{#                    <label for="subject" class="form-label">Sujet</label>#}
+{#                    <input type="text" class="form-control" id="subject" required>#}
+{#                  </div>#}
+{#                  <div class="col-12">#}
+{#                    <label for="message" class="form-label">Message</label>#}
+{#                    <textarea class="form-control" id="message" rows="5" required></textarea>#}
+{#                  </div>#}
+{#                  <div class="col-12">#}
+{#                    <button type="submit" class="btn-ci">Envoyer le message</button>#}
+{#                  </div>#}
 {#                </div>#}
-{#                <div class="col-md-3">#}
-{#                    <div class="stat-card bg-white p-4 shadow-sm">#}
-{#                        <h3>1,500+</h3>#}
-{#                        <p class="mb-0">Utilisateurs actifs</p>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-md-3">#}
-{#                    <div class="stat-card bg-white p-4 shadow-sm">#}
-{#                        <h3>24/7</h3>#}
-{#                        <p class="mb-0">Surveillance en temps réel</p>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-md-3">#}
-{#                    <div class="stat-card bg-white p-4 shadow-sm">#}
-{#                        <h3>30+</h3>#}
-{#                        <p class="mb-0">Urgences traitées mensuellement</p>#}
-{#                    </div>#}
-{#                </div>#}
+{#              </form>#}
 {#            </div>#}
+{#          </div>#}
 {#        </div>#}
-{#    </section>#}
+{#      </div>#}
+{#    </div>#}
+{#  </section>#}
 {##}
-{#    <!-- Features Section -->#}
-{#    <section id="features" class="py-5">#}
-{#        <div class="container">#}
-{#            <div class="text-center mb-5">#}
-{#                <h2 class="fw-bold">Fonctionnalités clés</h2>#}
-{#                <p class="lead text-muted">Découvrez les principales fonctionnalités de notre plateforme</p>#}
-{#            </div>#}
-{##}
-{#            <div class="row g-4">#}
-{#                <div class="col-md-4">#}
-{#                    <div class="text-center p-4">#}
-{#                        <div class="feature-icon">#}
-{#                            <i class="fas fa-bell"></i>#}
-{#                        </div>#}
-{#                        <h4>Alertes précoces</h4>#}
-{#                        <p>Système d'alerte en temps réel pour détecter et notifier les situations d'urgence sanitaires.</p>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-md-4">#}
-{#                    <div class="text-center p-4">#}
-{#                        <div class="feature-icon">#}
-{#                            <i class="fas fa-map-marked-alt"></i>#}
-{#                        </div>#}
-{#                        <h4>Cartographie des risques</h4>#}
-{#                        <p>Visualisation géographique des foyers épidémiques et des ressources disponibles.</p>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-md-4">#}
-{#                    <div class="text-center p-4">#}
-{#                        <div class="feature-icon">#}
-{#                            <i class="fas fa-chart-line"></i>#}
-{#                        </div>#}
-{#                        <h4>Tableaux de bord</h4>#}
-{#                        <p>Analyses et rapports personnalisés pour une prise de décision éclairée.</p>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-md-4">#}
-{#                    <div class="text-center p-4">#}
-{#                        <div class="feature-icon">#}
-{#                            <i class="fas fa-users"></i>#}
-{#                        </div>#}
-{#                        <h4>Gestion des patients</h4>#}
-{#                        <p>Enregistrement et suivi complet des patients dans les situations d'urgence.</p>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-md-4">#}
-{#                    <div class="text-center p-4">#}
-{#                        <div class="feature-icon">#}
-{#                            <i class="fas fa-ambulance"></i>#}
-{#                        </div>#}
-{#                        <h4>Coordination des interventions</h4>#}
-{#                        <p>Optimisation des ressources et coordination des équipes sur le terrain.</p>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-md-4">#}
-{#                    <div class="text-center p-4">#}
-{#                        <div class="feature-icon">#}
-{#                            <i class="fas fa-mobile-alt"></i>#}
-{#                        </div>#}
-{#                        <h4>Application mobile</h4>#}
-{#                        <p>Accès aux fonctionnalités clés depuis votre smartphone, même hors ligne.</p>#}
-{#                    </div>#}
-{#                </div>#}
-{#            </div>#}
+{#  <!-- Footer -->#}
+{#  <footer class="bg-dark text-white py-4">#}
+{#    <div class="container">#}
+{#      <div class="row">#}
+{#        <div class="col-lg-4 mb-4 mb-lg-0">#}
+{#          <h5 class="mb-3">Système National d'Alerte Sanitaire</h5>#}
+{#          <p>Une initiative du Ministère de la Santé, de l'Hygiène Publique et de la Couverture Maladie Universelle de Côte d'Ivoire.</p>#}
+{#          <div class="social-icons">#}
+{#            <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>#}
+{#            <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>#}
+{#            <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>#}
+{#            <a href="#" class="text-white"><i class="fab fa-youtube"></i></a>#}
+{#          </div>#}
 {#        </div>#}
-{#    </section>#}
-{##}
-{#    <!-- Demo Section -->#}
-{#    <section id="demo" class="py-5 bg-light">#}
-{#        <div class="container">#}
-{#            <div class="row align-items-center">#}
-{#                <div class="col-lg-6">#}
-{#                    <h2 class="fw-bold mb-4">Découvrez notre plateforme en action</h2>#}
-{#                    <p class="lead mb-4">Visualisez comment COGU transforme la gestion des urgences sanitaires en Côte d'Ivoire.</p>#}
-{#                    <ul class="list-unstyled">#}
-{#                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Interface intuitive et facile à utiliser</li>#}
-{#                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Données sécurisées et conformes aux réglementations</li>#}
-{#                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Intégration avec les systèmes existants</li>#}
-{#                    </ul>#}
-{#                    <a href="#contact" class="btn btn-cogu mt-3">Demander une démo personnalisée</a>#}
-{#                </div>#}
-{#                <div class="col-lg-6">#}
-{#                    <img src="https://via.placeholder.com/600x400" alt="COGU Dashboard" class="img-fluid rounded shadow">#}
-{#                </div>#}
-{#            </div>#}
+{#        <div class="col-lg-2 col-md-6 mb-4 mb-md-0">#}
+{#          <h5 class="mb-3">Liens rapides</h5>#}
+{#          <ul class="list-unstyled">#}
+{#            <li class="mb-2"><a href="#" class="text-white">Accueil</a></li>#}
+{#            <li class="mb-2"><a href="#" class="text-white">À propos</a></li>#}
+{#            <li class="mb-2"><a href="#" class="text-white">Statistiques</a></li>#}
+{#            <li class="mb-2"><a href="#" class="text-white">Actualités</a></li>#}
+{#            <li><a href="#" class="text-white">Contact</a></li>#}
+{#          </ul>#}
 {#        </div>#}
-{#    </section>#}
-{##}
-{#    <!-- Testimonials -->#}
-{#    <section class="py-5">#}
-{#        <div class="container">#}
-{#            <div class="text-center mb-5">#}
-{#                <h2 class="fw-bold">Ils utilisent COGU</h2>#}
-{#                <p class="lead text-muted">Témoignages de nos partenaires</p>#}
-{#            </div>#}
-{##}
-{#            <div class="row g-4">#}
-{#                <div class="col-md-4">#}
-{#                    <div class="card h-100 shadow-sm">#}
-{#                        <div class="card-body">#}
-{#                            <div class="mb-3 text-warning">#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                            </div>#}
-{#                            <p class="card-text">"COGU a révolutionné notre capacité à répondre aux crises sanitaires. La rapidité d'alerte et la coordination des équipes ont sauvé des vies."</p>#}
-{#                        </div>#}
-{#                        <div class="card-footer bg-transparent">#}
-{#                            <div class="d-flex align-items-center">#}
-{#                                <img src="https://via.placeholder.com/50" alt="Dr. Kouamé" class="rounded-circle me-3">#}
-{#                                <div>#}
-{#                                    <h6 class="mb-0">Dr. Jean Kouamé</h6>#}
-{#                                    <small class="text-muted">Directeur Régional de la Santé, Abidjan</small>#}
-{#                                </div>#}
-{#                            </div>#}
-{#                        </div>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-md-4">#}
-{#                    <div class="card h-100 shadow-sm">#}
-{#                        <div class="card-body">#}
-{#                            <div class="mb-3 text-warning">#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                            </div>#}
-{#                            <p class="card-text">"La formation a été excellente et l'équipe support est toujours disponible. La plateforme est devenue indispensable dans notre quotidien."</p>#}
-{#                        </div>#}
-{#                        <div class="card-footer bg-transparent">#}
-{#                            <div class="d-flex align-items-center">#}
-{#                                <img src="https://via.placeholder.com/50" alt="Mme. Diallo" class="rounded-circle me-3">#}
-{#                                <div>#}
-{#                                    <h6 class="mb-0">Mme. Aïcha Diallo</h6>#}
-{#                                    <small class="text-muted">Infirmière en chef, Bouaké</small>#}
-{#                                </div>#}
-{#                            </div>#}
-{#                        </div>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-md-4">#}
-{#                    <div class="card h-100 shadow-sm">#}
-{#                        <div class="card-body">#}
-{#                            <div class="mb-3 text-warning">#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star"></i>#}
-{#                                <i class="fas fa-star-half-alt"></i>#}
-{#                            </div>#}
-{#                            <p class="card-text">"Les rapports automatisés nous font gagner un temps précieux. Nous pouvons maintenant nous concentrer sur l'essentiel : nos patients."</p>#}
-{#                        </div>#}
-{#                        <div class="card-footer bg-transparent">#}
-{#                            <div class="d-flex align-items-center">#}
-{#                                <img src="https://via.placeholder.com/50" alt="Dr. Yéo" class="rounded-circle me-3">#}
-{#                                <div>#}
-{#                                    <h6 class="mb-0">Dr. Paul Yéo</h6>#}
-{#                                    <small class="text-muted">Médecin urgentiste, San Pedro</small>#}
-{#                                </div>#}
-{#                            </div>#}
-{#                        </div>#}
-{#                    </div>#}
-{#                </div>#}
-{#            </div>#}
+{#        <div class="col-lg-2 col-md-6 mb-4 mb-md-0">#}
+{#          <h5 class="mb-3">Ressources</h5>#}
+{#          <ul class="list-unstyled">#}
+{#            <li class="mb-2"><a href="#" class="text-white">Documentation</a></li>#}
+{#            <li class="mb-2"><a href="#" class="text-white">Guides</a></li>#}
+{#            <li class="mb-2"><a href="#" class="text-white">FAQ</a></li>#}
+{#            <li><a href="#" class="text-white">Mentions légales</a></li>#}
+{#          </ul>#}
 {#        </div>#}
-{#    </section>#}
-{##}
-{#    <!-- About Section -->#}
-{#    <section id="about" class="py-5 bg-light">#}
-{#        <div class="container">#}
-{#            <div class="row align-items-center">#}
-{#                <div class="col-lg-6">#}
-{#                    <img src="https://via.placeholder.com/600x400" alt="Équipe COGU" class="img-fluid rounded shadow">#}
-{#                </div>#}
-{#                <div class="col-lg-6">#}
-{#                    <h2 class="fw-bold mb-4">À propos du COGU</h2>#}
-{#                    <p>Le Comité de Gestion des Urgences Sanitaires (COGU) est une initiative du Ministère de la Santé et de l'Hygiène Publique de Côte d'Ivoire, créée pour renforcer les capacités nationales de préparation et de réponse aux urgences sanitaires.</p>#}
-{#                    <p>Notre plateforme technologique a été développée en collaboration avec des experts en santé publique et des spécialistes en technologies de l'information pour répondre aux besoins spécifiques du contexte ivoirien.</p>#}
-{#                    <div class="mt-4">#}
-{#                        <a href="#" class="btn btn-cogu me-2">Notre mission</a>#}
-{#                        <a href="#" class="btn btn-outline-primary">Notre équipe</a>#}
-{#                    </div>#}
-{#                </div>#}
+{#        <div class="col-lg-4">#}
+{#          <h5 class="mb-3">Newsletter</h5>#}
+{#          <p>Abonnez-vous pour recevoir les dernières alertes et actualités.</p>#}
+{#          <form class="mb-3">#}
+{#            <div class="input-group">#}
+{#              <input type="email" class="form-control" placeholder="Votre email">#}
+{#              <button class="btn btn-success" type="submit">S'abonner</button>#}
 {#            </div>#}
+{#          </form>#}
+{#          <p class="small mb-0">En cliquant sur "S'abonner", vous acceptez notre politique de confidentialité.</p>#}
 {#        </div>#}
-{#    </section>#}
-{##}
-{#    <!-- Contact Section -->#}
-{#    <section id="contact" class="py-5">#}
-{#        <div class="container">#}
-{#            <div class="text-center mb-5">#}
-{#                <h2 class="fw-bold">Contactez-nous</h2>#}
-{#                <p class="lead text-muted">Une question ? Une demande de démonstration ? Notre équipe est à votre écoute.</p>#}
-{#            </div>#}
-{##}
-{#            <div class="row justify-content-center">#}
-{#                <div class="col-lg-8">#}
-{#                    <div class="card shadow-sm">#}
-{#                        <div class="card-body p-5">#}
-{#                            <form>#}
-{#                                <div class="row g-3">#}
-{#                                    <div class="col-md-6">#}
-{#                                        <label for="name" class="form-label">Nom complet</label>#}
-{#                                        <input type="text" class="form-control" id="name" required>#}
-{#                                    </div>#}
-{#                                    <div class="col-md-6">#}
-{#                                        <label for="email" class="form-label">Email</label>#}
-{#                                        <input type="email" class="form-control" id="email" required>#}
-{#                                    </div>#}
-{#                                    <div class="col-12">#}
-{#                                        <label for="subject" class="form-label">Sujet</label>#}
-{#                                        <input type="text" class="form-control" id="subject" required>#}
-{#                                    </div>#}
-{#                                    <div class="col-12">#}
-{#                                        <label for="message" class="form-label">Message</label>#}
-{#                                        <textarea class="form-control" id="message" rows="5" required></textarea>#}
-{#                                    </div>#}
-{#                                    <div class="col-12">#}
-{#                                        <button type="submit" class="btn btn-cogu">Envoyer le message</button>#}
-{#                                    </div>#}
-{#                                </div>#}
-{#                            </form>#}
-{#                        </div>#}
-{#                    </div>#}
-{#                </div>#}
-{#            </div>#}
+{#      </div>#}
+{#      <hr class="my-4 bg-secondary">#}
+{#      <div class="row align-items-center">#}
+{#        <div class="col-md-6 text-center text-md-start">#}
+{#          <p class="mb-0">© 2023 Ministère de la Santé - Côte d'Ivoire. Tous droits réservés.</p>#}
 {#        </div>#}
-{#    </section>#}
-{##}
-{#    <!-- Partners -->#}
-{#    <section class="py-5 bg-light">#}
-{#        <div class="container">#}
-{#            <div class="text-center mb-5">#}
-{#                <h2 class="fw-bold">Nos partenaires</h2>#}
-{#            </div>#}
-{##}
-{#            <div class="row align-items-center justify-content-center g-4">#}
-{#                <div class="col-6 col-md-2">#}
-{#                    <img src="https://via.placeholder.com/150x80" alt="Partenaire 1" class="img-fluid grayscale">#}
-{#                </div>#}
-{#                <div class="col-6 col-md-2">#}
-{#                    <img src="https://via.placeholder.com/150x80" alt="Partenaire 2" class="img-fluid grayscale">#}
-{#                </div>#}
-{#                <div class="col-6 col-md-2">#}
-{#                    <img src="https://via.placeholder.com/150x80" alt="Partenaire 3" class="img-fluid grayscale">#}
-{#                </div>#}
-{#                <div class="col-6 col-md-2">#}
-{#                    <img src="https://via.placeholder.com/150x80" alt="Partenaire 4" class="img-fluid grayscale">#}
-{#                </div>#}
-{#                <div class="col-6 col-md-2">#}
-{#                    <img src="https://via.placeholder.com/150x80" alt="Partenaire 5" class="img-fluid grayscale">#}
-{#                </div>#}
-{#            </div>#}
+{#        <div class="col-md-6 text-center text-md-end">#}
+{#          <img src="https://www.sante.gouv.ci/images/logo-footer.png" alt="Logo République" height="40">#}
 {#        </div>#}
-{#    </section>#}
+{#      </div>#}
+{#    </div>#}
+{#  </footer>#}
 {##}
-{#    <!-- Footer -->#}
-{#    <footer class="py-5">#}
-{#        <div class="container">#}
-{#            <div class="row g-4">#}
-{#                <div class="col-lg-4">#}
-{#                    <h5 class="text-white mb-4">COGU</h5>#}
-{#                    <p>Plateforme de gestion des urgences sanitaires du Ministère de la Santé et de l'Hygiène Publique de Côte d'Ivoire.</p>#}
-{#                    <div class="social-icons mt-4">#}
-{#                        <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>#}
-{#                        <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>#}
-{#                        <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>#}
-{#                        <a href="#" class="text-white"><i class="fab fa-youtube"></i></a>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-lg-2 col-md-6">#}
-{#                    <h5 class="text-white mb-4">Liens rapides</h5>#}
-{#                    <ul class="list-unstyled">#}
-{#                        <li class="mb-2"><a href="#" class="text-white-50">Accueil</a></li>#}
-{#                        <li class="mb-2"><a href="#features" class="text-white-50">Fonctionnalités</a></li>#}
-{#                        <li class="mb-2"><a href="#about" class="text-white-50">À propos</a></li>#}
-{#                        <li class="mb-2"><a href="#demo" class="text-white-50">Démo</a></li>#}
-{#                        <li><a href="#contact" class="text-white-50">Contact</a></li>#}
-{#                    </ul>#}
-{#                </div>#}
-{#                <div class="col-lg-3 col-md-6">#}
-{#                    <h5 class="text-white mb-4">Contact</h5>#}
-{#                    <ul class="list-unstyled text-white-50">#}
-{#                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i> Abidjan, Plateau, Côte d'Ivoire</li>#}
-{#                        <li class="mb-2"><i class="fas fa-phone me-2"></i> +225 XX XX XX XX</li>#}
-{#                        <li class="mb-2"><i class="fas fa-envelope me-2"></i> contact@cogu.ci</li>#}
-{#                        <li><i class="fas fa-clock me-2"></i> Lun-Ven: 8h-17h</li>#}
-{#                    </ul>#}
-{#                </div>#}
-{#                <div class="col-lg-3">#}
-{#                    <h5 class="text-white mb-4">Newsletter</h5>#}
-{#                    <p class="text-white-50">Abonnez-vous pour recevoir nos dernières actualités.</p>#}
-{#                    <form class="mt-3">#}
-{#                        <div class="input-group">#}
-{#                            <input type="email" class="form-control" placeholder="Votre email">#}
-{#                            <button class="btn btn-cogu" type="submit">S'abonner</button>#}
-{#                        </div>#}
-{#                    </form>#}
-{#                </div>#}
-{#            </div>#}
-{#            <hr class="my-4 bg-secondary">#}
-{#            <div class="row">#}
-{#                <div class="col-md-6 text-center text-md-start">#}
-{#                    <p class="mb-0 text-white-50">&copy; 2023 COGU. Tous droits réservés.</p>#}
-{#                </div>#}
-{#                <div class="col-md-6 text-center text-md-end">#}
-{#                    <a href="#" class="text-white-50 me-3">Politique de confidentialité</a>#}
-{#                    <a href="#" class="text-white-50">Conditions d'utilisation</a>#}
-{#                </div>#}
-{#            </div>#}
-{#        </div>#}
-{#    </footer>#}
+{#  <!-- Back to top -->#}
+{#  <a href="#" class="btn btn-success btn-lg rounded-circle position-fixed bottom-0 end-0 m-4" id="back-to-top">#}
+{#    <i class="fas fa-arrow-up"></i>#}
+{#  </a>#}
 {##}
-{#    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>#}
+{#  <!-- JS -->#}
+{#  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>#}
+{#  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>#}
+{#  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>#}
+{#  <script>#}
+{#    // Initialisation AOS#}
+{#    AOS.init({#}
+{#      duration: 800,#}
+{#      easing: 'ease-in-out',#}
+{#      once: true#}
+{#    });#}
+{##}
+{#    // Initialisation de la carte#}
+{#    const map = L.map('map').setView([7.54, -5.55], 7);#}
+{#    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {#}
+{#      attribution: '© OpenStreetMap contributors'#}
+{#    }).addTo(map);#}
+{##}
+{#    // Ajout de marqueurs fictifs pour la démo#}
+{#    const cities = [#}
+{#      { name: "Abidjan", lat: 5.32, lng: -4.03, cases: 124 },#}
+{#      { name: "Bouaké", lat: 7.69, lng: -5.03, cases: 87 },#}
+{#      { name: "Daloa", lat: 6.88, lng: -6.45, cases: 45 },#}
+{#      { name: "San-Pédro", lat: 4.75, lng: -6.64, cases: 32 },#}
+{#      { name: "Yamoussoukro", lat: 6.82, lng: -5.28, cases: 28 }#}
+{#    ];#}
+{##}
+{#    cities.forEach(city => {#}
+{#      const marker = L.marker([city.lat, city.lng]).addTo(map)#}
+{#        .bindPopup(`<b>${city.name}</b><br>${city.cases} incidents ce mois`);#}
+{#    });#}
+{##}
+{#    // Navbar scroll effect#}
+{#    window.addEventListener('scroll', function() {#}
+{#      const navbar = document.querySelector('.navbar');#}
+{#      if (window.scrollY > 50) {#}
+{#        navbar.classList.add('scrolled');#}
+{#      } else {#}
+{#        navbar.classList.remove('scrolled');#}
+{#      }#}
+{#    });#}
+{##}
+{#    // Back to top button#}
+{#    const backToTopButton = document.getElementById('back-to-top');#}
+{#    window.addEventListener('scroll', function() {#}
+{#      if (window.scrollY > 300) {#}
+{#        backToTopButton.style.opacity = '1';#}
+{#        backToTopButton.style.visibility = 'visible';#}
+{#      } else {#}
+{#        backToTopButton.style.opacity = '0';#}
+{#        backToTopButton.style.visibility = 'hidden';#}
+{#      }#}
+{#    });#}
+{##}
+{#    backToTopButton.addEventListener('click', function(e) {#}
+{#      e.preventDefault();#}
+{#      window.scrollTo({ top: 0, behavior: 'smooth' });#}
+{#    });#}
+{#  </script>#}
 {#</body>#}
 {#</html>#}

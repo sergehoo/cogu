@@ -103,13 +103,26 @@ class IncidentTypeAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+# @admin.register(SanitaryIncident)
+# class SanitaryIncidentAdmin(admin.ModelAdmin):
+#     list_display = ('incident_type', 'date_time', 'city', 'number_of_people_involved', 'outcome', 'source')
+#     list_filter = ('incident_type', 'outcome')
+#     search_fields = ('description', 'source')
+#     filter_horizontal = ('patients_related',)
 @admin.register(SanitaryIncident)
 class SanitaryIncidentAdmin(admin.ModelAdmin):
-    list_display = ('incident_type', 'date_time', 'city', 'number_of_people_involved', 'outcome', 'source')
-    list_filter = ('incident_type', 'outcome')
-    search_fields = ('description', 'source')
-    filter_horizontal = ('patients_related',)
+    list_display = ('id', 'incident_type', 'date_time', 'city', 'outcome', 'status', 'source')
+    list_filter = ('status', 'incident_type', 'city', 'outcome')
+    search_fields = ('description', 'city__name')
+    actions = ['valider_incidents', 'rejeter_incidents']
 
+    @admin.action(description="Valider les incidents sélectionnés")
+    def valider_incidents(self, request, queryset):
+        queryset.update(status='validated')
+
+    @admin.action(description="Rejeter les incidents sélectionnés")
+    def rejeter_incidents(self, request, queryset):
+        queryset.update(status='rejected')
 
 @admin.register(WhatsAppMessage)
 class WhatsAppMessageAdmin(admin.ModelAdmin):
