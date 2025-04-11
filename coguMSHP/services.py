@@ -290,10 +290,17 @@ def twilio_whatsapp_webhook(request):
 
     try:
         info = extract_info_from_message(message_body)
+
         matched_commune = Commune.objects.filter(name__icontains=message_body).first()
         location = matched_commune.location if matched_commune else None
 
-        incident_type = IncidentType.objects.filter(name__icontains=info['incident_type_name']).first()
+        # 🔒 Sécurise le nom d'incident
+        incident_type_name = info.get('incident_type_name')
+        if incident_type_name:
+            incident_type = IncidentType.objects.filter(name__icontains=incident_type_name).first()
+        else:
+            incident_type = None
+
         if not incident_type:
             incident_type = IncidentType.objects.filter(name__icontains='Autre').first()
 
@@ -305,39 +312,13 @@ def twilio_whatsapp_webhook(request):
             city=matched_commune,
             outcome='autre',
             source='WhatsApp',
-            number_of_people_involved=info['nombre'],
+            number_of_people_involved=info.get('nombre', 1),
             status='pending'
         )
 
-        patients = Patient.objects.filter(full_name__in=info['patients'])
+        # 🔒 Sécurise la liste de patients
+        patients = Patient.objects.filter(full_name__in=info.get('patients', []))
         incident.patients_related.set(patients)
-
-        for i in range(num_media):
-            media_url = request.POST.get(f"MediaUrl{i}")
-            media_type = request.POST.get(f"MediaContentType{i}", "application/octet-stream")
-
-            media = IncidentMedia.objects.create(
-                incident=incident,
-                media_url=media_url,
-                media_type=media_type
-            )
-
-            try:
-                resp = requests.get(media_url, auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN))
-                if resp.status_code == 200:
-                    ext = mimetypes.guess_extension(media_type) or ".bin"
-                    filename = f"incident_media/{timezone.now().strftime('%Y%m%d%H%M%S')}_{i}{ext}"
-                    media.downloaded_file.save(filename, ContentFile(resp.content))
-            except Exception as e:
-                logger.warning(f"Erreur téléchargement média : {e}")
-
-        response.message(f"✅ Merci ! Incident enregistré (#INC-{incident.id:04d}).")
-
-        if any(word in message_body.lower() for word in ["mort", "urgence", "épidémie", "panique", "hôpital"]):
-            send_slack_alert(f"🚨 Incident critique via WhatsApp: {message_body}")
-            send_email_alert("Alerte Critique", message_body)
-
-        logger.info(f"[WhatsApp] Incident #{incident.id} enregistré. Média: {num_media}")
 
     except Exception as e:
         logger.exception("Erreur webhook WhatsApp")
