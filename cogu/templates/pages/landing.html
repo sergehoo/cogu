@@ -1,622 +1,450 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>COGU | Plateforme de Gestion des Urgences Sanitaires</title>
+{% extends "layout/land_base.html" %}
+{% load static humanize %}
 
-  <!-- Favicon -->
-  <link rel="icon" href="assets/img/cogu-favicon.png" type="image/png">
-
-  <!-- CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
-
-  <style>
+{% block content %}
+    <style>
+    /* Couleurs de la Côte d'Ivoire : Orange (#FF8200), Blanc (#FFFFFF), Vert (#009A44) */
     :root {
-      --cogu-red: #d32f2f;
-      --cogu-blue: #1976d2;
-      --cogu-dark: #2c3e50;
-      --cogu-light: #f5f7fa;
+      --ci-orange: #FF8200;
+      --ci-white: #FFFFFF;
+      --ci-green: #009A44;
+      --ci-graydark: #3d3e3d;
+      --ci-orange-light: rgba(255, 130, 0, 0.1);
+      --ci-green-light: rgba(0, 154, 68, 0.1);
     }
 
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background-color: var(--cogu-light);
-    }
-
-    /* Navbar */
-    .navbar-cogu {
-      background-color: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      padding: 15px 0;
-    }
-
-    .navbar-brand img {
-      height: 40px;
-    }
-
-    /* Header */
-    .cogu-header {
-      background: linear-gradient(135deg, var(--cogu-blue), var(--cogu-dark));
+    .hero-section {
+      {#background: linear-gradient(135deg, var(--ci-orange), #123301);#}
+      background: linear-gradient(135deg, var(--ci-graydark), #123301);
+      padding: 100px 0;
       color: white;
-      padding: 100px 0 80px;
       position: relative;
       overflow: hidden;
     }
 
-    .cogu-header::before {
-      content: '';
+    .hero-section::before {
+      content: "";
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-image: url('assets/img/pattern.png');
+      background: url('{% static "img/ivory-coast-pattern.png" %}') repeat;
       opacity: 0.1;
+      pointer-events: none;
     }
 
-    /* Alertes */
-    .alert-cogu {
-      border-left: 4px solid var(--cogu-red);
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 700;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
     }
 
-    /* Cartes */
-    .cogu-card {
-      border-radius: 8px;
+    .hero-subtitle {
+      font-size: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .icon-lg {
+      width: 70px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+    }
+
+    .card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
       border: none;
-      box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-      transition: all 0.3s ease;
     }
 
-    .cogu-card:hover {
+    .card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
     }
 
-    .cogu-card-header {
-      background-color: var(--cogu-blue);
-      color: white;
-      border-radius: 8px 8px 0 0 !important;
+    #incidentsMap {
+      border-radius: 0.25rem;
+      min-height: 400px;
+      border: 1px solid #eee;
     }
 
-    /* Tableau */
-    .table-cogu thead {
-      background-color: var(--cogu-blue);
-      color: white;
+    .list-group-item-action:hover {
+      background-color: #f8f9fa;
     }
 
-    /* Badges */
-    .badge-urgence {
-      background-color: #ff5252;
-      color: white;
+    .bg-opacity-10 {
+      background-color: rgba(255, 130, 0, 0.1) !important;
     }
 
-    .badge-alerte {
-      background-color: #ff9800;
-      color: white;
+    .btn-primary {
+      background-color: var(--ci-orange);
+      border-color: var(--ci-orange);
     }
 
-    .badge-surveillance {
-      background-color: #4caf50;
-      color: white;
+    .btn-primary:hover {
+      background-color: #e67300;
+      border-color: #e67300;
     }
 
-    /* Timeline */
-    .timeline-cogu {
-      position: relative;
-      padding-left: 50px;
+    .text-primary {
+      color: var(--ci-orange) !important;
     }
 
-    .timeline-cogu::before {
-      content: '';
-      position: absolute;
-      left: 20px;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background-color: var(--cogu-blue);
+    .bg-primary {
+      background-color: var(--ci-orange) !important;
     }
 
-    .timeline-item {
-      position: relative;
-      margin-bottom: 30px;
+    .text-success {
+      color: var(--ci-green) !important;
     }
 
-    .timeline-item::before {
-      content: '';
-      position: absolute;
-      left: -40px;
-      top: 5px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background-color: white;
-      border: 4px solid var(--cogu-blue);
+    .bg-success {
+      background-color: var(--ci-green) !important;
     }
 
-    /* Footer */
-    .footer-cogu {
-      background-color: var(--cogu-dark);
-      color: white;
-      padding: 50px 0 20px;
+    .feature-icon {
+      background: linear-gradient(45deg, var(--ci-orange), var(--ci-green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 2.5rem;
     }
 
-    /* Responsive */
-    @media (max-width: 768px) {
-      .cogu-header {
-        padding: 80px 0 60px;
-      }
+    .testimonial-card {
+      border-left: 4px solid var(--ci-orange);
     }
-  </style>
-</head>
-<body>
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-cogu fixed-top">
+
+    .stats-section {
+      background-color: var(--ci-green-light);
+    }
+
+    .flag-stripe {
+      height: 10px;
+      background: linear-gradient(90deg, var(--ci-orange) 33%, var(--ci-white) 33%, var(--ci-white) 66%, var(--ci-green) 66%);
+    }
+    </style>
+
+<div class="main-content">
+  <!-- Hero Section -->
+
+
+  <div class="flag-stripe"></div>
+
+  <!-- Stats Section -->
+  <section class="py-5 stats-section">
     <div class="container">
-      <a class="navbar-brand" href="#">
-        <img src="assets/img/cogu-logo.png" alt="COGU Logo">
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i> Tableau de bord</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-bell me-1"></i> Alertes</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-map-marked-alt me-1"></i> Cartographie</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-users me-1"></i> Équipes</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-file-alt me-1"></i> Rapports</a>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-              <i class="fas fa-user-circle me-1"></i> Admin
-            </a>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Paramètres</a></li>
-              <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i> Déconnexion</a></li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Header -->
-  <header class="cogu-header">
-    <div class="container position-relative">
-      <div class="row align-items-center">
-        <div class="col-md-8">
-          <h1 class="display-4 fw-bold mb-3">Plateforme COGU</h1>
-          <p class="lead mb-4">Système intégré de gestion des urgences sanitaires en Côte d'Ivoire</p>
-          <div class="d-flex gap-3">
-            <a href="#" class="btn btn-light btn-lg px-4">
-              <i class="fas fa-plus-circle me-2"></i> Nouvelle alerte
-            </a>
-            <a href="#" class="btn btn-outline-light btn-lg px-4">
-              <i class="fas fa-play-circle me-2"></i> Vidéo explicative
-            </a>
-          </div>
-        </div>
-        <div class="col-md-4 d-none d-md-block">
-          <img src="assets/img/emergency-team.png" alt="Équipe d'urgence" class="img-fluid">
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Content -->
-  <main class="container my-5" style="margin-top: 100px !important;">
-    <!-- Alertes urgentes -->
-    <div class="row mb-5">
-      <div class="col-12">
-        <div class="alert alert-cogu alert-dismissible fade show" role="alert">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0 me-3">
-              <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+      <h2 class="text-center mb-5">Notre impact national</h2>
+      <div class="row g-4">
+        <div class="col-md-3">
+          <div class="text-center p-3 bg-white rounded shadow-sm">
+            <div class="feature-icon mb-3">
+              <i class="fas fa-exclamation-triangle"></i>
             </div>
-            <div>
-              <h5 class="alert-heading mb-1">ALERTE ÉPIDÉMIOLOGIQUE</h5>
-              <p class="mb-0">5 nouveaux cas suspects de choléra signalés à Abidjan (Cocody) dans les dernières 24 heures.</p>
+            <h2 class="display-5 fw-bold text-primary">{{ incidents_count|intcomma }}</h2>
+            <p class="mb-0">Incidents signalés</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-center p-3 bg-white rounded shadow-sm">
+            <div class="feature-icon mb-3">
+              <i class="fas fa-ambulance"></i>
             </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <h2 class="display-5 fw-bold text-success">{{ active_cases|intcomma }}</h2>
+            <p class="mb-0">Cas actifs</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-center p-3 bg-white rounded shadow-sm">
+            <div class="feature-icon mb-3">
+              <i class="fas fa-map-marked-alt"></i>
+            </div>
+            <h2 class="display-5 fw-bold text-warning">{{ regions_count|intcomma }}</h2>
+            <p class="mb-0">Régions couvertes</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="text-center p-3 bg-white rounded shadow-sm">
+            <div class="feature-icon mb-3">
+              <i class="fas fa-user-md"></i>
+            </div>
+            <h2 class="display-5 fw-bold text-danger">{{ interventions_count|intcomma }}</h2>
+            <p class="mb-0">Interventions</p>
           </div>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- Cartes indicateurs -->
-    <div class="row mb-5">
-      <div class="col-md-3 mb-4">
-        <div class="cogu-card h-100">
-          <div class="card-body text-center">
-            <h3 class="text-danger mb-3"><i class="fas fa-bell fa-2x"></i></h3>
-            <h2 class="mb-2">24</h2>
-            <p class="text-muted mb-0">Alertes actives</p>
-          </div>
-        </div>
+  <!-- Features Section -->
+  <section id="features" class="py-5">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2>Protégeons ensemble la santé des Ivoiriens</h2>
+        <p class="lead">Une plateforme innovante pour la surveillance épidémiologique nationale</p>
       </div>
-      <div class="col-md-3 mb-4">
-        <div class="cogu-card h-100">
-          <div class="card-body text-center">
-            <h3 class="text-warning mb-3"><i class="fas fa-ambulance fa-2x"></i></h3>
-            <h2 class="mb-2">15</h2>
-            <p class="text-muted mb-0">Interventions en cours</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="cogu-card h-100">
-          <div class="card-body text-center">
-            <h3 class="text-primary mb-3"><i class="fas fa-users fa-2x"></i></h3>
-            <h2 class="mb-2">42</h2>
-            <p class="text-muted mb-0">Équipes mobilisées</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3 mb-4">
-        <div class="cogu-card h-100">
-          <div class="card-body text-center">
-            <h3 class="text-success mb-3"><i class="fas fa-check-circle fa-2x"></i></h3>
-            <h2 class="mb-2">78</h2>
-            <p class="text-muted mb-0">Cas résolus</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Cartographie et alertes récentes -->
-    <div class="row mb-5">
-      <div class="col-lg-8 mb-4">
-        <div class="cogu-card h-100">
-          <div class="card-header py-3">
-            <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i> Cartographie des alertes</h5>
-          </div>
-          <div class="card-body p-0">
-            <div id="cogu-map" style="height: 400px;"></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-lg-4 mb-4">
-        <div class="cogu-card h-100">
-          <div class="card-header py-3">
-            <h5 class="mb-0"><i class="fas fa-history me-2"></i> Dernières alertes</h5>
-          </div>
-          <div class="card-body p-0">
-            <div class="list-group list-group-flush">
-              <a href="#" class="list-group-item list-group-item-action">
-                <div class="d-flex w-100 justify-content-between">
-                  <h6 class="mb-1">Suspicion choléra</h6>
-                  <small class="text-muted">Il y a 15 min</small>
-                </div>
-                <p class="mb-1">Abidjan, Cocody - 5 cas</p>
-                <span class="badge badge-urgence">Urgence</span>
-              </a>
-              <a href="#" class="list-group-item list-group-item-action">
-                <div class="d-flex w-100 justify-content-between">
-                  <h6 class="mb-1">Intoxication alimentaire</h1>
-                  <small class="text-muted">Il y a 2h</small>
-                </div>
-                <p class="mb-1">Bouaké - 12 personnes</p>
-                <span class="badge badge-alerte">Alerte</span>
-              </a>
-              <a href="#" class="list-group-item list-group-item-action">
-                <div class="d-flex w-100 justify-content-between">
-                  <h6 class="mb-1">Accident routier</h6>
-                  <small class="text-muted">Il y a 3h</small>
-                </div>
-                <p class="mb-1">Yamoussoukro - 8 blessés</p>
-                <span class="badge badge-urgence">Urgence</span>
-              </a>
-              <a href="#" class="list-group-item list-group-item-action">
-                <div class="d-flex w-100 justify-content-between">
-                  <h6 class="mb-1">Prolifération moustiques</h6>
-                  <small class="text-muted">Il y a 5h</small>
-                </div>
-                <p class="mb-1">San-Pédro - Quartier Kennedy</p>
-                <span class="badge badge-surveillance">Surveillance</span>
-              </a>
-              <a href="#" class="list-group-item list-group-item-action text-center">
-                <small>Voir toutes les alertes <i class="fas fa-arrow-right ms-1"></i></small>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tableau des interventions -->
-    <div class="row mb-5">
-      <div class="col-12">
-        <div class="cogu-card">
-          <div class="card-header py-3">
-            <div class="d-flex justify-content-between align-items-center">
-              <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Interventions en cours</h5>
-              <button class="btn btn-sm btn-primary">
-                <i class="fas fa-plus me-1"></i> Nouvelle intervention
-              </button>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-cogu table-hover" id="interventionsTable">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Type</th>
-                    <th>Localisation</th>
-                    <th>Équipe</th>
-                    <th>Statut</th>
-                    <th>Début</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>INT-2023-156</td>
-                    <td>Choléra</td>
-                    <td>Cocody, Abidjan</td>
-                    <td>Équipe Alpha</td>
-                    <td><span class="badge bg-warning">En cours</span></td>
-                    <td>15/06/23 08:30</td>
-                    <td>
-                      <button class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>INT-2023-155</td>
-                    <td>Intoxication</td>
-                    <td>Bouaké Centre</td>
-                    <td>Équipe Bravo</td>
-                    <td><span class="badge bg-info">En attente</span></td>
-                    <td>14/06/23 14:15</td>
-                    <td>
-                      <button class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>INT-2023-154</td>
-                    <td>Accident routier</td>
-                    <td>Yamoussoukro</td>
-                    <td>Équipe Charlie</td>
-                    <td><span class="badge bg-success">Terminé</span></td>
-                    <td>13/06/23 10:45</td>
-                    <td>
-                      <button class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>INT-2023-153</td>
-                    <td>Paludisme</td>
-                    <td>San-Pédro</td>
-                    <td>Équipe Delta</td>
-                    <td><span class="badge bg-secondary">Archivé</span></td>
-                    <td>12/06/23 09:20</td>
-                    <td>
-                      <button class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Chronologie des actions -->
-    <div class="row">
-      <div class="col-12">
-        <div class="cogu-card">
-          <div class="card-header py-3">
-            <h5 class="mb-0"><i class="fas fa-history me-2"></i> Chronologie des actions récentes</h5>
-          </div>
-          <div class="card-body">
-            <div class="timeline-cogu">
-              <div class="timeline-item">
-                <h6>Nouvelle alerte enregistrée</h6>
-                <p class="text-muted small mb-2">Suspicion de choléra à Cocody</p>
-                <p class="small mb-0"><i class="far fa-clock me-1"></i> 15/06/2023 08:30 par Dr. Konan</p>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+              <div class="icon-lg bg-primary bg-opacity-10 text-primary rounded-circle mb-4 mx-auto">
+                <i class="fas fa-bell"></i>
               </div>
-              <div class="timeline-item">
-                <h6>Intervention assignée</h6>
-                <p class="text-muted small mb-2">Équipe Alpha déployée sur place</p>
-                <p class="small mb-0"><i class="far fa-clock me-1"></i> 15/06/2023 09:15 par Lt. Traoré</p>
+              <h4>Signalement en temps réel</h4>
+              <p>Enregistrez rapidement les incidents sanitaires avec géolocalisation précise et catégorisation automatique.</p>
+              <ul class="text-start ps-4 mt-3">
+                <li>Application mobile disponible</li>
+                <li>Notifications instantanées</li>
+                <li>Interface simplifiée</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+              <div class="icon-lg bg-success bg-opacity-10 text-success rounded-circle mb-4 mx-auto">
+                <i class="fas fa-map-marked-alt"></i>
               </div>
-              <div class="timeline-item">
-                <h6>Premier rapport reçu</h6>
-                <p class="text-muted small mb-2">5 cas confirmés, mesures d'isolement</p>
-                <p class="small mb-0"><i class="far fa-clock me-1"></i> 15/06/2023 11:45 par Éq. Alpha</p>
+              <h4>Cartographie interactive</h4>
+              <p>Visualisez les incidents sur une carte avec filtres par type, gravité et région sanitaire.</p>
+              <ul class="text-start ps-4 mt-3">
+                <li>Heatmaps des zones à risque</li>
+                <li>Analyse des clusters</li>
+                <li>Export des données</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+              <div class="icon-lg bg-warning bg-opacity-10 text-warning rounded-circle mb-4 mx-auto">
+                <i class="fas fa-users-cog"></i>
               </div>
-              <div class="timeline-item">
-                <h6>Réponse coordonnée</h6>
-                <p class="text-muted small mb-2">Mise en place cellule de crise régionale</p>
-                <p class="small mb-0"><i class="far fa-clock me-1"></i> 15/06/2023 14:30 par Dr. Coulibaly</p>
-              </div>
+              <h4>Gestion des interventions</h4>
+              <p>Coordonnez les équipes sur le terrain et suivez l'avancement des prises en charge.</p>
+              <ul class="text-start ps-4 mt-3">
+                <li>Assignation des cas</li>
+                <li>Suivi en temps réel</li>
+                <li>Rapports automatisés</li>
+              </ul>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </main>
+  </section>
 
-  <!-- Footer -->
-  <footer class="footer-cogu">
+  <!-- Incidents Map Section -->
+  <section class="py-5 bg-light">
     <div class="container">
       <div class="row">
-        <div class="col-lg-4 mb-4">
-          <img src="assets/img/cogu-logo-white.png" alt="COGU Logo" class="mb-3" height="40">
-          <p>Plateforme officielle du Comité de Gestion des Urgences Sanitaires du Ministère de la Santé, de l'Hygiène Publique et de la Couverture Maladie Universelle de Côte d'Ivoire.</p>
-          <div class="social-icons mt-3">
-            <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
-            <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>
-            <a href="#" class="text-white"><i class="fab fa-youtube"></i></a>
+        <div class="col-lg-8 mb-4 mb-lg-0">
+          <h2 class="mb-4">Surveillance territoriale en direct</h2>
+          <p class="mb-4">Visualisez en temps réel les incidents sanitaires signalés à travers toute la Côte d'Ivoire.</p>
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+              <div id="incidentsMap" style="height: 400px;"></div>
+            </div>
+            <div class="card-footer bg-white">
+              <small class="text-muted">Données actualisées toutes les 15 minutes</small>
+            </div>
           </div>
         </div>
-        <div class="col-lg-2 col-md-6 mb-4">
-          <h5>Accès rapide</h5>
-          <ul class="list-unstyled">
-            <li class="mb-2"><a href="#" class="text-white">Tableau de bord</a></li>
-            <li class="mb-2"><a href="#" class="text-white">Alertes</a></li>
-            <li class="mb-2"><a href="#" class="text-white">Interventions</a></li>
-            <li class="mb-2"><a href="#" class="text-white">Rapports</a></li>
-            <li><a href="#" class="text-white">Paramètres</a></li>
-          </ul>
-        </div>
-        <div class="col-lg-2 col-md-6 mb-4">
-          <h5>Ressources</h5>
-          <ul class="list-unstyled">
-            <li class="mb-2"><a href="#" class="text-white">Documentation</a></li>
-            <li class="mb-2"><a href="#" class="text-white">Formations</a></li>
-            <li class="mb-2"><a href="#" class="text-white">Protocoles</a></li>
-            <li class="mb-2"><a href="#" class="text-white">FAQ</a></li>
-            <li><a href="#" class="text-white">Support</a></li>
-          </ul>
-        </div>
-        <div class="col-lg-4 mb-4">
-          <h5>Contacts d'urgence</h5>
-          <ul class="list-unstyled">
-            <li class="mb-2"><i class="fas fa-phone-alt me-2"></i> Urgence COGU: 143</li>
-            <li class="mb-2"><i class="fas fa-envelope me-2"></i> alertes@cogu.ci</li>
-            <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i> Plateau, Tour D, 12ème étage</li>
-            <li class="mb-2"><i class="fas fa-clock me-2"></i> 24h/24 - 7j/7</li>
-          </ul>
-        </div>
-      </div>
-      <hr class="my-4 bg-light">
-      <div class="row">
-        <div class="col-md-6 text-center text-md-start">
-          <p class="small mb-0">© 2023 COGU - Tous droits réservés</p>
-        </div>
-        <div class="col-md-6 text-center text-md-end">
-          <p class="small mb-0">Version 2.1.0 | Dernière mise à jour: 15/06/2023</p>
+        <div class="col-lg-4">
+          <h2 class="mb-4">Dernières alertes</h2>
+          <p class="mb-4">Les signalements les plus récents dans notre système.</p>
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+              <div class="list-group list-group-flush">
+                {% for incident in recent_incidents %}
+                <a href="{% url 'sanitaryincident_detail' incident.id %}" class="list-group-item list-group-item-action">
+                  <div class="d-flex justify-content-between">
+                    <h6 class="mb-1">{{ incident.incident_type }}</h6>
+                    <small class="text-muted">{{ incident.date_time|timesince }}</small>
+                  </div>
+                  <p class="mb-1 small">
+                    <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                    {{ incident.city|default:"Localité inconnue" }}, {{ incident.region.name|default:"" }}
+                  </p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-{% if incident.severity == 'high' %}danger{% elif incident.severity == 'medium' %}warning{% else %}success{% endif %}">
+                      {{ incident.get_severity_display }}
+                    </span>
+                    <small>{{ incident.get_status_display }}</small>
+                  </div>
+                </a>
+                {% empty %}
+                <div class="list-group-item">
+                  <p class="mb-0 text-muted">Aucun incident récent</p>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="card-footer bg-white text-center">
+              <a href="#" class="btn btn-sm btn-outline-primary">
+                Voir tous les incidents <i class="fas fa-arrow-right ms-2"></i>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </footer>
+  </section>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <!-- Testimonials -->
+  <section class="py-5 bg-white">
+    <div class="container">
+      <h2 class="text-center mb-5">Ils utilisent notre plateforme</h2>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm testimonial-card">
+            <div class="card-body">
+              <div class="d-flex mb-3">
+                <i class="fas fa-quote-left text-muted me-3"></i>
+                <p class="mb-0">"La plateforme COGU a révolutionné notre capacité à détecter et répondre aux épidémies dans notre région."</p>
+              </div>
+              <div class="d-flex align-items-center">
+                <img src="{% static 'img/testimonial1.jpg' %}" class="rounded-circle me-3" width="50" height="50" alt="Dr. Kouamé">
+                <div>
+                  <h6 class="mb-0">Dr. Jean Kouamé</h6>
+                  <small class="text-muted">Directeur Régional de la Santé, Abidjan</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm testimonial-card">
+            <div class="card-body">
+              <div class="d-flex mb-3">
+                <i class="fas fa-quote-left text-muted me-3"></i>
+                <p class="mb-0">"Grâce au système de notification en temps réel, nous pouvons mobiliser les équipes en quelques minutes."</p>
+              </div>
+              <div class="d-flex align-items-center">
+                <img src="{% static 'img/testimonial2.jpg' %}" class="rounded-circle me-3" width="50" height="50" alt="Mme. Diallo">
+                <div>
+                  <h6 class="mb-0">Mme. Aïcha Diallo</h6>
+                  <small class="text-muted">Coordinatrice SAMU, Bouaké</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm testimonial-card">
+            <div class="card-body">
+              <div class="d-flex mb-3">
+                <i class="fas fa-quote-left text-muted me-3"></i>
+                <p class="mb-0">"La cartographie interactive nous aide à identifier rapidement les zones à risque pour nos interventions."</p>
+              </div>
+              <div class="d-flex align-items-center">
+                <img src="{% static 'img/testimonial3.jpg' %}" class="rounded-circle me-3" width="50" height="50" alt="Dr. Yao">
+                <div>
+                  <h6 class="mb-0">Dr. Fatou Yao</h6>
+                  <small class="text-muted">Épidémiologiste, Korhogo</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <script>
-    // Initialisation AOS
-    AOS.init({
-      duration: 800,
-      once: true
-    });
+  <!-- Regions Coverage -->
+  <section class="py-5">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2>Couverture nationale</h2>
+        <p class="lead">Notre réseau s'étend sur toutes les régions de la Côte d'Ivoire</p>
+      </div>
+      <div class="row g-4">
+        {% for region in health_regions %}
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-3">
+                <div class="bg-primary bg-opacity-10 text-primary p-2 rounded me-3">
+                  <i class="fas fa-hospital"></i>
+                </div>
+                <h5 class="card-title mb-0">{{ region.name }}</h5>
+              </div>
+              <p class="card-text">
+                {{ region.districts.count }} districts sanitaires couverts
+              </p>
+              <div class="progress mb-3" style="height: 8px;">
+                <div class="progress-bar bg-primary" style="width: {{ region.coverage_percentage }}%"></div>
+              </div>
+              <ul class="list-unstyled">
+                {% for district in region.districts.all|slice:":3" %}
+                <li class="mb-2">
+                  <i class="fas fa-map-marker-alt text-success me-2"></i>
+                  {{ district.nom }}
+                </li>
+                {% endfor %}
+                {% if region.districts.count > 3 %}
+                <li class="text-muted">+ {{ region.districts.count|add:"-3" }} autres districts</li>
+                {% endif %}
+              </ul>
+              <a href="#" class="btn btn-sm btn-outline-primary mt-2">Voir détails</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
 
-    // Initialisation DataTable
-    $(document).ready(function() {
-      $('#interventionsTable').DataTable({
-        language: {
-          url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
-        },
-        responsive: true
-      });
-    });
+  <!-- Partners -->
+  <section class="py-5 bg-light">
+    <div class="container">
+      <h2 class="text-center mb-5">Nos partenaires institutionnels</h2>
+      <div class="row align-items-center justify-content-center">
+        <div class="col-6 col-md-2 mb-4">
+          <img src="{% static 'assets/media/logoMSHPCMU.svg' %}" class="img-fluid" alt="Ministère de la Santé">
+        </div>
+        <div class="col-6 col-md-2 mb-4">
+          <img src="{% static 'img/logo-oms.png' %}" class="img-fluid" alt="OMS">
+        </div>
+        <div class="col-6 col-md-2 mb-4">
+          <img src="{% static 'img/logo-unicef.png' %}" class="img-fluid" alt="UNICEF">
+        </div>
+        <div class="col-6 col-md-2 mb-4">
+          <img src="{% static 'img/logo-croix-rouge.png' %}" class="img-fluid" alt="Croix-Rouge">
+        </div>
+        <div class="col-6 col-md-2 mb-4">
+          <img src="{% static 'img/logo-usaid.png' %}" class="img-fluid" alt="USAID">
+        </div>
+      </div>
+    </div>
+  </section>
 
-    // Initialisation de la carte
-    const map = L.map('cogu-map').setView([7.54, -5.55], 7);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+  <!-- Call to Action -->
+  <section class="py-5 bg-primary text-white">
+    <div class="container text-center">
+      <h2 class="mb-4">Rejoignez le réseau national de surveillance sanitaire</h2>
+      <p class="lead mb-5">Professionnels de santé, autorités locales, contribuez à la protection de la santé publique en Côte d'Ivoire</p>
+      <div class="d-flex flex-wrap justify-content-center gap-3">
+        <a href="#" class="btn btn-light btn-lg px-4">
+          <i class="fas fa-user-plus me-2"></i> Créer un compte
+        </a>
+        <a href="#" class="btn btn-outline-light btn-lg px-4">
+          <i class="fas fa-file-alt me-2"></i> Documentation
+        </a>
+        <a href="#" class="btn btn-outline-light btn-lg px-4">
+          <i class="fas fa-phone-alt me-2"></i> Nous contacter
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
 
-    // Ajout de marqueurs pour les alertes
-    const alertes = [
-      {
-        position: [5.32, -4.03],
-        title: "Suspicion choléra",
-        description: "5 cas suspects à Cocody",
-        type: "urgence"
-      },
-      {
-        position: [7.69, -5.03],
-        title: "Intoxication alimentaire",
-        description: "12 personnes affectées",
-        type: "alerte"
-      },
-      {
-        position: [6.82, -5.28],
-        title: "Accident routier",
-        description: "8 blessés dont 2 graves",
-        type: "urgence"
-      },
-      {
-        position: [4.75, -6.64],
-        title: "Prolifération moustiques",
-        description: "Quartier Kennedy",
-        type: "surveillance"
-      }
-    ];
 
-    alertes.forEach(alerte => {
-      let iconColor;
-      if (alerte.type === "urgence") iconColor = "red";
-      else if (alerte.type === "alerte") iconColor = "orange";
-      else iconColor = "green";
 
-      const icon = L.divIcon({
-        className: `cogu-marker-${alerte.type}`,
-        html: `<div style="background-color: ${iconColor}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>`,
-        iconSize: [24, 24]
-      });
 
-      L.marker(alerte.position, { icon: icon })
-        .addTo(map)
-        .bindPopup(`<b>${alerte.title}</b><br>${alerte.description}`);
-    });
-
-    // Gestion du scroll de la navbar
-    window.addEventListener('scroll', function() {
-      const navbar = document.querySelector('.navbar-cogu');
-      if (window.scrollY > 50) {
-        navbar.classList.add('shadow-lg');
-      } else {
-        navbar.classList.remove('shadow-lg');
-      }
-    });
-  </script>
-</body>
-</html>
 
 {#<!DOCTYPE html>#}
 {#<html lang="fr">#}

@@ -4,26 +4,58 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Q, Count, F
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.html import format_html
+from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, ListView, CreateView, DetailView, UpdateView, DeleteView
 
 from cogu.filters import PatientFilter
 from cogu.forms import SanitaryIncidentForm
-from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune
+from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune, HealthRegion, VictimCare, \
+    WhatsAppMessage
 from django.contrib.gis.geos import Point
+
 
 # Create your views here.
 
-class Landing(TemplateView):
+class LandingView(TemplateView):
     template_name = "pages/landing.html"
-    # login_url = '/accounts/login/'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Récupération des données pour les statistiques
+        context['incidents_count'] = SanitaryIncident.objects.count()
+        context['active_cases'] = SanitaryIncident.objects.filter(
+            status='validated',
+            outcome__in=['mort', 'blessure']
+        ).count()
+        context['regions_count'] = HealthRegion.objects.count()
+        context['interventions_count'] = VictimCare.objects.count()
+
+        # Incidents récents pour la sidebar
+        context['recent_incidents'] = SanitaryIncident.objects.select_related(
+            'incident_type', 'city'
+        ).order_by('-date_time')[:5]
+
+        # Données pour la carte
+        context['map_incidents'] = SanitaryIncident.objects.filter(
+            location__isnull=False
+        ).select_related('incident_type')[:20]
+
+        # Régions sanitaires avec leurs districts
+        context['health_regions'] = HealthRegion.objects.annotate(
+            district_count=Count('districts')
+        ).prefetch_related('districts').order_by('name')
+
+        return context
 
 
-class CADashborad(TemplateView):
+class CADashborad(LoginRequiredMixin, TemplateView):
     template_name = "pages/dashboard.html"
+    login_url = 'account-login'
 
     def get(self, request, *args, **kwargs):
         now = timezone.now()
@@ -125,6 +157,7 @@ class CADashborad(TemplateView):
             .annotate(count=Count('id'))
             .order_by('month')
         )
+
     def get_incident_types_data(self):
         return (
             SanitaryIncident.objects
@@ -134,7 +167,7 @@ class CADashborad(TemplateView):
         )
 
 
-class PatientListView(ListView):
+class PatientListView(LoginRequiredMixin, ListView):
     model = Patient
     template_name = 'patient/list.html'
     context_object_name = 'patients'
@@ -157,7 +190,7 @@ class PatientListView(ListView):
         return queryset
 
 
-class PatientCreateView(CreateView):
+class PatientCreateView(LoginRequiredMixin, CreateView):
     model = Patient
     template_name = 'patient/create.html'
     fields = '__all__'
@@ -175,7 +208,7 @@ class PatientCreateView(CreateView):
         return context
 
 
-class PatientDetailView(DetailView):
+class PatientDetailView(LoginRequiredMixin, DetailView):
     model = Patient
     template_name = 'patient/detail.html'
     context_object_name = 'patient'
@@ -188,7 +221,7 @@ class PatientDetailView(DetailView):
         return context
 
 
-class PatientUpdateView(UpdateView):
+class PatientUpdateView(LoginRequiredMixin, UpdateView):
     model = Patient
     template_name = 'patient/update.html'
     fields = '__all__'
@@ -207,7 +240,7 @@ class PatientUpdateView(UpdateView):
         return context
 
 
-class PatientDeleteView(DeleteView):
+class PatientDeleteView(LoginRequiredMixin, DeleteView):
     model = Patient
     template_name = 'patient/delete.html'
     slug_field = 'code_patient'
@@ -220,7 +253,7 @@ class PatientDeleteView(DeleteView):
         return response
 
 
-class MajorEventListView(ListView):
+class MajorEventListView(LoginRequiredMixin, ListView):
     model = MajorEvent
     template_name = 'majorevent/list.html'
     context_object_name = 'events'
@@ -228,74 +261,91 @@ class MajorEventListView(ListView):
     ordering = ['-start_date']
 
 
-class MajorEventCreateView(CreateView):
+class MajorEventCreateView(LoginRequiredMixin, CreateView):
     model = MajorEvent
     template_name = 'majorevent/event_create.html'
     fields = '__all__'
     success_url = reverse_lazy('majorevent_list')
 
 
-class MajorEventDetailView(DetailView):
+class MajorEventDetailView(LoginRequiredMixin, DetailView):
     model = MajorEvent
     template_name = 'majorevent/event_detail.html'
     context_object_name = 'event'
 
 
-class MajorEventUpdateView(UpdateView):
+class MajorEventUpdateView(LoginRequiredMixin, UpdateView):
     model = MajorEvent
     template_name = 'majorevent/event_update.html'
     fields = '__all__'
     success_url = reverse_lazy('majorevent_list')
 
 
-class MajorEventDeleteView(DeleteView):
+class MajorEventDeleteView(LoginRequiredMixin, DeleteView):
     model = MajorEvent
     template_name = 'majorevent/event_delete.html'
     success_url = reverse_lazy('majorevent_list')
 
 
-class IncidentTypeListView(ListView):
+class IncidentTypeListView(LoginRequiredMixin, ListView):
     model = IncidentType
     template_name = 'incidenttype/incidentlist.html'
     context_object_name = 'types'
     ordering = ['name']
 
 
-class IncidentTypeCreateView(CreateView):
+class IncidentTypeCreateView(LoginRequiredMixin, CreateView):
     model = IncidentType
     template_name = 'incidenttype/incidentcreate.html'
     fields = '__all__'
     success_url = reverse_lazy('incidenttype_list')
 
 
-class IncidentTypeDetailView(DetailView):
+class IncidentTypeDetailView(LoginRequiredMixin, DetailView):
     model = IncidentType
     template_name = 'incidenttype/incidentdetail.html'
     context_object_name = 'type'
 
 
-class IncidentTypeUpdateView(UpdateView):
+
+
+class IncidentTypeUpdateView(LoginRequiredMixin, UpdateView):
     model = IncidentType
     template_name = 'incidenttype/incidentupdate.html'
     fields = '__all__'
     success_url = reverse_lazy('incidenttype_list')
 
 
-class IncidentTypeDeleteView(DeleteView):
+class IncidentTypeDeleteView(LoginRequiredMixin, DeleteView):
     model = IncidentType
     template_name = 'incidenttype/incidentdelete.html'
     success_url = reverse_lazy('incidenttype_list')
 
 
-class SanitaryIncidentListView(ListView):
+class SanitaryIncidentListView(LoginRequiredMixin, ListView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/list.html'
     context_object_name = 'incidents'
-    paginate_by = 20
+    paginate_by = 10
     ordering = ['-date_time']
 
 
-class SanitaryIncidentCreateView(CreateView):
+    def get_queryset(self):
+        return SanitaryIncident.objects.filter(status='validated').order_by(*self.ordering)
+
+
+class IncidentToValidListView(LoginRequiredMixin, ListView):
+    model = SanitaryIncident
+    template_name = 'sanitaryincident/non_valid_list.html'
+    context_object_name = 'incidents'
+    paginate_by = 10
+    ordering = ['-date_time']
+
+    def get_queryset(self):
+        return SanitaryIncident.objects.exclude(status='validated').order_by(*self.ordering)
+
+
+class SanitaryIncidentCreateView(LoginRequiredMixin, CreateView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/create.html'
     form_class = SanitaryIncidentForm
@@ -305,7 +355,6 @@ class SanitaryIncidentCreateView(CreateView):
         messages.success(self.request, 'Incident enregistré avec succès!')
         return super().form_valid(form)
 
-
     def form_invalid(self, form):
         messages.error(self.request, 'Veuillez corriger les erreurs ci-dessous :')
 
@@ -317,14 +366,36 @@ class SanitaryIncidentCreateView(CreateView):
 
         return super().form_invalid(form)
 
+@require_POST
+def validate_incident(request, pk):
+    incident = get_object_or_404(SanitaryIncident, pk=pk)
+    incident.status = 'validated'
+    incident.save()
+    messages.success(request, "✅ Incident validé avec succès.")
+    return redirect('sanitaryincident_detail', pk=pk)
 
-class SanitaryIncidentDetailView(DetailView):
+@require_POST
+def reject_incident(request, pk):
+    incident = get_object_or_404(SanitaryIncident, pk=pk)
+    incident.status = 'rejected'
+    incident.save()
+    messages.warning(request, "🚫 Incident rejeté.")
+    return redirect('sanitaryincident_detail', pk=pk)
+class SanitaryIncidentDetailView(LoginRequiredMixin, DetailView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/detail.html'
     context_object_name = 'incident'
 
+    def get_queryset(self):
+        return (
+            SanitaryIncident.objects
+            .select_related('message', 'city', 'incident_type')
+            .prefetch_related('media', 'patients_related')
+            # .filter(status='validated')  # filtre si on veut afficher seulement les incidents validés
+        )
 
-class SanitaryIncidentUpdateView(UpdateView):
+
+class SanitaryIncidentUpdateView(LoginRequiredMixin, UpdateView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/update.html'
     form_class = SanitaryIncidentForm
@@ -334,7 +405,6 @@ class SanitaryIncidentUpdateView(UpdateView):
         messages.success(self.request, 'Incident enregistré avec succès!')
         return super().form_valid(form)
 
-
     def form_invalid(self, form):
         messages.error(self.request, 'Veuillez corriger les erreurs ci-dessous :')
 
@@ -347,7 +417,18 @@ class SanitaryIncidentUpdateView(UpdateView):
         return super().form_invalid(form)
 
 
-class SanitaryIncidentDeleteView(DeleteView):
+class SanitaryIncidentDeleteView(LoginRequiredMixin, DeleteView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/delete.html'
     success_url = reverse_lazy('sanitaryincident_list')
+
+
+class WhatsAppMessageListView(LoginRequiredMixin, ListView):
+    model = WhatsAppMessage
+    template_name = 'pages/whatsapp/messages_list.html'
+    context_object_name = 'messages'
+    paginate_by = 20
+    ordering = ['-timestamp']
+
+    def get_queryset(self):
+        return WhatsAppMessage.objects.all().order_by(*self.ordering)

@@ -25,7 +25,8 @@ from cogu.views import (
     IncidentTypeListView, IncidentTypeCreateView, IncidentTypeDetailView, IncidentTypeUpdateView,
     IncidentTypeDeleteView,
     SanitaryIncidentListView, SanitaryIncidentCreateView, SanitaryIncidentDetailView,
-    SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, Landing,
+    SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, LandingView, IncidentToValidListView,
+    WhatsAppMessageListView, validate_incident, reject_incident,
 )
 from coguMSHP.services import twilio_whatsapp_webhook
 from coguMSHP.utils import notifications
@@ -39,8 +40,8 @@ urlpatterns = [
                   path('webhook/whatsapp/', twilio_whatsapp_webhook, name='twilio_whatsapp_webhook'),
                   path('notifications/', send_whatsapp_message, name='send_whatsapp_notify'),
 
-                  path('', CADashborad.as_view(), name='home'),
-                  path('landing_page', Landing.as_view(), name='landing'),
+                  path('dashboard', CADashborad.as_view(), name='home'),
+                  path('', LandingView.as_view(), name='landing'),
 
                   path('patients/', PatientListView.as_view(), name='patient_list'),
                   path('patients/create/', PatientCreateView.as_view(), name='patient_create'),
@@ -62,8 +63,12 @@ urlpatterns = [
                   path('incident-types/<int:pk>/update/', IncidentTypeUpdateView.as_view(), name='incidenttype_update'),
                   path('incident-types/<int:pk>/delete/', IncidentTypeDeleteView.as_view(), name='incidenttype_delete'),
 
+path('incidents/<int:pk>/valider/', validate_incident, name='incident_validate'),
+path('incidents/<int:pk>/rejeter/', reject_incident, name='incident_reject'),
                   # SanitaryIncident URLs
+                  path('whatsapp/', WhatsAppMessageListView.as_view(), name='whatsapp_list'),
                   path('incidents/', SanitaryIncidentListView.as_view(), name='sanitaryincident_list'),
+                  path('incidents/traitment', IncidentToValidListView.as_view(), name='sanitaryincident_non_valid_list'),
                   path('incidents/create/', SanitaryIncidentCreateView.as_view(), name='sanitaryincident_create'),
                   path('incidents/<int:pk>/', SanitaryIncidentDetailView.as_view(), name='sanitaryincident_detail'),
                   path('incidents/<int:pk>/update/', SanitaryIncidentUpdateView.as_view(),

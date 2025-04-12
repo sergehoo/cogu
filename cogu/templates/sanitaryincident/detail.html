@@ -1,5 +1,5 @@
 {% extends 'layout/base.html' %}
-
+{% load static %}
 {% block content %}
 <div class="main-content">
     {% include 'layout/nav-head.html' %}
@@ -8,6 +8,23 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Détails de l'Incident</h5>
             <div class="btn-group">
+                <div class="d-flex justify-content-end mb-3 btn btn-outline-success mr-5">
+
+                    {% if incident.status == 'pending' %}
+    <form method="post" action="{% url 'incident_validate' incident.id %}" class="me-2">
+      {% csrf_token %}
+      <button class="btn btn-success"><i class="fas fa-check"></i> Valider</button>
+    </form>
+    <form method="post" action="{% url 'incident_reject' incident.id %}">
+      {% csrf_token %}
+      <button class="btn btn-danger"><i class="fas fa-times"></i> Rejeter</button>
+    </form>
+  {% else %}
+    <span>
+      {{ incident.get_status_display }}
+    </span>
+  {% endif %}
+</div>
                 <a href="{% url 'sanitaryincident_list' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i> Retour
                 </a>
@@ -75,6 +92,56 @@
                             </div>
                             {% endif %}
                         </div>
+                   <div class="col-md-12">
+  <hr class="my-4">
+  <h5>📍 Messages WhatsApp </h5>
+
+
+  <div class="card mb-3 border-start border-success border-4 shadow-sm">
+    <div class="card-body">
+      <p class="card-subtitle mb-1">
+        {% if incident.message %}
+          <strong>{{ incident.message.timestamp|date:"d/m/Y H:i" }}</strong>
+          — <small class="text-muted">{{ incident.message.sender }}</small>
+        {% else %}
+          <strong>{{ incident.date_time|date:"d/m/Y H:i" }}</strong>
+          — <small class="text-muted">Source: {{ incident.source }}</small>
+        {% endif %}
+      </p>
+
+      <p class="mb-2">{{ incident.description|linebreaks }}</p>
+
+      {% if incident.message %}
+      <div class="alert alert-light border">
+        <strong>📩 Message WhatsApp :</strong><br>
+        <em>{{ incident.message.body|linebreaks }}</em><br>
+        <small class="text-muted">
+          Envoyé par {{ incident.message.sender }} le {{ incident.message.timestamp|date:"d/m/Y H:i" }}
+        </small>
+      </div>
+      {% endif %}
+
+      {% if incident.media.exists %}
+<div class="d-flex flex-wrap gap-3 mt-3">
+  {% for media in incident.media.all %}
+  {% if media.downloaded_file %}
+    {% if media.media_type|slice:":5" == "image" %}
+      <a href="{{ media.downloaded_file.url }}" class="glightbox" data-title="Image">
+        <img src="{{ media.downloaded_file.url }}" class="img-thumbnail" style="max-height:120px;">
+      </a>
+    {% elif media.media_type|slice:":5" == "video" %}
+      <a href="{{ media.downloaded_file.url }}" class="glightbox" data-type="video" data-title="Vidéo liée">
+          <video src="{{ media.downloaded_file.url }}" class="img-thumbnail" style="max-height:120px;"></video>
+      </a>
+    {% endif %}
+  {% endif %}
+{% endfor %}
+</div>
+{% endif %}
+    </div>
+  </div>
+
+</div>
                     </div>
                 </div>
 
@@ -112,7 +179,11 @@
                     </div>
                     {% endif %}
                 </div>
+
+
             </div>
+
+
         </div>
     </div>
 </div>

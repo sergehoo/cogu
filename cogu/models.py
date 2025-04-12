@@ -270,8 +270,9 @@ class MajorEvent(models.Model):
     description = models.TextField(blank=True)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    location = gis_models.PolygonField(geography=True, help_text="Zone couverte par l’événement")
+    location = gis_models.PolygonField(geography=True, null=True,blank=True,help_text="Zone couverte par l’événement")
     organizer = models.CharField(max_length=255, blank=True)
+    recurring = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -309,6 +310,14 @@ class SanitaryIncident(models.Model):
         MajorEvent, null=True, blank=True,
         on_delete=models.SET_NULL,
         help_text="Si l’incident est lié à un événement majeur"
+    )
+    message = models.ForeignKey(
+        'WhatsAppMessage',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incidents',
+        help_text="Message WhatsApp à l’origine de l’incident, s’il y en a un"
     )
     patients_related = models.ManyToManyField(Patient, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)

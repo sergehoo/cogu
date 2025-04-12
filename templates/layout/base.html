@@ -24,6 +24,9 @@
 {#    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">#}
     <link href="{% static 'assets/css/style.bundle.css' %}" rel="stylesheet" type="text/css"/>
     <link rel="shortcut icon" href="{% static 'assets/media/logos/favicon.ico' %}"/>
+{#<link href="https://cdn.jsdelivr.net/npm/lightbox2@2.11.4/dist/css/lightbox.min.css" rel="stylesheet">#}
+    <!-- GLightbox CSS -->
+<link href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" rel="stylesheet">
 
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
@@ -419,6 +422,62 @@
             box-shadow: 0 6px 20px rgba(93, 156, 89, 0.4);
         }
     </style>
+ <style>
+/* Styles pour les menus déroulants */
+.with-submenu {
+    position: relative;
+}
+
+.with-submenu .submenu {
+    display: none;
+    {#background-color: rgba(0, 0, 0, 0.2);#}
+    padding-left: 20px;
+    list-style: none;
+    margin: 0;
+    {#border-left: 3px solid var(--ci-orange);#}
+    transition: all 0.3s ease;
+}
+
+.with-submenu.open .submenu {
+    display: block;
+}
+
+.with-submenu .submenu li {
+    padding: 8px 15px;
+}
+
+.with-submenu .submenu li a {
+    {#color: #bdbdbd;#}
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    transition: color 0.3s;
+}
+
+.with-submenu .submenu li a:hover,
+.with-submenu .submenu li.active a {
+    color: white;
+}
+
+.with-submenu .submenu li a i {
+    font-size: 1.1rem;
+    margin-right: 10px;
+}
+
+.dropdown-icon {
+    transition: transform 0.3s;
+}
+
+.with-submenu.open .dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.menu-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+</style>
 </head>
 <body>
 <!-- Sidebar -->
@@ -664,7 +723,18 @@
 </script>
 <script src="{% static 'assets/js/scripts.bundle.js' %}"></script>
 <script src="{% static 'assets/js/pages/widgets.js' %}"></script>
+{#<script src="https://cdn.jsdelivr.net/npm/lightbox2@2.11.4/dist/js/lightbox.min.js"></script>#}
+
+
+<!-- GLightbox JS -->
+<script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
    <!-- SweetAlert2 for notifications -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const lightbox = GLightbox({ selector: '.glightbox' });
+  });
+</script>
+
     {% if messages %}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
