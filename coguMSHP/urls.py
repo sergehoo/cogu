@@ -26,7 +26,7 @@ from cogu.views import (
     IncidentTypeDeleteView,
     SanitaryIncidentListView, SanitaryIncidentCreateView, SanitaryIncidentDetailView,
     SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, LandingView, IncidentToValidListView,
-    WhatsAppMessageListView, validate_incident, reject_incident,
+    WhatsAppMessageListView, validate_incident, reject_incident, IncidentMapView,
 )
 from coguMSHP.services import twilio_whatsapp_webhook
 from coguMSHP.utils import notifications
@@ -63,12 +63,14 @@ urlpatterns = [
                   path('incident-types/<int:pk>/update/', IncidentTypeUpdateView.as_view(), name='incidenttype_update'),
                   path('incident-types/<int:pk>/delete/', IncidentTypeDeleteView.as_view(), name='incidenttype_delete'),
 
-path('incidents/<int:pk>/valider/', validate_incident, name='incident_validate'),
-path('incidents/<int:pk>/rejeter/', reject_incident, name='incident_reject'),
+                  path('incidents/<int:pk>/valider/', validate_incident, name='incident_validate'),
+                  path('incidents/<int:pk>/rejeter/', reject_incident, name='incident_reject'),
+                  path('incidents/carte/', IncidentMapView.as_view(), name='incident_map'),
                   # SanitaryIncident URLs
                   path('whatsapp/', WhatsAppMessageListView.as_view(), name='whatsapp_list'),
                   path('incidents/', SanitaryIncidentListView.as_view(), name='sanitaryincident_list'),
-                  path('incidents/traitment', IncidentToValidListView.as_view(), name='sanitaryincident_non_valid_list'),
+                  path('incidents/traitment', IncidentToValidListView.as_view(),
+                       name='sanitaryincident_non_valid_list'),
                   path('incidents/create/', SanitaryIncidentCreateView.as_view(), name='sanitaryincident_create'),
                   path('incidents/<int:pk>/', SanitaryIncidentDetailView.as_view(), name='sanitaryincident_detail'),
                   path('incidents/<int:pk>/update/', SanitaryIncidentUpdateView.as_view(),

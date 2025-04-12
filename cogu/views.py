@@ -3,7 +3,9 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
+from django.core.serializers import serialize
 from django.db.models import Q, Count, F
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -307,8 +309,6 @@ class IncidentTypeDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'type'
 
 
-
-
 class IncidentTypeUpdateView(LoginRequiredMixin, UpdateView):
     model = IncidentType
     template_name = 'incidenttype/incidentupdate.html'
@@ -328,7 +328,6 @@ class SanitaryIncidentListView(LoginRequiredMixin, ListView):
     context_object_name = 'incidents'
     paginate_by = 10
     ordering = ['-date_time']
-
 
     def get_queryset(self):
         return SanitaryIncident.objects.filter(status='validated').order_by(*self.ordering)
@@ -366,6 +365,7 @@ class SanitaryIncidentCreateView(LoginRequiredMixin, CreateView):
 
         return super().form_invalid(form)
 
+
 @require_POST
 def validate_incident(request, pk):
     incident = get_object_or_404(SanitaryIncident, pk=pk)
@@ -374,6 +374,7 @@ def validate_incident(request, pk):
     messages.success(request, "✅ Incident validé avec succès.")
     return redirect('sanitaryincident_detail', pk=pk)
 
+
 @require_POST
 def reject_incident(request, pk):
     incident = get_object_or_404(SanitaryIncident, pk=pk)
@@ -381,6 +382,53 @@ def reject_incident(request, pk):
     incident.save()
     messages.warning(request, "🚫 Incident rejeté.")
     return redirect('sanitaryincident_detail', pk=pk)
+
+
+
+class IncidentMapView(TemplateView):
+    template_name = 'sanitaryincident/incident_map.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        incidents = SanitaryIncident.objects.all()
+        context['incidents_geojson'] = serialize('geojson', incidents,
+                                                 geometry_field='location',
+                                                 fields=(
+                                                 'id', 'incident_type__name', 'status', 'date_time', 'city__name'))
+        return context
+
+    def get(self, request, *args, **kwargs):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            incidents = SanitaryIncident.objects.all()
+            data = {
+                'type': 'FeatureCollection',
+                'features': [{
+                    'type': 'Feature',
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': [incident.location.x, incident.location.y] if incident.location else None
+                    },
+                    'properties': {
+                        'id': incident.id,
+                        'type': incident.incident_type.name,
+                        'status': incident.get_status_display(),
+                        'date': incident.date_time.strftime('%d/%m/%Y %H:%M'),
+                        'location': incident.city.name if incident.city else 'Inconnu',
+                        'outcome': incident.get_outcome_display(),
+                        'people_involved': incident.number_of_people_involved,
+                        'icon': self.get_incident_icon(incident)
+                    }
+                } for incident in incidents if incident.location]
+            }
+            return JsonResponse(data)
+        return super().get(request, *args, **kwargs)
+
+    def get_incident_icon(self, incident):
+        if incident.status == 'validated':
+            return 'validated-icon'
+        elif incident.status == 'rejected':
+            return 'rejected-icon'
+        return 'pending-icon'
 class SanitaryIncidentDetailView(LoginRequiredMixin, DetailView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/detail.html'
