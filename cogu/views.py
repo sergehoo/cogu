@@ -68,9 +68,10 @@ class LandingView(TemplateView):
         return context
 
 
-class PublicUserDashboard(LoginRequiredMixin, TemplateView):
+class PublicUserDashboard(LoginRequiredMixin,RoleRequiredMixin, TemplateView):
     template_name = "pages/public/public_dashboard.html"
     login_url = 'account_login'
+    allowed_roles = ['Public']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data()
@@ -78,11 +79,12 @@ class PublicUserDashboard(LoginRequiredMixin, TemplateView):
         return context
 
 
-class PublicIncidentCreateView(LoginRequiredMixin, CreateView):
+class PublicIncidentCreateView(LoginRequiredMixin,RoleRequiredMixin, CreateView):
     model = SanitaryIncident
     template_name = 'pages/public/sanitaryincidentcreate.html'
     form_class = PublicIncidentForm
     success_url = reverse_lazy('public_incidentlist')
+    allowed_roles = ['Public']
 
     def form_valid(self, form):
         instance = form.save(commit=False)  # Ne pas sauvegarder tout de suite
@@ -108,12 +110,13 @@ class PublicIncidentCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-class PublicIncidentListView(LoginRequiredMixin, ListView):
+class PublicIncidentListView(LoginRequiredMixin,RoleRequiredMixin, ListView):
     model = SanitaryIncident
     template_name = 'pages/public/public_incident.html'
     context_object_name = 'incidents'
     paginate_by = 10
     ordering = ['-date_time']
+    allowed_roles = ['Public']
 
     def get_queryset(self):
         return SanitaryIncident.objects.filter(posted_by=self.request.user).order_by(*self.ordering)
@@ -124,10 +127,11 @@ class PublicIncidentListView(LoginRequiredMixin, ListView):
         return context
 
 
-class PublicIncidentDetailView(LoginRequiredMixin, DetailView):
+class PublicIncidentDetailView(LoginRequiredMixin,RoleRequiredMixin, DetailView):
     model = SanitaryIncident
     template_name = 'pages/public/public_incident_details.html'
     context_object_name = 'incidentsdetails'
+    allowed_roles = ['Public']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
