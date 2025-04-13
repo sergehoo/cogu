@@ -200,59 +200,41 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item">
-            <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i> Tableau de bord</a>
+            <a class="nav-link active" href="{% url 'landing' %}"><i class="fas fa-home me-1"></i> Accueil</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-bell me-1"></i> Alertes</a>
+            <a class="nav-link" href="#"><i class="fas fa-hand-holding-medical me-1"></i> Impact </a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#"><i class="fas fa-map-marked-alt me-1"></i> Cartographie</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-users me-1"></i> Équipes</a>
+            <a class="nav-link" href="#"><i class="fas fa-users me-1"></i> Couverture</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-file-alt me-1"></i> Rapports</a>
+            <a class="nav-link" href="#"><i class="fas fa-phone me-1"></i> Contact </a>
           </li>
+            {% if user.is_authenticated %}
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-              <i class="fas fa-user-circle me-1"></i> Admin
+              <i class="fas fa-user-circle me-1"></i> Mon Espace
             </a>
+
             <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Paramètres</a></li>
-              <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i> Déconnexion</a></li>
+              <li><a class="dropdown-item" href="{% url 'public_dashboard' %}"><i class="fas fa-cog me-2"></i> Dashboard</a></li>
+              <li><a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i> Déconnexion</a></li>
             </ul>
+          {% else %}
+<li class="nav-item">
+            <a class="nav-link btn btn-primary" href="{% url 'account_login' %}"><i class="fas fa-user-clock me-1"></i> Connexion</a>
           </li>
+          </li>{% endif %}
         </ul>
       </div>
     </div>
   </nav>
 
-  <!-- Header -->
-   <section class="hero-section">
-    <div class="container position-relative">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h1 class="hero-title animate__animated animate__fadeInDown animate__fast">Système de Surveillance Sanitaire</h1>
-                <p class="hero-subtitle animate__animated animate__fadeIn animate__delay-1s">Plateforme COGU pour la détection et la réponse aux urgences sanitaires en Côte d'Ivoire</p>
-                <div class="d-flex gap-3 animate__animated animate__fadeInUp animate__delay-1s">
-                    <a href="#" class="btn btn-light btn-lg px-4 hover-scale">
-                        <i class="fas fa-plus-circle me-2"></i> Signaler un incident
-                    </a>
-                    <a href="#" class="btn btn-outline-light btn-lg px-4 hover-scale">
-                        <i class="fas fa-play-circle me-2"></i> Voir la démo
-                    </a>
-                </div>
-            </div>
-            <div class="col-lg-6 d-none d-lg-block">
-                <div class="position-relative">
-                    <img src="{% static 'assets/media/workerssnte.jpg' %}" alt="Agents de santé" class="img-fluid rounded shadow-lg animate__animated animate__fadeInRight animate__delay-1s floating">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 border border-3 border-white rounded animate__animated animate__pulse animate__infinite" style="animation-duration: 3s; margin: -12px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+
 
   <!-- Main Content -->
  {% block content %}
@@ -322,84 +304,6 @@
 {#  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>#}
   <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 
-{#  <script>#}
-{#    // Initialisation AOS#}
-{#    AOS.init({#}
-{#      duration: 800,#}
-{#      once: true#}
-{#    });#}
-{##}
-{#    // Initialisation DataTable#}
-{#    $(document).ready(function() {#}
-{#      $('#interventionsTable').DataTable({#}
-{#        language: {#}
-{#          url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'#}
-{#        },#}
-{#        responsive: true#}
-{#      });#}
-{#    });#}
-{##}
-{#    // Initialisation de la carte#}
-{#    const map = L.map('cogu-map').setView([7.54, -5.55], 7);#}
-{#    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {#}
-{#      attribution: '© OpenStreetMap contributors'#}
-{#    }).addTo(map);#}
-{##}
-{#    // Ajout de marqueurs pour les alertes#}
-{#    const alertes = [#}
-{#      {#}
-{#        position: [5.32, -4.03],#}
-{#        title: "Suspicion choléra",#}
-{#        description: "5 cas suspects à Cocody",#}
-{#        type: "urgence"#}
-{#      },#}
-{#      {#}
-{#        position: [7.69, -5.03],#}
-{#        title: "Intoxication alimentaire",#}
-{#        description: "12 personnes affectées",#}
-{#        type: "alerte"#}
-{#      },#}
-{#      {#}
-{#        position: [6.82, -5.28],#}
-{#        title: "Accident routier",#}
-{#        description: "8 blessés dont 2 graves",#}
-{#        type: "urgence"#}
-{#      },#}
-{#      {#}
-{#        position: [4.75, -6.64],#}
-{#        title: "Prolifération moustiques",#}
-{#        description: "Quartier Kennedy",#}
-{#        type: "surveillance"#}
-{#      }#}
-{#    ];#}
-{##}
-{#    alertes.forEach(alerte => {#}
-{#      let iconColor;#}
-{#      if (alerte.type === "urgence") iconColor = "red";#}
-{#      else if (alerte.type === "alerte") iconColor = "orange";#}
-{#      else iconColor = "green";#}
-{##}
-{#      const icon = L.divIcon({#}
-{#        className: `cogu-marker-${alerte.type}`,#}
-{#        html: `<div style="background-color: ${iconColor}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>`,#}
-{#        iconSize: [24, 24]#}
-{#      });#}
-{##}
-{#      L.marker(alerte.position, { icon: icon })#}
-{#        .addTo(map)#}
-{#        .bindPopup(`<b>${alerte.title}</b><br>${alerte.description}`);#}
-{#    });#}
-{##}
-{#    // Gestion du scroll de la navbar#}
-{#    window.addEventListener('scroll', function() {#}
-{#      const navbar = document.querySelector('.navbar-cogu');#}
-{#      if (window.scrollY > 50) {#}
-{#        navbar.classList.add('shadow-lg');#}
-{#      } else {#}
-{#        navbar.classList.remove('shadow-lg');#}
-{#      }#}
-{#    });#}
-{#  </script>#}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -467,6 +371,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        {% for message in messages %}
+            Swal.fire({
+                title: "{{ message.tags|title }}",
+                text: "{{ message|safe }}",
+                icon: "{{ message.tags }}",
+                timer: 5000,
+                showConfirmButton: true
+            });
+        {% endfor %}
+    </script>
 </body>
 </html>
 

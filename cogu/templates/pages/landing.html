@@ -127,7 +127,31 @@
 
 <div class="main-content">
   <!-- Hero Section -->
-
+  <!-- Header -->
+   <section class="hero-section">
+    <div class="container position-relative">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="hero-title animate__animated animate__fadeInDown animate__fast">Système de Surveillance Sanitaire</h1>
+                <p class="hero-subtitle animate__animated animate__fadeIn animate__delay-1s">Plateforme COGU pour la détection et la réponse aux urgences sanitaires en Côte d'Ivoire</p>
+                <div class="d-flex gap-3 animate__animated animate__fadeInUp animate__delay-1s">
+                    <a href="{% url 'public_incidentcreate' %}" class="btn btn-light btn-lg px-4 hover-scale">
+                        <i class="fas fa-plus-circle me-2"></i> Signaler un incident
+                    </a>
+                    <a href="#" class="btn btn-outline-light btn-lg px-4 hover-scale">
+                        <i class="fas fa-play-circle me-2"></i> Voir la démo
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none d-lg-block">
+                <div class="position-relative">
+                    <img src="{% static 'assets/media/workerssnte.jpg' %}" alt="Agents de santé" class="img-fluid rounded shadow-lg animate__animated animate__fadeInRight animate__delay-1s floating">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 border border-3 border-white rounded animate__animated animate__pulse animate__infinite" style="animation-duration: 3s; margin: -12px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
   <div class="flag-stripe"></div>
 
@@ -400,23 +424,21 @@
   <!-- Partners -->
   <section class="py-5 bg-light">
     <div class="container">
-      <h2 class="text-center mb-5">Nos partenaires institutionnels</h2>
+      <h2 class="text-center mb-5">Nos partenaires </h2>
       <div class="row align-items-center justify-content-center">
-        <div class="col-6 col-md-2 mb-4">
-          <img src="{% static 'assets/media/logoMSHPCMU.svg' %}" class="img-fluid" alt="Ministère de la Santé">
+
+              <div class="col-4 col-md-1 mb-4">
+          <img src="{% static 'assets/media/armoirie_ci.png' %}" height="100" width="auto"  class="img-fluid" alt="UNICEF">
         </div>
-        <div class="col-6 col-md-2 mb-4">
-          <img src="{% static 'img/logo-oms.png' %}" class="img-fluid" alt="OMS">
+
+        <div class="col-4 col-md-1 ml-5 mb-4">
+          <img src="{% static 'assets/media/logoMSHPCMU.svg' %}"   height="100"  width="auto" class="img-fluid" alt="Ministère de la Santé">
         </div>
-        <div class="col-6 col-md-2 mb-4">
-          <img src="{% static 'img/logo-unicef.png' %}" class="img-fluid" alt="UNICEF">
+
+        <div class="col-4 col-md-2 ml-5 mb-4">
+          <img src="{% static 'assets/media/logo-AFRIQ-CONSULTING.png' %}"   height="100"  width="auto" class="img-fluid" alt="UNICEF">
         </div>
-        <div class="col-6 col-md-2 mb-4">
-          <img src="{% static 'img/logo-croix-rouge.png' %}" class="img-fluid" alt="Croix-Rouge">
-        </div>
-        <div class="col-6 col-md-2 mb-4">
-          <img src="{% static 'img/logo-usaid.png' %}" class="img-fluid" alt="USAID">
-        </div>
+
       </div>
     </div>
   </section>
@@ -427,7 +449,7 @@
       <h2 class="mb-4">Rejoignez le réseau national de surveillance sanitaire</h2>
       <p class="lead mb-5">Professionnels de santé, autorités locales, contribuez à la protection de la santé publique en Côte d'Ivoire</p>
       <div class="d-flex flex-wrap justify-content-center gap-3">
-        <a href="#" class="btn btn-light btn-lg px-4">
+        <a href="{% url 'account_signup' %}" class="btn btn-light btn-lg px-4">
           <i class="fas fa-user-plus me-2"></i> Créer un compte
         </a>
         <a href="#" class="btn btn-outline-light btn-lg px-4">

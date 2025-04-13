@@ -1,0 +1,356 @@
+{% extends "layout/land_base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load humanize %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+
+{% block content %}
+<style>
+:root {
+    --ci-orange: #FF8200;
+    --ci-white: #FFFFFF;
+    --ci-green: #009A44;
+    --ci-orange-light: rgba(255, 130, 0, 0.1);
+    --ci-green-light: rgba(0, 154, 68, 0.1);
+}
+
+.user-dashboard {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+}
+
+.user-sidebar {
+    background-color: var(--ci-green-light);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+    padding: 2rem 1rem;
+    margin-top:80px;
+}
+
+.user-profile-card {
+    text-align: center;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+.user-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--ci-orange-light);
+    margin: 0 auto 1rem;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar-menu li {
+    margin-bottom: 5px;
+}
+
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: #555;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.3s;
+}
+
+.sidebar-menu a:hover, .sidebar-menu a.active {
+    background-color: var(--ci-orange-light);
+    color: var(--ci-orange);
+}
+
+.sidebar-menu i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.main-content {
+    padding: 2rem;
+    background-color: #f9f9f9;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.incident-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    margin-top: 90px;
+    transition: all 0.3s;
+}
+
+.incident-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.incident-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-pending {
+    background-color: #FFF3E0;
+    color: #EF6C00;
+}
+
+.status-validated {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+}
+
+.status-rejected {
+    background-color: #FFEBEE;
+    color: #C62828;
+}
+
+.btn-ci {
+    background-color: var(--ci-orange);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.btn-ci:hover {
+    background-color: #e67300;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.incident-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.map-container {
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .user-dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .user-sidebar {
+        display: none;
+    }
+}
+</style>
+
+<div class="user-dashboard">
+    <!-- Sidebar -->
+    {% include 'pages/public/public_aside.html' %}
+
+    <!-- Main Content -->
+   <main class="main-content">
+        <div class="incident-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4><i class="fas fa-list-ul me-2"></i> Mes signalements</h4>
+                <a href="{% url 'public_incidentcreate' %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus me-1"></i> Nouveau
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table id="incidentsTable" class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type</th>
+                            <th>Lieu</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                            <th>Personnes concernées</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for incident in incidents %}
+                        <tr>
+                            <td>{{ incident.incident_type.name }}</td>
+                            <td>
+                                {% if incident.city %}
+                                    {{ incident.city.name }}
+                                {% else %}
+                                    <span class="text-muted">Non spécifié</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ incident.date_time|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="status-badge status-{{ incident.status }}">
+                                    {{ incident.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ incident.number_of_people_involved }}</td>
+                            <td>
+                                <a href="{% url 'public_incidentdetail' incident.pk %}" class="action-btn btn btn-sm btn-outline-primary" title="Voir détails">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if incident.status == 'pending' %}
+                                <a href="" class="action-btn btn btn-sm btn-outline-warning" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                                    Aucun signalement enregistré
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% if is_paginated %}
+            <nav aria-label="Pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Précédent">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                    {% else %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Suivant">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const map = L.map("incident-map").setView([7.54, -5.55], 7); // Vue initiale sur la Côte d’Ivoire
+
+  const markerIcon = L.icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/854/854866.png",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
+  });
+
+  let marker = null;
+  const autoField = document.getElementById("auto_location_field");
+  const textField = document.getElementById("location_text_field");
+  const locateBtn = document.getElementById("use-my-location");
+
+  // Fond de carte
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
+  }).addTo(map);
+
+  // Fonction de mise à jour
+  function updatePosition(lat, lon) {
+    const wkt = `POINT(${lon} ${lat})`;
+    if (autoField) autoField.value = wkt;
+    if (textField) textField.value = wkt;
+
+    if (marker) {
+      marker.setLatLng([lat, lon]);
+    } else {
+      marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map);
+    }
+
+    map.setView([lat, lon], 13);
+  }
+
+  // Clic utilisateur sur la carte
+  map.on("click", function (e) {
+    updatePosition(e.latlng.lat, e.latlng.lng);
+  });
+
+  // Bouton "Utiliser ma position"
+  if (locateBtn) {
+    locateBtn.addEventListener("click", function () {
+      if (!navigator.geolocation) {
+        alert("Votre navigateur ne supporte pas la géolocalisation.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function (position) {
+          const { latitude, longitude } = position.coords;
+          updatePosition(latitude, longitude);
+        },
+        function (error) {
+          alert("Impossible de récupérer la position : " + error.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  }
+
+  // Détection automatique au chargement
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        updatePosition(latitude, longitude);
+      },
+      () => {
+        console.warn("⚠️ L'utilisateur a refusé la géolocalisation automatique.");
+      }
+    );
+  }
+});
+</script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#incidentsTable').DataTable({
+        responsive: true,
+        language: {
+            url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/fr-FR.json"
+        },
+        dom: '<"top"f>rt<"bottom"lip><"clear">',
+        pageLength: 10,
+        order: [[2, 'desc']] // Tri par date décroissante
+    });
+});
+</script>
+{% endblock %}

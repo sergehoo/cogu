@@ -1,0 +1,357 @@
+{% extends "layout/land_base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load humanize %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+:root {
+    --ci-orange: #FF8200;
+    --ci-white: #FFFFFF;
+    --ci-green: #009A44;
+    --ci-orange-light: rgba(255, 130, 0, 0.1);
+    --ci-green-light: rgba(0, 154, 68, 0.1);
+}
+
+.user-dashboard {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+}
+
+.user-sidebar {
+    background-color: var(--ci-green-light);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+    padding: 2rem 1rem;
+    margin-top:80px;
+}
+
+.user-profile-card {
+    text-align: center;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+.user-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--ci-orange-light);
+    margin: 0 auto 1rem;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar-menu li {
+    margin-bottom: 5px;
+}
+
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: #555;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.3s;
+}
+
+.sidebar-menu a:hover, .sidebar-menu a.active {
+    background-color: var(--ci-orange-light);
+    color: var(--ci-orange);
+}
+
+.sidebar-menu i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.main-content {
+    padding: 2rem;
+    background-color: #f9f9f9;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.incident-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    margin-top: 90px;
+    transition: all 0.3s;
+}
+
+.incident-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.incident-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-pending {
+    background-color: #FFF3E0;
+    color: #EF6C00;
+}
+
+.status-validated {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+}
+
+.status-rejected {
+    background-color: #FFEBEE;
+    color: #C62828;
+}
+
+.btn-ci {
+    background-color: var(--ci-orange);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.btn-ci:hover {
+    background-color: #e67300;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.incident-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.map-container {
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .user-dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .user-sidebar {
+        display: none;
+    }
+}
+</style>
+<style>
+.incident-detail-card {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    margin-top: 100px;
+}
+.detail-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #555;
+}
+.detail-value {
+    font-size: 0.95rem;
+    color: #333;
+}
+.detail-section {
+    margin-bottom: 1.5rem;
+}
+.status-badge {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+}
+.status-pending {
+    background-color: #FFF3E0;
+    color: #EF6C00;
+}
+.status-validated {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+}
+.status-rejected {
+    background-color: #FFEBEE;
+    color: #C62828;
+}
+#incidentMap {
+    height: 280px;
+    border-radius: 8px;
+}
+.media-gallery img, .media-gallery video {
+    max-height: 100px;
+    margin: 4px;
+    border-radius: 6px;
+}
+</style>
+<div class="user-dashboard">
+    <!-- Sidebar -->
+    {% include 'pages/public/public_aside.html' %}
+
+    <!-- Main Content -->
+ <main class="main-content container">
+    <div class="incident-detail-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4><i class="fas fa-info-circle me-2"></i> Détails du signalement</h4>
+            <span class="status-badge status-{{ incidentsdetails.status }}">
+                {{ incidentsdetails.get_status_display }}
+            </span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="detail-section">
+                    <h5 class="detail-label">Informations de base</h5>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="detail-label">Type</div>
+                            <div class="detail-value">{{ incidentsdetails.incident_type.name }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">Date</div>
+                            <div class="detail-value">{{ incidentsdetails.date_time|date:"d/m/Y H:i" }}</div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="detail-label">Localité</div>
+                            <div class="detail-value">{{ incidentsdetails.city.name|default:"Non spécifiée" }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">Personnes impliquées</div>
+                            <div class="detail-value">{{ incidentsdetails.number_of_people_involved }}</div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="detail-label">Issue</div>
+                            <div class="detail-value">{{ incidentsdetails.get_outcome_display|default:"-" }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="detail-label">Événement lié</div>
+                            <div class="detail-value">
+                                {{ incidentsdetails.event.name|default:"Aucun" }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h5 class="detail-label">Description</h5>
+                    <div class="detail-value">
+                        {{ incidentsdetails.description|default:"Non renseignée"|linebreaks }}
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h5 class="detail-label">Signalé par</h5>
+                    <div class="detail-value">
+                        {{ incidentsdetails.posted_by.get_full_name|default:"Utilisateur inconnu" }}
+                    </div>
+                </div>
+
+                {% if incidentsdetails.validated_by %}
+                <div class="detail-section">
+                    <h5 class="detail-label">Validé par</h5>
+                    <div class="detail-value">
+                        {{ incidentsdetails.validated_by.get_full_name }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                <div class="detail-section">
+                    <h5 class="detail-label">Localisation</h5>
+                    {% if incidentsdetails.location %}
+                        <div id="incidentMap"></div>
+                    {% else %}
+                        <p class="text-muted">Localisation non précisée.</p>
+                    {% endif %}
+                </div>
+
+                {% if incidentsdetails.media.exists %}
+                <div class="detail-section">
+                    <h5 class="detail-label">Médias associés</h5>
+                    <div class="media-gallery d-flex flex-wrap">
+                        {% for media in incidentsdetails.media.all %}
+                            {% if media.media_type|slice:":5" == "image" %}
+                                <a href="{{ media.downloaded_file.url }}" target="_blank">
+                                    <img src="{{ media.downloaded_file.url }}" class="img-thumbnail" alt="image">
+                                </a>
+                            {% elif media.media_type|slice:":5" == "video" %}
+                                <video controls class="me-2">
+                                    <source src="{{ media.downloaded_file.url }}" type="{{ media.media_type }}">
+                                    Votre navigateur ne supporte pas la lecture vidéo.
+                                </video>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex justify-content-between">
+            <a href="{% url 'public_incidentlist' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Retour à la liste
+            </a>
+
+            {% if incidentsdetails.status == 'pending' and request.user == incidentsdetails.posted_by %}
+            <a href="" class="btn btn-outline-primary">
+                <i class="fas fa-edit me-2"></i> Modifier
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    {% if incidentsdetails.location %}
+    const map = L.map('incidentMap').setView([{{ incidentsdetails.location.y }}, {{ incidentsdetails.location.x }}], 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    L.marker([{{ incidentsdetails.location.y }}, {{ incidentsdetails.location.x }}], {
+        icon: L.icon({
+            iconUrl: '{% static "assets/media/map-marker.png" %}',
+            iconSize: [32, 32],
+            iconAnchor: [16, 32]
+        })
+    }).addTo(map).bindPopup(`
+        <strong>{{ incidentsdetails.incident_type.name }}</strong><br>
+        {{ incidentsdetails.date_time|date:"d/m/Y H:i" }}
+    `).openPopup();
+    {% endif %}
+});
+</script>
+{% endblock %}

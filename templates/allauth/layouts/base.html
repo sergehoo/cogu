@@ -1,0 +1,556 @@
+{% load static %}
+{% load i18n %}
+{#{% load i18n static socialaccount %}#}
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COGU | Plateforme de Gestion des Urgences Sanitaires</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="{% static 'assets/media/logos/favicon.ico' %}" type="image/png">
+
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href="{% static 'assets/css/style.bundle.css' %}" rel="stylesheet" type="text/css"/>
+    <link rel="shortcut icon" href="{% static 'assets/media/logos/favicon.ico' %}"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/fontawesome.min.css">
+    <style>
+        :root {
+            --cogu-red: #d32f2f;
+            --cogu-blue: #1976d2;
+            --cogu-dark: #2c3e50;
+            --cogu-light: #f5f7fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--cogu-light);
+        }
+
+        /* Navbar */
+        .navbar-cogu {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px 0;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+        }
+
+        /* Header */
+        .cogu-header {
+            background: linear-gradient(135deg, var(--cogu-blue), var(--cogu-dark));
+            color: white;
+            padding: 100px 0 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cogu-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('{% static 'assets/media/patternheader.jpg' %}');
+            opacity: 0.1;
+        }
+
+        /* Alertes */
+        .alert-cogu {
+            border-left: 4px solid var(--cogu-red);
+        }
+
+        /* Cartes */
+        .cogu-card {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .cogu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .cogu-card-header {
+            background-color: var(--cogu-blue);
+            color: white;
+            border-radius: 8px 8px 0 0 !important;
+        }
+
+        /* Tableau */
+        .table-cogu thead {
+            background-color: var(--cogu-blue);
+            color: white;
+        }
+
+        /* Badges */
+        .badge-urgence {
+            background-color: #ff5252;
+            color: white;
+        }
+
+        .badge-alerte {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .badge-surveillance {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        /* Timeline */
+        .timeline-cogu {
+            position: relative;
+            padding-left: 50px;
+        }
+
+        .timeline-cogu::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: var(--cogu-blue);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -40px;
+            top: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: white;
+            border: 4px solid var(--cogu-blue);
+        }
+
+        /* Footer */
+        .footer-cogu {
+            background-color: var(--cogu-dark);
+            color: white;
+            padding: 50px 0 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .cogu-header {
+                padding: 80px 0 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+<style>
+    :root {
+        --ci-orange: #FF8200;
+        --ci-white: #FFFFFF;
+        --ci-green: #009A44;
+        --ci-orange-light: rgba(255, 130, 0, 0.1);
+        --ci-green-light: rgba(0, 154, 68, 0.1);
+    }
+
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: #f9f9f9;
+        display: flex;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+    }
+
+    .login-container {
+        display: flex;
+        width: 100%;
+        min-height: 100vh;
+    }
+
+    .login-left {
+        flex: 1;
+        background: linear-gradient(135deg, var(--ci-orange), #052301);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .login-left::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url('{% static "assets/media/patternheader.jpg" %}') repeat;
+        opacity: 0.1;
+        pointer-events: none;
+    }
+
+    .login-right {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+        background-color: white;
+
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 600px;
+        background: white;
+
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transform: translateY(0);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .login-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, var(--ci-orange), #e67300);
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .login-body {
+         padding: 55px;
+    }
+
+
+    .login-header h2 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .login-body {
+        padding: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #555;
+
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: all 0.3s;
+
+    }
+
+    .form-control:focus {
+        border-color: var(--ci-orange);
+        box-shadow: 0 0 0 3px rgba(255, 130, 0, 0.2);
+        outline: none;
+    }
+
+    .btn-login {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, var(--ci-orange), #e67300);
+        border: none;
+        border-radius: 6px;
+        color: white;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-login:hover {
+        background: linear-gradient(135deg, #e67300, #d16600);
+        transform: translateY(-2px);
+    }
+
+    .login-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #777;
+    }
+
+    .login-footer a {
+        color: var(--ci-orange);
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .login-footer a:hover {
+        color: #e67300;
+        text-decoration: underline;
+    }
+
+    .flag-stripe {
+        height: 8px;
+        background: linear-gradient(90deg, var(--ci-orange) 33%, var(--ci-white) 33%, var(--ci-white) 66%, var(--ci-green) 66%);
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+    }
+
+    .login-logo {
+        width: 120px;
+        margin-bottom: 2rem;
+    }
+
+    .login-slogan {
+        font-size: 1.5rem;
+        font-weight: 500;
+        margin-bottom: 1rem;
+        text-align: center;
+        max-width: 400px;
+    }
+
+    .login-features {
+        margin-top: 2rem;
+        max-width: 400px;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .feature-icon {
+        width: 40px;
+        height: 40px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.2rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .login-container {
+            flex-direction: column;
+        }
+
+        .login-left {
+            padding: 2rem 1rem;
+            min-height: auto;
+        }
+
+        .login-right {
+            padding: 2rem 1rem;
+        }
+
+        .login-slogan {
+            font-size: 1.2rem;
+        }
+    }
+
+    /* Animation */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .login-card {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    .input-with-icon {
+        position: relative;
+    }
+
+    .input-with-icon .form-control {
+        padding-left: 40px;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #777;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #777;
+        cursor: pointer;
+    }
+</style>
+
+<div class="login-container">
+    <div class="login-left">
+        <img src="{% static 'assets/media/logoMSHPCMU.svg' %}" alt="Logo" class="login-logo">
+        <h2 class="login-slogan">Comite de Gestion des Urgences Sanitaire (COGU)</h2>
+
+        <div class="login-features">
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <span>Accès sécurisé aux données sensibles</span>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
+                <span>Cartographie en temps réel des incidents</span>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <span>Alertes instantanées</span>
+            </div>
+        </div>
+        <div class="flag-stripe"></div>
+    </div>
+
+    <div class="login-right">
+
+        <div class="login-card">
+            <div class="login-header">
+                <h2> ADMINISTRATION </h2>
+            </div>
+            <div class="login-body">
+                {% block content %}
+                {% endblock %}
+
+                <h5 class="mb-3">{% trans "Ou connectez-vous avec" %}</h5>
+                <div class="social-login-buttons">
+  {% for provider in socialaccount_providers %}
+    {% if provider.id == 'google' %}
+      <a href="{% provider_login_url 'google' %}" class="btn btn-danger w-100 mb-2">
+        <i class="fab fa-google me-2"></i> Se connecter avec Google
+      </a>
+    {% elif provider.id == 'facebook' %}
+      <a href="{% provider_login_url 'facebook' %}" class="btn btn-primary w-100 mb-2">
+        <i class="fab fa-facebook-f me-2"></i> Se connecter avec Facebook
+      </a>
+    {% elif provider.id == 'apple' %}
+      <a href="{% provider_login_url 'apple' %}" class="btn btn-dark w-100 mb-2">
+        <i class="fab fa-apple me-2"></i> Se connecter avec Apple
+      </a>
+    {% endif %}
+  {% endfor %}
+</div>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+
+<!-- Inclure Font Awesome pour les icônes -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+{#  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>#}
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="{% static 'assets/js/scripts.bundle.js' %}"></script>
+<script>
+    // Initialize animations
+    AOS.init({
+        duration: 800,
+        easing: 'ease-out-quad',
+        once: true
+    });
+
+    // Document ready function
+    $(document).ready(function () {
+        // Password toggle functionality
+        $('.toggle-password').click(function () {
+            const input = $(this).siblings('input');
+            const icon = $(this).find('i');
+
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+
+        // Form field focus effects
+        $('.form-control').focus(function () {
+            $(this).closest('.form-group').css('transform', 'translateX(5px)');
+        }).blur(function () {
+            $(this).closest('.form-group').css('transform', 'translateX(0)');
+        });
+
+        // Set floating elements animation duration
+        $('.floating-element').each(function (index) {
+            $(this).css('animation-duration', `${15 + index * 2}s`);
+        });
+
+        // Force form-control class on all inputs
+        $('input:not([type="checkbox"], [type="radio"]), textarea, select').addClass('form-control');
+
+        // Add icons to specific input types
+        $('input[type="email"]').before('<i class="fas fa-envelope input-icon"></i>');
+        $('input[type="text"]').before('<i class="fas fa-user input-icon"></i>');
+        $('input[type="password"]').before('<i class="fas fa-lock input-icon"></i>');
+
+        // Style submit button
+        $('button[type="submit"]').addClass('btn btn-primary');
+    });
+</script>
+</body>
+</html>
+
+

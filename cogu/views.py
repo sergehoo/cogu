@@ -1,7 +1,8 @@
 from datetime import timedelta
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.core.serializers import serialize
 from django.db.models import Q, Count, F
@@ -14,13 +15,25 @@ from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, ListView, CreateView, DetailView, UpdateView, DeleteView
 
 from cogu.filters import PatientFilter
-from cogu.forms import SanitaryIncidentForm
+from cogu.forms import SanitaryIncidentForm, PublicIncidentForm
 from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune, HealthRegion, VictimCare, \
     WhatsAppMessage
 from django.contrib.gis.geos import Point
 
 
 # Create your views here.
+class RoleRequiredMixin(UserPassesTestMixin):
+    allowed_roles = []
+    redirect_view_if_denied = 'public_dashboard'  # nom de l’URL
+
+    def test_func(self):
+        user = self.request.user
+        return user.is_authenticated and user.roleemployee in self.allowed_roles
+
+    def handle_no_permission(self):
+        # Redirige vers la vue publique si le test échoue
+        return redirect(self.redirect_view_if_denied)
+
 
 class LandingView(TemplateView):
     template_name = "pages/landing.html"
@@ -55,9 +68,78 @@ class LandingView(TemplateView):
         return context
 
 
-class CADashborad(LoginRequiredMixin, TemplateView):
+class PublicUserDashboard(LoginRequiredMixin, TemplateView):
+    template_name = "pages/public/public_dashboard.html"
+    login_url = 'account_login'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context['mesincidents'] = SanitaryIncident.objects.filter(posted_by=self.request.user).order_by('-created_at')[:5]
+        return context
+
+
+class PublicIncidentCreateView(LoginRequiredMixin, CreateView):
+    model = SanitaryIncident
+    template_name = 'pages/public/sanitaryincidentcreate.html'
+    form_class = PublicIncidentForm
+    success_url = reverse_lazy('public_incidentlist')
+
+    def form_valid(self, form):
+        instance = form.save(commit=False)  # Ne pas sauvegarder tout de suite
+        User = get_user_model()
+
+        if isinstance(self.request.user, User):
+            instance.posted_by = self.request.user
+        # instance.posted_by = self.request.user  # Assignation de l'utilisateur
+        messages.success(self.request, 'Incident enregistré avec succès!')
+        instance.save()
+        # form.save_m2m()  # Important si tu as des champs ManyToMany
+        return redirect('public_incidentlist')
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Veuillez corriger les erreurs ci-dessous :')
+
+        # Boucle sur les champs pour afficher chaque erreur individuellement
+        for field, errors in form.errors.items():
+            field_label = form.fields.get(field).label if field in form.fields else field
+            for error in errors:
+                messages.error(self.request, format_html("<strong>{}</strong>: {}", field_label, error))
+
+        return super().form_invalid(form)
+
+
+class PublicIncidentListView(LoginRequiredMixin, ListView):
+    model = SanitaryIncident
+    template_name = 'pages/public/public_incident.html'
+    context_object_name = 'incidents'
+    paginate_by = 10
+    ordering = ['-date_time']
+
+    def get_queryset(self):
+        return SanitaryIncident.objects.filter(posted_by=self.request.user).order_by(*self.ordering)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['incidents_active'] = True  # pour activer le menu dans le template
+        return context
+
+
+class PublicIncidentDetailView(LoginRequiredMixin, DetailView):
+    model = SanitaryIncident
+    template_name = 'pages/public/public_incident_details.html'
+    context_object_name = 'incidentsdetails'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['incidents_active'] = True  # pour activer le menu dans le template
+        return context
+
+
+class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
     template_name = "pages/dashboard.html"
-    login_url = 'account-login'
+    login_url = 'account_login'
+    allowed_roles = ['National', 'Regional']
+    redirect_view_if_denied = 'public_dashboard'
 
     def get(self, request, *args, **kwargs):
         now = timezone.now()
@@ -169,13 +251,16 @@ class CADashborad(LoginRequiredMixin, TemplateView):
         )
 
 
-class PatientListView(LoginRequiredMixin, ListView):
+class PatientListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     model = Patient
     template_name = 'patient/list.html'
     context_object_name = 'patients'
     paginate_by = 20
     ordering = ['-created_at']
     filterset_class = PatientFilter
+
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.roleemployee in ['National', 'Regional']
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -192,7 +277,7 @@ class PatientListView(LoginRequiredMixin, ListView):
         return queryset
 
 
-class PatientCreateView(LoginRequiredMixin, CreateView):
+class PatientCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     model = Patient
     template_name = 'patient/create.html'
     fields = '__all__'
@@ -210,7 +295,7 @@ class PatientCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class PatientDetailView(LoginRequiredMixin, DetailView):
+class PatientDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailView):
     model = Patient
     template_name = 'patient/detail.html'
     context_object_name = 'patient'
@@ -223,7 +308,7 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class PatientUpdateView(LoginRequiredMixin, UpdateView):
+class PatientUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
     model = Patient
     template_name = 'patient/update.html'
     fields = '__all__'
@@ -242,7 +327,7 @@ class PatientUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
 
-class PatientDeleteView(LoginRequiredMixin, DeleteView):
+class PatientDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteView):
     model = Patient
     template_name = 'patient/delete.html'
     slug_field = 'code_patient'
@@ -255,7 +340,7 @@ class PatientDeleteView(LoginRequiredMixin, DeleteView):
         return response
 
 
-class MajorEventListView(LoginRequiredMixin, ListView):
+class MajorEventListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     model = MajorEvent
     template_name = 'majorevent/list.html'
     context_object_name = 'events'
@@ -263,66 +348,66 @@ class MajorEventListView(LoginRequiredMixin, ListView):
     ordering = ['-start_date']
 
 
-class MajorEventCreateView(LoginRequiredMixin, CreateView):
+class MajorEventCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     model = MajorEvent
     template_name = 'majorevent/event_create.html'
     fields = '__all__'
     success_url = reverse_lazy('majorevent_list')
 
 
-class MajorEventDetailView(LoginRequiredMixin, DetailView):
+class MajorEventDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailView):
     model = MajorEvent
     template_name = 'majorevent/event_detail.html'
     context_object_name = 'event'
 
 
-class MajorEventUpdateView(LoginRequiredMixin, UpdateView):
+class MajorEventUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
     model = MajorEvent
     template_name = 'majorevent/event_update.html'
     fields = '__all__'
     success_url = reverse_lazy('majorevent_list')
 
 
-class MajorEventDeleteView(LoginRequiredMixin, DeleteView):
+class MajorEventDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteView):
     model = MajorEvent
     template_name = 'majorevent/event_delete.html'
     success_url = reverse_lazy('majorevent_list')
 
 
-class IncidentTypeListView(LoginRequiredMixin, ListView):
+class IncidentTypeListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     model = IncidentType
     template_name = 'incidenttype/incidentlist.html'
     context_object_name = 'types'
     ordering = ['name']
 
 
-class IncidentTypeCreateView(LoginRequiredMixin, CreateView):
+class IncidentTypeCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     model = IncidentType
     template_name = 'incidenttype/incidentcreate.html'
     fields = '__all__'
     success_url = reverse_lazy('incidenttype_list')
 
 
-class IncidentTypeDetailView(LoginRequiredMixin, DetailView):
+class IncidentTypeDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailView):
     model = IncidentType
     template_name = 'incidenttype/incidentdetail.html'
     context_object_name = 'type'
 
 
-class IncidentTypeUpdateView(LoginRequiredMixin, UpdateView):
+class IncidentTypeUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
     model = IncidentType
     template_name = 'incidenttype/incidentupdate.html'
     fields = '__all__'
     success_url = reverse_lazy('incidenttype_list')
 
 
-class IncidentTypeDeleteView(LoginRequiredMixin, DeleteView):
+class IncidentTypeDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteView):
     model = IncidentType
     template_name = 'incidenttype/incidentdelete.html'
     success_url = reverse_lazy('incidenttype_list')
 
 
-class SanitaryIncidentListView(LoginRequiredMixin, ListView):
+class SanitaryIncidentListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/list.html'
     context_object_name = 'incidents'
@@ -333,7 +418,7 @@ class SanitaryIncidentListView(LoginRequiredMixin, ListView):
         return SanitaryIncident.objects.filter(status='validated').order_by(*self.ordering)
 
 
-class IncidentToValidListView(LoginRequiredMixin, ListView):
+class IncidentToValidListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/non_valid_list.html'
     context_object_name = 'incidents'
@@ -344,7 +429,7 @@ class IncidentToValidListView(LoginRequiredMixin, ListView):
         return SanitaryIncident.objects.exclude(status='validated').order_by(*self.ordering)
 
 
-class SanitaryIncidentCreateView(LoginRequiredMixin, CreateView):
+class SanitaryIncidentCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/create.html'
     form_class = SanitaryIncidentForm
@@ -384,8 +469,7 @@ def reject_incident(request, pk):
     return redirect('sanitaryincident_detail', pk=pk)
 
 
-
-class IncidentMapView(TemplateView):
+class IncidentMapView(RoleRequiredMixin, TemplateView):
     template_name = 'sanitaryincident/incident_map.html'
 
     def get_context_data(self, **kwargs):
@@ -394,7 +478,7 @@ class IncidentMapView(TemplateView):
         context['incidents_geojson'] = serialize('geojson', incidents,
                                                  geometry_field='location',
                                                  fields=(
-                                                 'id', 'incident_type__name', 'status', 'date_time', 'city__name'))
+                                                     'id', 'incident_type__name', 'status', 'date_time', 'city__name'))
         return context
 
     def get(self, request, *args, **kwargs):
@@ -429,7 +513,9 @@ class IncidentMapView(TemplateView):
         elif incident.status == 'rejected':
             return 'rejected-icon'
         return 'pending-icon'
-class SanitaryIncidentDetailView(LoginRequiredMixin, DetailView):
+
+
+class SanitaryIncidentDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/detail.html'
     context_object_name = 'incident'
@@ -443,7 +529,7 @@ class SanitaryIncidentDetailView(LoginRequiredMixin, DetailView):
         )
 
 
-class SanitaryIncidentUpdateView(LoginRequiredMixin, UpdateView):
+class SanitaryIncidentUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/update.html'
     form_class = SanitaryIncidentForm
@@ -465,13 +551,13 @@ class SanitaryIncidentUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_invalid(form)
 
 
-class SanitaryIncidentDeleteView(LoginRequiredMixin, DeleteView):
+class SanitaryIncidentDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteView):
     model = SanitaryIncident
     template_name = 'sanitaryincident/delete.html'
     success_url = reverse_lazy('sanitaryincident_list')
 
 
-class WhatsAppMessageListView(LoginRequiredMixin, ListView):
+class WhatsAppMessageListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     model = WhatsAppMessage
     template_name = 'pages/whatsapp/messages_list.html'
     context_object_name = 'messages'

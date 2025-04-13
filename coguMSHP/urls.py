@@ -17,7 +17,7 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 
 from cogu.views import (
     PatientListView, PatientCreateView, PatientDetailView, PatientUpdateView, PatientDeleteView,
@@ -26,7 +26,8 @@ from cogu.views import (
     IncidentTypeDeleteView,
     SanitaryIncidentListView, SanitaryIncidentCreateView, SanitaryIncidentDetailView,
     SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, LandingView, IncidentToValidListView,
-    WhatsAppMessageListView, validate_incident, reject_incident, IncidentMapView,
+    WhatsAppMessageListView, validate_incident, reject_incident, IncidentMapView, PublicUserDashboard,
+    PublicIncidentCreateView, PublicIncidentListView, PublicIncidentDetailView,
 )
 from coguMSHP.services import twilio_whatsapp_webhook
 from coguMSHP.utils import notifications
@@ -36,12 +37,12 @@ urlpatterns = [
                   path("__reload__/", include("django_browser_reload.urls")),
                   path('admin/', admin.site.urls),
                   path('api-auth/', include('rest_framework.urls')),
+                  path('accounts/', include('allauth.urls')),
 
                   path('webhook/whatsapp/', twilio_whatsapp_webhook, name='twilio_whatsapp_webhook'),
                   path('notifications/', send_whatsapp_message, name='send_whatsapp_notify'),
 
                   path('dashboard', CADashborad.as_view(), name='home'),
-                  path('', LandingView.as_view(), name='landing'),
 
                   path('patients/', PatientListView.as_view(), name='patient_list'),
                   path('patients/create/', PatientCreateView.as_view(), name='patient_create'),
@@ -77,6 +78,15 @@ urlpatterns = [
                        name='sanitaryincident_update'),
                   path('incidents/<int:pk>/delete/', SanitaryIncidentDeleteView.as_view(),
                        name='sanitaryincident_delete'),
+
+                  #publique access
+
+                  path('', LandingView.as_view(), name='landing'),
+                  path('mon-espace/', PublicUserDashboard.as_view(), name='public_dashboard'),
+                  path('mon-espace/Signaler/incident', PublicIncidentCreateView.as_view(), name='public_incidentcreate'),
+                  path('mon-espace/incident/list', PublicIncidentListView.as_view(), name='public_incidentlist'),
+
+                  re_path(r'^mon-espace/incident/detail/incident-(?P<pk>\d+)/$', PublicIncidentDetailView.as_view(), name='public_incidentdetail'),
               ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

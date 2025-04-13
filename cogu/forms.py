@@ -1,4 +1,5 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django_select2.forms import Select2MultipleWidget
 from django.utils.translation import gettext_lazy as _
 from cogu.models import Patient, MajorEvent, SanitaryIncident
@@ -55,9 +56,11 @@ class SanitaryIncidentForm(forms.ModelForm):
         label="Coordonnées GPS",
         widget=forms.TextInput(attrs={
             "placeholder": "POINT(longitude latitude)",
-            "class": "form-control"
+            "class": "form-control",
+            "name": "auto_location",
+            "id": "location_text_field"  # 👈 Important pour le JS
         }),
-        help_text="Format attendu : POINT(-1.677792 48.117266)"
+        help_text="Format : POINT(longitude latitude)"
     )
     auto_location = forms.CharField(required=False, widget=forms.HiddenInput())
     patients_related = forms.ModelMultipleChoiceField(
@@ -117,4 +120,82 @@ class SanitaryIncidentForm(forms.ModelForm):
         if commit:
             instance.save()
             self.save_m2m()
+        return instance
+
+
+class PublicIncidentForm(forms.ModelForm):
+    location_text = forms.CharField(
+        required=False,
+        label="Coordonnées GPS",
+        widget=forms.TextInput(attrs={
+            "placeholder": "POINT(longitude latitude)",
+            "class": "form-control",
+            "id": "location_text_field"  # 👈 Important pour le JS
+        }),
+        help_text="Format : POINT(longitude latitude)"
+    )
+
+    auto_location = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput()
+    )
+
+    class Meta:
+        model = SanitaryIncident
+        exclude = ['location', 'patients_related', 'status', 'source', 'posted_by', 'validated_by', 'outcome',
+                   'message', 'event',
+                   'created_at']  # handled manually or auto
+        widgets = {
+            'incident_type': forms.Select(attrs={'class': 'form-select'}),
+            'date_time': forms.DateTimeInput(attrs={
+                'type': 'datetime-local', 'class': 'form-control'
+            }),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'city': forms.Select(attrs={'class': 'form-select'}),
+            'number_of_people_involved': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'outcome': forms.Select(attrs={'class': 'form-select'}),
+            'event': forms.Select(attrs={'class': 'form-select'}),
+            'source': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean_location_text(self):
+        location_raw = self.cleaned_data.get("location_text")
+        auto_raw = self.cleaned_data.get("auto_location")
+
+        def parse_point(raw):
+            if isinstance(raw, Point):
+                return raw
+            if not isinstance(raw, str):
+                raise ValidationError("Format invalide.")
+            if not raw.startswith("POINT(") or not raw.endswith(")"):
+                raise ValidationError("Format invalide. Exemple attendu : POINT(-3.978 5.336)")
+            try:
+                lon, lat = map(float, raw[6:-1].split())
+                return Point(lon, lat)
+            except Exception:
+                raise ValidationError("Coordonnées GPS non valides.")
+
+        if location_raw:
+            return parse_point(location_raw)
+        elif auto_raw:
+            return parse_point(auto_raw)
+
+        raise ValidationError("Veuillez saisir ou autoriser votre position GPS.")
+
+    def clean_number_of_people_involved(self):
+        nb = self.cleaned_data.get("number_of_people_involved")
+        if nb is not None and nb <= 0:
+            raise forms.ValidationError("Le nombre de personnes doit être supérieur à zéro.")
+        return nb
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        # Récupère la valeur nettoyée (déjà un objet Point ou None)
+        instance.location = self.cleaned_data.get("location_text")
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+
         return instance

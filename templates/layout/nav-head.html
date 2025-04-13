@@ -23,21 +23,34 @@
                     <!--begin::Topbar-->
                     <div class="topbar">
 
-                        <!--begin::Notifications-->
-{#                  {% include 'layout/notification.html' %}#}
-                        <!--end::Notifications-->
+                       
 
 
                         <!--begin::User-->
-                        <div class="topbar-item">
-                            <div class="btn btn-icon w-auto btn-clean d-flex align-items-center btn-lg px-2"
-                                 id="kt_quick_user_toggle">
-                                <span class="text-muted font-weight-bold font-size-base d-none d-md-inline mr-1">Hi,</span>
-                                <span class="text-dark-50 font-weight-bolder font-size-base d-none d-md-inline mr-3">{{ request.user.username }}</span>
+                        <div class="topbar-item dropdown">
+                            <a href="#" class="btn btn-icon w-auto btn-clean d-flex align-items-center btn-lg px-2 dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="text-muted font-weight-bold font-size-base d-none d-md-inline me-1">Bonjour,</span>
+                                <span class="text-dark-50 font-weight-bolder font-size-base d-none d-md-inline me-2">{{ request.user.username }}</span>
                                 <span class="symbol symbol-35 symbol-light-success">
-		                        <span class="symbol-label font-size-h5 font-weight-bold">{{ request.user.username|first|upper }}</span>
-		                    </span>
-                            </div>
+                                    <span class="symbol-label font-size-h5 font-weight-bold ml-2">{{ request.user.username|first|upper }}</span>
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center" href="">
+                                        <i class="fas fa-user me-2 text-secondary"></i> Mon profil
+                                    </a>
+                                </li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center text-danger"
+                                       href="{% url 'account_logout' %}">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Déconnexion
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                         <!--end::User-->
                     </div>

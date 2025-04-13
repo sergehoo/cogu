@@ -71,7 +71,8 @@ class EmployeeUser(AbstractUser):
         ('National', 'National'),
         ('Regional', 'Régional'),
         ('DistrictSanitaire', 'District Sanitaire'),
-        ('CentreAntirabique', 'Centre Antirabique'),
+        ('Centre', 'Centre de Sante'),
+        ('Public', 'Utilisateur Publique'),
     ]
     CIVILITE_CHOICES = [
         ('Monsieur', 'Monsieur'),
@@ -85,7 +86,8 @@ class EmployeeUser(AbstractUser):
     contact = models.CharField(max_length=100, blank=True, null=True)
     email = models.CharField(max_length=100, blank=True, null=True)
     fonction = models.CharField(max_length=255, blank=True, null=True)
-    roleemployee = models.CharField(max_length=20, choices=ROLE_CHOICES, default='CentreAntirabique')
+    photo = models.ImageField(upload_to='users/images/', default='media/users/images/user.webp', blank=True, null=True)
+    roleemployee = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Public')
 
     # centre = models.ForeignKey('CentreAntirabique', on_delete=models.CASCADE, null=True, blank=True)
 
@@ -270,7 +272,7 @@ class MajorEvent(models.Model):
     description = models.TextField(blank=True)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    location = gis_models.PolygonField(geography=True, null=True,blank=True,help_text="Zone couverte par l’événement")
+    location = gis_models.PolygonField(geography=True, null=True, blank=True, help_text="Zone couverte par l’événement")
     organizer = models.CharField(max_length=255, blank=True)
     recurring = models.BooleanField(default=False)
 
@@ -292,11 +294,11 @@ class SanitaryIncident(models.Model):
         ('validated', 'Validé'),
         ('rejected', 'Rejeté'),
     ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
     incident_type = models.ForeignKey(IncidentType, on_delete=models.CASCADE, db_index=True)
     description = models.TextField()
     date_time = models.DateTimeField()
-    location = gis_models.PointField(geography=True, null=True, blank=True)
+    location = gis_models.PointField(geography=True, null=True, blank=True, db_index=True)
     city = models.ForeignKey(Commune, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     number_of_people_involved = models.PositiveIntegerField()
     outcome = models.CharField(max_length=100, choices=[
@@ -310,7 +312,7 @@ class SanitaryIncident(models.Model):
         MajorEvent, null=True, blank=True,
         on_delete=models.SET_NULL,
         help_text="Si l’incident est lié à un événement majeur"
-    )
+        , db_index=True)
     message = models.ForeignKey(
         'WhatsAppMessage',
         on_delete=models.SET_NULL,
@@ -318,9 +320,12 @@ class SanitaryIncident(models.Model):
         blank=True,
         related_name='incidents',
         help_text="Message WhatsApp à l’origine de l’incident, s’il y en a un"
-    )
+        , db_index=True)
     patients_related = models.ManyToManyField(Patient, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    posted_by = models.ForeignKey(EmployeeUser, on_delete=models.SET_NULL, null=True, blank=True, db_index=True,
+                                  related_name='postedby')
+    validated_by = models.ForeignKey(EmployeeUser, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     def __str__(self):
         return f"{self.incident_type.name} - {self.city} ({self.date_time.date()})"
@@ -417,21 +422,30 @@ class WhatsAppMessage(models.Model):
         ('in', 'Reçu'),
         ('out', 'Envoyé'),
     )
-    direction = models.CharField(max_length=3, choices=DIRECTION_CHOICES)
+    direction = models.CharField(max_length=3, db_index=True, choices=DIRECTION_CHOICES)
     sender = models.CharField(max_length=50)
     recipient = models.CharField(max_length=50)
-    body = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
+    body = models.TextField(db_index=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
     def __str__(self):
         return f"{self.get_direction_display()} | {self.sender} → {self.recipient}"
 
 
 class IncidentMedia(models.Model):
-    incident = models.ForeignKey("SanitaryIncident", on_delete=models.CASCADE, related_name="media")
-    media_url = models.URLField()
-    media_type = models.CharField(max_length=50)
-    downloaded_file = models.FileField(upload_to='incident_media/', null=True, blank=True)
+    incident = models.ForeignKey("SanitaryIncident", on_delete=models.CASCADE, related_name="media", db_index=True)
+    media_url = models.URLField(db_index=True)
+    media_type = models.CharField(max_length=50, db_index=True)
+    downloaded_file = models.FileField(upload_to='incident_media/', null=True, blank=True, db_index=True)
 
     def __str__(self):
         return f"{self.media_type} - {self.media_url}"
+
+
+class Testimony(models.Model):
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(EmployeeUser, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.created_by}"

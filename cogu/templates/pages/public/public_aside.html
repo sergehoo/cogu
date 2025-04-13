@@ -1,0 +1,28 @@
+{% load static %}
+<aside class="user-sidebar">
+        <div class="user-profile-card">
+            <img src="{{ user.photo.url|default:'/static/assets/media/default-avatar.png' }}"
+                 alt="Photo de profil" class="user-avatar">
+            <h4>{{ user.get_full_name|default:user.username }}</h4>
+            <small class="text-muted">Utilisateur public</small>
+        </div>
+
+        <ul class="sidebar-menu">
+            <li><a href="{% url 'public_dashboard' %}" class="{% if dashboard_active %}active{% endif %}">
+                <i class="fas fa-tachometer-alt"></i> Tableau de bord
+            </a></li>
+            <li><a href="{% url 'public_incidentcreate' %}" class="{% if report_active %}active{% endif %}">
+                <i class="fas fa-plus-circle"></i> Signaler un incident
+            </a></li>
+            <li><a href="{% url 'public_incidentlist' %}" class="{% if incidents_active %}active{% endif %}">
+                <i class="fas fa-list-ul"></i> Mes signalements
+                <span class="badge bg-primary ms-auto">{{ user.incidents.count }}</span>
+            </a></li>
+            <li><a href="" class="{% if profile_active %}active{% endif %}">
+                <i class="fas fa-user-cog"></i> Mon profil
+            </a></li>
+            <li><a href="{% url 'account_logout' %}">
+                <i class="fas fa-sign-out-alt"></i> Déconnexion
+            </a></li>
+        </ul>
+    </aside>
