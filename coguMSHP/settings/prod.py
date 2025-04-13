@@ -65,6 +65,11 @@ SLACK_ALERT_WEBHOOK = os.environ.get("SLACK_ALERT_WEBHOOK", default=None)
 # ACCOUNT_EMAIL_VERIFICATION = 'none'  # Pour tests uniquement
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+# ACCOUNT_AUTHENTICATION_METHOD = 'email'  # ou 'username_email' selon ton cas
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # clé importante
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # utile pour activer en un clic
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
+ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300  # en secondes (5 min)
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST")
@@ -78,3 +83,4 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_ALERT_RECEIVERS = [
     s.strip() for s in os.environ.get("EMAIL_ALERT_RECEIVERS", "").split(",") if s.strip()
 ]
+
