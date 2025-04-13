@@ -74,7 +74,8 @@ class PublicUserDashboard(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data()
-        context['mesincidents'] = SanitaryIncident.objects.filter(posted_by=self.request.user).order_by('-created_at')[:5]
+        context['mesincidents'] = SanitaryIncident.objects.filter(posted_by=self.request.user).order_by('-created_at')[
+                                  :5]
         return context
 
 
@@ -114,7 +115,6 @@ class PublicIncidentListView(LoginRequiredMixin, ListView):
     context_object_name = 'incidents'
     paginate_by = 10
     ordering = ['-date_time']
-
 
     def get_queryset(self):
         return SanitaryIncident.objects.filter(posted_by=self.request.user).order_by(*self.ordering)
@@ -256,6 +256,7 @@ class PatientListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     model = Patient
     template_name = 'patient/list.html'
     context_object_name = 'patients'
+    allowed_roles = ['National', 'Regional']
     paginate_by = 20
     ordering = ['-created_at']
     filterset_class = PatientFilter
@@ -281,6 +282,7 @@ class PatientListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
 class PatientCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     model = Patient
     template_name = 'patient/create.html'
+    allowed_roles = ['National', 'Regional']
     fields = '__all__'
     success_url = reverse_lazy('patient_list')
 
@@ -299,6 +301,7 @@ class PatientCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
 class PatientDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailView):
     model = Patient
     template_name = 'patient/detail.html'
+    allowed_roles = ['National', 'Regional']
     context_object_name = 'patient'
     slug_field = 'code_patient'
     slug_url_kwarg = 'code_patient'
@@ -316,6 +319,7 @@ class PatientUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
     slug_field = 'code_patient'
     slug_url_kwarg = 'code_patient'
     success_url = reverse_lazy('patient_list')
+    allowed_roles = ['National', 'Regional']
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -334,6 +338,7 @@ class PatientDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteView):
     slug_field = 'code_patient'
     slug_url_kwarg = 'code_patient'
     success_url = reverse_lazy('patient_list')
+    allowed_roles = ['National', 'Regional']
 
     def delete(self, request, *args, **kwargs):
         response = super().delete(request, *args, **kwargs)
@@ -347,6 +352,7 @@ class MajorEventListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     context_object_name = 'events'
     paginate_by = 20
     ordering = ['-start_date']
+    allowed_roles = ['National', 'Regional']
 
 
 class MajorEventCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
@@ -354,12 +360,14 @@ class MajorEventCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     template_name = 'majorevent/event_create.html'
     fields = '__all__'
     success_url = reverse_lazy('majorevent_list')
+    allowed_roles = ['National', 'Regional']
 
 
 class MajorEventDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailView):
     model = MajorEvent
     template_name = 'majorevent/event_detail.html'
     context_object_name = 'event'
+    allowed_roles = ['National', 'Regional']
 
 
 class MajorEventUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
@@ -367,12 +375,14 @@ class MajorEventUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
     template_name = 'majorevent/event_update.html'
     fields = '__all__'
     success_url = reverse_lazy('majorevent_list')
+    allowed_roles = ['National', 'Regional']
 
 
 class MajorEventDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteView):
     model = MajorEvent
     template_name = 'majorevent/event_delete.html'
     success_url = reverse_lazy('majorevent_list')
+    allowed_roles = ['National', 'Regional']
 
 
 class IncidentTypeListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
@@ -380,6 +390,7 @@ class IncidentTypeListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     template_name = 'incidenttype/incidentlist.html'
     context_object_name = 'types'
     ordering = ['name']
+    allowed_roles = ['National', 'Regional']
 
 
 class IncidentTypeCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
@@ -387,12 +398,14 @@ class IncidentTypeCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     template_name = 'incidenttype/incidentcreate.html'
     fields = '__all__'
     success_url = reverse_lazy('incidenttype_list')
+    allowed_roles = ['National', 'Regional']
 
 
 class IncidentTypeDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailView):
     model = IncidentType
     template_name = 'incidenttype/incidentdetail.html'
     context_object_name = 'type'
+    allowed_roles = ['National', 'Regional']
 
 
 class IncidentTypeUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
@@ -400,12 +413,14 @@ class IncidentTypeUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateView):
     template_name = 'incidenttype/incidentupdate.html'
     fields = '__all__'
     success_url = reverse_lazy('incidenttype_list')
+    allowed_roles = ['National', 'Regional']
 
 
 class IncidentTypeDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteView):
     model = IncidentType
     template_name = 'incidenttype/incidentdelete.html'
     success_url = reverse_lazy('incidenttype_list')
+    allowed_roles = ['National', 'Regional']
 
 
 class SanitaryIncidentListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
@@ -414,6 +429,7 @@ class SanitaryIncidentListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     context_object_name = 'incidents'
     paginate_by = 10
     ordering = ['-date_time']
+    allowed_roles = ['National', 'Regional']
 
     def get_queryset(self):
         return SanitaryIncident.objects.filter(status='validated').order_by(*self.ordering)
@@ -425,6 +441,7 @@ class IncidentToValidListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     context_object_name = 'incidents'
     paginate_by = 10
     ordering = ['-date_time']
+    allowed_roles = ['National', 'Regional']
 
     def get_queryset(self):
         return SanitaryIncident.objects.exclude(status='validated').order_by(*self.ordering)
@@ -435,6 +452,7 @@ class SanitaryIncidentCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateVi
     template_name = 'sanitaryincident/create.html'
     form_class = SanitaryIncidentForm
     success_url = reverse_lazy('sanitaryincident_list')
+    allowed_roles = ['National', 'Regional']
 
     def form_valid(self, form):
         messages.success(self.request, 'Incident enregistré avec succès!')
@@ -520,6 +538,7 @@ class SanitaryIncidentDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailVi
     model = SanitaryIncident
     template_name = 'sanitaryincident/detail.html'
     context_object_name = 'incident'
+    allowed_roles = ['National', 'Regional']
 
     def get_queryset(self):
         return (
@@ -535,6 +554,7 @@ class SanitaryIncidentUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateVi
     template_name = 'sanitaryincident/update.html'
     form_class = SanitaryIncidentForm
     success_url = reverse_lazy('sanitaryincident_list')
+    allowed_roles = ['National', 'Regional']
 
     def form_valid(self, form):
         messages.success(self.request, 'Incident enregistré avec succès!')
@@ -556,6 +576,7 @@ class SanitaryIncidentDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteVi
     model = SanitaryIncident
     template_name = 'sanitaryincident/delete.html'
     success_url = reverse_lazy('sanitaryincident_list')
+    allowed_roles = ['National', 'Regional']
 
 
 class WhatsAppMessageListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
@@ -564,6 +585,7 @@ class WhatsAppMessageListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     context_object_name = 'messages'
     paginate_by = 20
     ordering = ['-timestamp']
+    allowed_roles = ['National', 'Regional']
 
     def get_queryset(self):
         return WhatsAppMessage.objects.all().order_by(*self.ordering)

@@ -35,7 +35,7 @@
                     Types d'incidents
                 </a>
             </li>
-            
+
             <!-- Menu déroulant Incidents sanitaires -->
             <li class="collection-item with-submenu {% if 'sanitaryincident' in request.resolver_match.url_name %}active open{% endif %}">
                 <a href="#" class="waves-effect menu-toggle">
@@ -44,26 +44,27 @@
                     <i class="material-icons-round right dropdown-icon">arrow_drop_down</i>
                 </a>
                 <ul class="submenu">
-                  
-                    <li class="{% if request.resolver_match.url_name == 'valid_incidents' %}active{% endif %}">
-                        <a href="{% url 'sanitaryincident_list' %}">
-                            <i class="material-icons-round left">check_circle</i>
-                            Incidents validés
-                        </a>
-                    </li>
-                    <li class="{% if request.resolver_match.url_name == 'invalid_incidents' %}active{% endif %}">
-                        <a href="{% url 'sanitaryincident_non_valid_list' %}">
-                            <i class="material-icons-round left">cancel</i>
-                            En attente de validation
-                        </a>
-                    </li>
-                    <li class="{% if request.resolver_match.url_name == 'whatsapp_messages' %}active{% endif %}">
-                        <a href="{% url 'whatsapp_list' %}">
-                            <i class="material-icons-round left">chat</i>
-                            Messages WhatsApp
-                        </a>
-                    </li>
-                </ul>
+    <li class="{% if request.resolver_match.url_name == 'sanitaryincident_list' %}active{% endif %}">
+        <a href="{% url 'sanitaryincident_list' %}">
+            <i class="material-icons-round left">check_circle</i>
+            Liste d'Incidents validés
+            <span class="label bg-success ml-3" style="float: right">{{ incident_stats.validated }}</span>
+        </a>
+    </li>
+    <li class="{% if request.resolver_match.url_name == 'sanitaryincident_non_valid_list' %}active{% endif %}">
+        <a href="{% url 'sanitaryincident_non_valid_list' %}">
+            <i class="material-icons-round left" style="float: right">hourglass_empty</i>
+            En attente de validation
+            <span class="label ml-3 bg-warning text-dark" style="float: right">{{ incident_stats.pending }}</span>
+        </a>
+    </li>
+    <li class="{% if request.resolver_match.url_name == 'whatsapp_list' %}active{% endif %}">
+        <a href="{% url 'whatsapp_list' %}">
+            <i class="material-icons-round left">chat</i>
+            Messages WhatsApp <span class="label ml-3 bg-success text-dark" style="float: right">{{ incident_stats.whatsapp }}</span>
+        </a>
+    </li>
+</ul>
             </li>
 
             <li class="collection-item">
@@ -105,13 +106,13 @@
 // Script pour gérer l'ouverture/fermeture des menus déroulants
 document.addEventListener('DOMContentLoaded', function() {
     const menuToggles = document.querySelectorAll('.menu-toggle');
-    
+
     menuToggles.forEach(toggle => {
         toggle.addEventListener('click', function(e) {
             e.preventDefault();
             const parent = this.parentElement;
             parent.classList.toggle('open');
-            
+
             // Fermer les autres menus ouverts
             document.querySelectorAll('.with-submenu').forEach(menu => {
                 if (menu !== parent && menu.classList.contains('open')) {
