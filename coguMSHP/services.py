@@ -19,6 +19,9 @@ from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
 from coguMSHP.MPIClient import MPIClient
 from coguMSHP.utils.notifications import send_email_alert
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def synchroniser_avec_mpi(patient_instance):
@@ -522,6 +525,10 @@ def meta_whatsapp_webhook(request):
         mode = request.GET.get("hub.mode")
         token = request.GET.get("hub.verify_token")
         challenge = request.GET.get("hub.challenge")
+        print("GET PARAMS:", request.GET)
+
+        print("🚨 TOKEN reçu par Meta:", token)
+        print("✅ TOKEN attendu :", os.getenv("WHATSAPP_VERIFY_TOKEN"))
 
         if mode == "subscribe" and token == os.getenv('META_ACCESS_TOKEN'):
             return HttpResponse(challenge)
