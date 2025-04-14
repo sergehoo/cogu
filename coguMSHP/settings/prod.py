@@ -63,13 +63,26 @@ LOGGING = {
 SLACK_ALERT_WEBHOOK = os.environ.get("SLACK_ALERT_WEBHOOK", default=None)
 
 # ACCOUNT_EMAIL_VERIFICATION = 'none'  # Pour tests uniquement
+# Nouvelle méthode d'authentification : autoriser login via username et email
+ACCOUNT_LOGIN_METHODS = {"username", "email"}
+
+# Champs requis à l’inscription (le * signifie "requis")
+ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*", "password2*"]
+
+# Email obligatoire + vérification stricte
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # Auto-confirmation via clic lien
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3  # Optionnel
+
+# Limitation des tentatives de connexion
+ACCOUNT_RATE_LIMITS = {
+    "login_failed": "5/m",  # 5 tentatives par minute
+    "signup": "10/h",       # (optionnel) limiter les inscriptions
+}
+
+# Divers (facultatif mais utile)
+ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
-# ACCOUNT_AUTHENTICATION_METHOD = 'email'  # ou 'username_email' selon ton cas
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # clé importante
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # utile pour activer en un clic
-ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
-ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300  # en secondes (5 min)
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST")

@@ -426,6 +426,7 @@ class WhatsAppMessage(models.Model):
     sender = models.CharField(max_length=50)
     recipient = models.CharField(max_length=50)
     body = models.TextField(db_index=True)
+    read = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
     def __str__(self):
