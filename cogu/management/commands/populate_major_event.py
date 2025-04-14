@@ -1,16 +1,17 @@
-from django.core.management.base import BaseCommand
+from django.contrib.gis.geos import Polygon, LinearRing
 from django.utils.timezone import make_aware
 from datetime import datetime
-from cogu.models import MajorEvent
-from django.contrib.gis.geos import Polygon
+from django.core.management.base import BaseCommand
 
-# Coordonnées englobant la Côte d'Ivoire (approximatives)
+from cogu.models import MajorEvent
+
+# Coordonnées englobant la Côte d'Ivoire (fermé)
 CIV_POLYGON = [
-    (-8.6, 10.7),  # Nord-ouest
-    (-2.4, 10.7),  # Nord-est
-    (-2.4, 4.3),  # Sud-est
-    (-8.6, 4.3),  # Sud-ouest
-    (-8.6, 10.7)  # Fermeture
+    (-8.6, 10.7),
+    (-2.4, 10.7),
+    (-2.4, 4.3),
+    (-8.6, 4.3),
+    (-8.6, 10.7),  # Fermeture
 ]
 
 FESTIVALS = [
@@ -105,27 +106,39 @@ class Command(BaseCommand):
     help = "Crée automatiquement les événements majeurs annuels (nationaux et religieux)"
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.NOTICE("Création des événements majeurs (nationaux et religieux)..."))
+        self.stdout.write(self.style.NOTICE("Création des événements majeurs..."))
 
         for item in FESTIVALS:
-            coords = item.get('location_coords', []) or CIV_POLYGON.copy()
-            if coords[0] != coords[-1]:
-                coords.append(coords[0])
-            poly = Polygon([coords])
+            coords = item.get('location_coords') or CIV_POLYGON.copy()
 
-            event, created = MajorEvent.objects.get_or_create(
-                name=item['name'],
-                defaults={
-                    'description': item['description'],
-                    'start_date': make_aware(datetime.strptime(item['start_date'], '%Y-%m-%d %H:%M:%S')),
-                    'end_date': make_aware(datetime.strptime(item['end_date'], '%Y-%m-%d %H:%M:%S')),
-                    'organizer': item['organizer'],
-                    'location': poly
-                }
-            )
-            if created:
-                self.stdout.write(self.style.SUCCESS(f"✔️ {event.name} créé"))
-            else:
-                self.stdout.write(f"↪️ {event.name} existe déjà")
+            # ✅ Vérification de sécurité : au moins 4 points pour créer un LinearRing
+            if len(coords) < 4 or coords[0] != coords[-1]:
+                coords.append(coords[0])  # fermer le polygone si nécessaire
 
-        self.stdout.write(self.style.SUCCESS("✅ Tous les événements majeurs ont été enregistrés."))
+            if len(coords) < 4:
+                self.stdout.write(self.style.WARNING(f"⚠️ Événement ignoré (coordonnées invalides): {item['name']}"))
+                continue
+
+            try:
+                poly = Polygon(LinearRing(coords))
+
+                event, created = MajorEvent.objects.get_or_create(
+                    name=item['name'],
+                    defaults={
+                        'description': item['description'],
+                        'start_date': make_aware(datetime.strptime(item['start_date'], '%Y-%m-%d %H:%M:%S')),
+                        'end_date': make_aware(datetime.strptime(item['end_date'], '%Y-%m-%d %H:%M:%S')),
+                        'organizer': item['organizer'],
+                        'location': poly
+                    }
+                )
+
+                if created:
+                    self.stdout.write(self.style.SUCCESS(f"✔️ {event.name} créé"))
+                else:
+                    self.stdout.write(f"↪️ {event.name} existe déjà")
+
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"❌ Erreur avec {item['name']}: {str(e)}"))
+
+        self.stdout.write(self.style.SUCCESS("✅ Tous les événements ont été traités."))

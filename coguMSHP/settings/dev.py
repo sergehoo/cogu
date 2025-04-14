@@ -33,20 +33,19 @@ GEOS_LIBRARY_PATH = os.getenv('GEOS_LIBRARY_PATH', '/opt/homebrew/opt/geos/lib/l
 MPI_API_KEY = os.getenv('MPI_API_KEY', default='key')
 
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.votre-service.com")  # ex : smtp.sendinblue.com
-# EMAIL_PORT = 587  # Port utilisé pour STARTTLS
-# EMAIL_USE_TLS = True            # STARTTLS (recommandé pour port 587)
-# EMAIL_USE_SSL = False           # Ne pas activer les deux en même temps
-# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")  # ex: no-reply@cogu.ci
-# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")  # votre mot de passe SMTP
+# EMAIL_HOST = os.environ.get("EMAIL_HOST")
+# EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
+# # EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
+# EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "True") == "True"
+# EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+# EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+
 # DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.environ.get("EMAIL_HOST")
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "False") == "False"
-EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "True") == "True"
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
-
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_HOST = 'smtppro.orange.ci'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
+# EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'no-reply@cogu.ci'
+EMAIL_HOST_PASSWORD = 'weddingLIFE@18'

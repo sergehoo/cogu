@@ -1,5 +1,7 @@
+import json
 import logging
 import mimetypes
+import os
 import re
 import uuid
 from datetime import date
@@ -10,12 +12,11 @@ from django.contrib.gis.geos import Point
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.mail import send_mail
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
-
 from coguMSHP.MPIClient import MPIClient
 from coguMSHP.utils.notifications import send_email_alert
 
@@ -244,10 +245,6 @@ def save_twilio_media(request):
 #     return HttpResponse(str(response), content_type='application/xml')
 
 
-
-
-
-
 def get_or_create_patient_from_full_name(full_name):
     from cogu.models import Patient
     parts = full_name.strip().split()
@@ -367,7 +364,6 @@ def extract_info_from_message(message):
     }
 
 
-
 @csrf_exempt
 def twilio_whatsapp_webhook(request):
     from cogu.models import Commune, WhatsAppMessage, IncidentType, SanitaryIncident, IncidentMedia
@@ -450,7 +446,6 @@ def twilio_whatsapp_webhook(request):
     return HttpResponse(str(response), content_type='application/xml')
 
 
-
 def get_location_from_text(text):
     try:
         url = "https://nominatim.openstreetmap.org/search"
@@ -487,3 +482,118 @@ def send_email_alert(subject: str, message: str):
         logger.info("Email : alerte envoyée")
     except Exception as e:
         logger.error(f"Email : erreur d'envoi - {e}")
+
+
+#-------------------------------
+def get_media_url_from_meta(media_id):
+    url = f"https://graph.facebook.com/v18.0/{media_id}"
+    headers = {
+        "Authorization": f"Bearer {os.getenv('META_ACCESS_TOKEN')}"
+    }
+    resp = requests.get(url, headers=headers)
+    return resp.json().get("url")
+
+
+def download_and_attach_media(incident, media_url, content_type):
+    from cogu.models import IncidentMedia
+
+    try:
+        response = requests.get(media_url, headers={
+            "Authorization": f"Bearer {os.getenv('META_ACCESS_TOKEN')}"
+        })
+        if response.status_code == 200:
+            ext = mimetypes.guess_extension(content_type) or ".bin"
+            filename = f"incident_media/{timezone.now().strftime('%Y%m%d%H%M%S')}{ext}"
+            media = IncidentMedia.objects.create(
+                incident=incident,
+                media_url=media_url,
+                media_type=content_type
+            )
+            media.downloaded_file.save(filename, ContentFile(response.content))
+    except Exception as e:
+        logger.warning(f"Erreur téléchargement média WhatsApp Meta : {e}")
+
+
+@csrf_exempt
+def meta_whatsapp_webhook(request):
+    from cogu.models import IncidentMedia, WhatsAppMessage, Commune, IncidentType, SanitaryIncident
+    # Vérification du token pour l'enregistrement du webhook
+    if request.method == "GET":
+        mode = request.GET.get("hub.mode")
+        token = request.GET.get("hub.verify_token")
+        challenge = request.GET.get("hub.challenge")
+
+        if mode == "subscribe" and token == os.getenv('META_ACCESS_TOKEN'):
+            return HttpResponse(challenge)
+        return HttpResponseForbidden("Token invalide")
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            for entry in data.get("entry", []):
+                for change in entry.get("changes", []):
+                    value = change.get("value", {})
+                    messages = value.get("messages", [])
+                    contacts = value.get("contacts", [])
+
+                    for msg in messages:
+                        wa_id = msg["from"]
+                        message_body = msg["text"]["body"] if msg["type"] == "text" else ""
+                        timestamp = timezone.now()
+
+                        # Enregistrement du message brut
+                        wa_message = WhatsAppMessage.objects.create(
+                            direction="in",
+                            sender=wa_id,
+                            recipient=os.getenv('META_PHONE_NUMBER_ID'),
+                            body=message_body,
+                            raw_payload=data
+                        )
+
+                        # Extraction d'infos à partir du texte
+                        info = extract_info_from_message(message_body)
+                        matched_commune = Commune.objects.filter(name__icontains=message_body).first()
+                        location = matched_commune.location if matched_commune else None
+
+                        incident_type_name = info.get("incident_type_name")
+                        incident_type = IncidentType.objects.filter(name__icontains=incident_type_name).first() \
+                            if incident_type_name else None
+                        if not incident_type:
+                            incident_type = IncidentType.objects.filter(name__icontains="Autre").first()
+
+                        incident = SanitaryIncident.objects.create(
+                            incident_type=incident_type,
+                            description=message_body,
+                            date_time=timestamp,
+                            location=location,
+                            city=matched_commune,
+                            outcome='autre',
+                            source='WhatsApp',
+                            number_of_people_involved=info.get('nombre', 1),
+                            status='pending',
+                            message=wa_message
+                        )
+
+                        # Patients liés
+                        patients = []
+                        for full_name in info.get('patients', []):
+                            patient = get_or_create_patient_from_full_name(full_name)
+                            if patient:
+                                patients.append(patient)
+                        incident.patients_related.set(patients)
+
+                        # Traitement médias (s’ils arrivent par messages séparés, il faut les gérer dans un autre webhook ou enrichissement ultérieur)
+                        if msg.get("type") == "image":
+                            media_id = msg["image"]["id"]
+                            media_url = get_media_url_from_meta(media_id)
+                            content_type = "image/jpeg"
+                            download_and_attach_media(incident, media_url, content_type)
+
+            return JsonResponse({"status": "received"})
+
+        except Exception as e:
+            logger.exception("Erreur webhook Meta WhatsApp")
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return HttpResponse("Méthode non autorisée", status=405)
