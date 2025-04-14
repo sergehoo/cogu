@@ -530,9 +530,9 @@ def meta_whatsapp_webhook(request):
         print("🚨 TOKEN reçu par Meta:", token)
         print("✅ TOKEN attendu :", os.getenv("WHATSAPP_VERIFY_TOKEN"))
 
-        if mode == "subscribe" and token == os.getenv('META_ACCESS_TOKEN'):
+        if mode == "subscribe" and token == os.getenv('WHATSAPP_VERIFY_TOKEN'):
             return HttpResponse(challenge)
-        return HttpResponseForbidden("Token invalide")
+        return HttpResponseForbidden("Token invalide et non accessible")
 
     if request.method == "POST":
         try:
