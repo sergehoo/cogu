@@ -490,6 +490,7 @@ def reject_incident(request, pk):
 
 class IncidentMapView(RoleRequiredMixin, TemplateView):
     template_name = 'sanitaryincident/incident_map.html'
+    allowed_roles = ['National', 'Regional']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
