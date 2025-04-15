@@ -517,6 +517,28 @@ def download_and_attach_media(incident, media_url, content_type):
         logger.warning(f"Erreur téléchargement média WhatsApp Meta : {e}")
 
 
+def send_whatsapp_message(to_number, message_text):
+    import requests
+
+    url = f"https://graph.facebook.com/v18.0/{os.getenv('META_PHONE_NUMBER_ID')}/messages"
+    headers = {
+        "Authorization": f"Bearer {os.getenv('META_ACCESS_TOKEN')}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "messaging_product": "whatsapp",
+        "to": to_number,
+        "type": "text",
+        "text": {
+            "body": message_text
+        }
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+    return response.status_code, response.json()
+
+
 @csrf_exempt
 def meta_whatsapp_webhook(request):
     from cogu.models import IncidentMedia, WhatsAppMessage, Commune, IncidentType, SanitaryIncident
@@ -596,11 +618,10 @@ def meta_whatsapp_webhook(request):
                             media_url = get_media_url_from_meta(media_id)
                             content_type = "image/jpeg"
                             download_and_attach_media(incident, media_url, content_type)
-
+            send_whatsapp_message(wa_id, "✅ Merci pour votre signalement. Une équipe est informée.")
             return JsonResponse({"status": "received"})
 
         except Exception as e:
             logger.exception("Erreur webhook Meta WhatsApp")
             return JsonResponse({"error": str(e)}, status=500)
-
     return HttpResponse("Méthode non autorisée", status=405)

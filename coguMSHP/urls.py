@@ -39,8 +39,8 @@ urlpatterns = [
                   path('api-auth/', include('rest_framework.urls')),
                   path('accounts/', include('allauth.urls')),
 
-                  # path('webhook/whatsapp/', twilio_whatsapp_webhook, name='twilio_whatsapp_webhook'),
-                  path('webhook/whatsapp/', meta_whatsapp_webhook, name='meta_whatsapp_webhook'),
+                  path('webhook/whatsapp/', twilio_whatsapp_webhook, name='twilio_whatsapp_webhook'),
+                  # path('webhook/whatsapp/', meta_whatsapp_webhook, name='meta_whatsapp_webhook'),
                   path('notifications/', send_whatsapp_message, name='send_whatsapp_notify'),
 
                   path('dashboard', CADashborad.as_view(), name='home'),
