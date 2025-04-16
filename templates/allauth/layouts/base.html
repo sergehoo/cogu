@@ -2,6 +2,7 @@
 {% load i18n %}
 {#{% load i18n static socialaccount %}#}
 {% load socialaccount %}
+{% providers_media_js %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -468,13 +469,12 @@
                 {% block content %}
                 {% endblock %}
 
-                <h5 class="mb-3">{% trans "Ou connectez-vous avec" %}</h5>
                 <div class="social-login-buttons">
   {% for provider in socialaccount_providers %}
-    {% if provider.id == 'google' %}
-      <a href="{% provider_login_url 'google' %}" class="btn btn-danger w-100 mb-2">
-        <i class="fab fa-google me-2"></i> Se connecter avec Google
-      </a>
+     {% if provider.id == 'google' %}
+    <a href="{% provider_login_url 'google' %}" class="btn btn-danger w-100 mb-2">
+      <i class="fab fa-google me-2"></i> Se connecter avec Google
+    </a>
     {% elif provider.id == 'facebook' %}
       <a href="{% provider_login_url 'facebook' %}" class="btn btn-primary w-100 mb-2">
         <i class="fab fa-facebook-f me-2"></i> Se connecter avec Facebook
@@ -492,7 +492,40 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const providerMap = {
+    "Google": {
+      icon: "fab fa-google",
+      label: "Se connecter avec Google",
+      btnClass: "btn btn-danger w-100 mb-2"
+    },
+    "Facebook": {
+      icon: "fab fa-facebook-f",
+      label: "Se connecter avec Facebook",
+      btnClass: "btn btn-primary w-100 mb-2"
+    },
+    "Apple": {
+      icon: "fab fa-apple",
+      label: "Se connecter avec Apple",
+      btnClass: "btn btn-dark w-100 mb-2"
+    },
+    // Tu peux en ajouter d'autres ici
+  };
 
+  const links = document.querySelectorAll('a[title]');
+
+  links.forEach(link => {
+    const title = link.getAttribute('title');
+    const config = providerMap[title];
+
+    if (config && !link.innerHTML.includes(config.icon)) {
+      link.innerHTML = `<i class="${config.icon} me-2"></i> ${config.label}`;
+      link.className = config.btnClass;
+    }
+  });
+});
+</script>
 
 <!-- Inclure Font Awesome pour les icônes -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>

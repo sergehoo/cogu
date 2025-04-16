@@ -32,20 +32,14 @@ GEOS_LIBRARY_PATH = os.getenv('GEOS_LIBRARY_PATH', '/opt/homebrew/opt/geos/lib/l
 
 MPI_API_KEY = os.getenv('MPI_API_KEY', default='key')
 
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = os.environ.get("EMAIL_HOST")
-# EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
-# # EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
-# EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "True") == "True"
-# EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-# EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
-
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = 'smtppro.orange.ci'
-# EMAIL_PORT = 587
+EMAIL_HOST = os.environ.get("EMAIL_HOST")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
 # EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
-# EMAIL_USE_SSL = True
-EMAIL_HOST_USER = 'no-reply@cogu.ci'
-EMAIL_HOST_PASSWORD = 'weddingLIFE@18'
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "True") == "True"
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+

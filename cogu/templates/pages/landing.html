@@ -13,8 +13,16 @@
       --ci-green-light: rgba(0, 154, 68, 0.1);
     }
 
+    /* Effet parallax */
+    .parallax {
+      background-attachment: fixed;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+      position: relative;
+    }
+
     .hero-section {
-      {#background: linear-gradient(135deg, var(--ci-orange), #123301);#}
       background: linear-gradient(135deg, var(--ci-graydark), #123301);
       padding: 100px 0;
       color: white;
@@ -123,23 +131,100 @@
       height: 10px;
       background: linear-gradient(90deg, var(--ci-orange) 33%, var(--ci-white) 33%, var(--ci-white) 66%, var(--ci-green) 66%);
     }
+
+    /* Animation pour le scroll */
+    .fade-in {
+      opacity: 0;
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      transform: translateY(20px);
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Navigation ancrée */
+    .nav-link {
+      transition: all 0.3s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--ci-orange) !important;
+    }
+
+    /* Bouton flottant */
+    .floating-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      z-index: 99;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
     </style>
 
 <div class="main-content">
+  <!-- Navigation ancrée -->
+   <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="{% url 'landing' %}">
+        <img src="{% static 'assets/media/logoMSHPCMU.svg' %}" alt="Logo" height="40" class="me-2">
+        COGU Surveillance
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+         {% if user.is_authenticated %}
+
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'landing' %}">Revenir en Accueil</a>
+          </li>
+         {% else %}
+             <li class="nav-item">
+            <a class="nav-link" href="{% url 'landing' %}">Accueil</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#features">Fonctionnalités</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#map">Carte interactive</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#regions">Couverture</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#partners">Partenaires</a>
+          </li>
+        {% endif %}
+            {% if user.is_authenticated %}
+          <li class="nav-item ms-lg-3">
+            <a class="btn btn-sm btn-outline-light" href="{% url 'account_logout' %}">Deconnexion</a>
+          </li>
+                {% else %}
+                <li class="nav-item ms-lg-3">
+            <a class="btn btn-sm btn-outline-light" href="{% url 'account_login' %}">Connexion</a>
+          </li>
+            {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
   <!-- Hero Section -->
-  <!-- Header -->
-   <section class="hero-section">
-    <div class="container position-relative">
+  <section id="home" class="hero-section pt-5">
+    <div class="container position-relative" style="padding-top: 80px;">
         <div class="row align-items-center">
             <div class="col-lg-6">
                 <h1 class="hero-title animate__animated animate__fadeInDown animate__fast">Système de Surveillance Sanitaire</h1>
                 <p class="hero-subtitle animate__animated animate__fadeIn animate__delay-1s">Plateforme COGU pour la détection et la réponse aux urgences sanitaires en Côte d'Ivoire</p>
                 <div class="d-flex gap-3 animate__animated animate__fadeInUp animate__delay-1s">
-                    <a href="{% url 'public_incidentcreate' %}" class="btn btn-light btn-lg px-4 hover-scale">
+                    <a href="#report" class="btn btn-light btn-lg px-4 hover-scale">
                         <i class="fas fa-plus-circle me-2"></i> Signaler un incident
                     </a>
-                    <a href="#" class="btn btn-outline-light btn-lg px-4 hover-scale">
-                        <i class="fas fa-play-circle me-2"></i> Voir la démo
+                    <a href="#features" class="btn btn-outline-light btn-lg px-4 hover-scale">
+                        <i class="fas fa-play-circle me-2"></i> Voir les fonctionnalités
                     </a>
                 </div>
             </div>
@@ -151,16 +236,16 @@
             </div>
         </div>
     </div>
-</section>
+  </section>
 
   <div class="flag-stripe"></div>
 
   <!-- Stats Section -->
   <section class="py-5 stats-section">
     <div class="container">
-      <h2 class="text-center mb-5">Notre impact national</h2>
+      <h2 class="text-center mb-5 fade-in">Notre impact national</h2>
       <div class="row g-4">
-        <div class="col-md-3">
+        <div class="col-md-3 fade-in">
           <div class="text-center p-3 bg-white rounded shadow-sm">
             <div class="feature-icon mb-3">
               <i class="fas fa-exclamation-triangle"></i>
@@ -169,7 +254,7 @@
             <p class="mb-0">Incidents signalés</p>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3 fade-in" style="transition-delay: 0.2s;">
           <div class="text-center p-3 bg-white rounded shadow-sm">
             <div class="feature-icon mb-3">
               <i class="fas fa-ambulance"></i>
@@ -178,7 +263,7 @@
             <p class="mb-0">Cas actifs</p>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3 fade-in" style="transition-delay: 0.4s;">
           <div class="text-center p-3 bg-white rounded shadow-sm">
             <div class="feature-icon mb-3">
               <i class="fas fa-map-marked-alt"></i>
@@ -187,7 +272,7 @@
             <p class="mb-0">Régions couvertes</p>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3 fade-in" style="transition-delay: 0.6s;">
           <div class="text-center p-3 bg-white rounded shadow-sm">
             <div class="feature-icon mb-3">
               <i class="fas fa-user-md"></i>
@@ -203,12 +288,12 @@
   <!-- Features Section -->
   <section id="features" class="py-5">
     <div class="container">
-      <div class="text-center mb-5">
+      <div class="text-center mb-5 fade-in">
         <h2>Protégeons ensemble la santé des Ivoiriens</h2>
         <p class="lead">Une plateforme innovante pour la surveillance épidémiologique nationale</p>
       </div>
       <div class="row g-4">
-        <div class="col-md-4">
+        <div class="col-md-4 fade-in">
           <div class="card h-100 border-0 shadow-sm">
             <div class="card-body text-center">
               <div class="icon-lg bg-primary bg-opacity-10 text-primary rounded-circle mb-4 mx-auto">
@@ -224,7 +309,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 fade-in" style="transition-delay: 0.2s;">
           <div class="card h-100 border-0 shadow-sm">
             <div class="card-body text-center">
               <div class="icon-lg bg-success bg-opacity-10 text-success rounded-circle mb-4 mx-auto">
@@ -240,7 +325,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 fade-in" style="transition-delay: 0.4s;">
           <div class="card h-100 border-0 shadow-sm">
             <div class="card-body text-center">
               <div class="icon-lg bg-warning bg-opacity-10 text-warning rounded-circle mb-4 mx-auto">
@@ -261,10 +346,10 @@
   </section>
 
   <!-- Incidents Map Section -->
-  <section class="py-5 bg-light">
+  <section id="map" class="py-5 bg-light parallax" style="background-image: url('{% static 'assets/media/map-bg.jpg' %}');">
     <div class="container">
       <div class="row">
-        <div class="col-lg-8 mb-4 mb-lg-0">
+        <div class="col-lg-8 mb-4 mb-lg-0 fade-in">
           <h2 class="mb-4">Surveillance territoriale en direct</h2>
           <p class="mb-4">Visualisez en temps réel les incidents sanitaires signalés à travers toute la Côte d'Ivoire.</p>
           <div class="card border-0 shadow-sm">
@@ -276,14 +361,14 @@
             </div>
           </div>
         </div>
-        <div class="col-lg-4">
+        <div class="col-lg-4 fade-in" style="transition-delay: 0.3s;">
           <h2 class="mb-4">Dernières alertes</h2>
           <p class="mb-4">Les signalements les plus récents dans notre système.</p>
           <div class="card border-0 shadow-sm">
             <div class="card-body p-0">
               <div class="list-group list-group-flush">
                 {% for incident in recent_incidents %}
-                <a href="{% url 'sanitaryincident_detail' incident.id %}" class="list-group-item list-group-item-action">
+                <a href="#report" class="list-group-item list-group-item-action">
                   <div class="d-flex justify-content-between">
                     <h6 class="mb-1">{{ incident.incident_type }}</h6>
                     <small class="text-muted">{{ incident.date_time|timesince }}</small>
@@ -307,8 +392,8 @@
               </div>
             </div>
             <div class="card-footer bg-white text-center">
-              <a href="#" class="btn btn-sm btn-outline-primary">
-                Voir tous les incidents <i class="fas fa-arrow-right ms-2"></i>
+              <a href="#report" class="btn btn-sm btn-outline-primary">
+                Signaler un incident <i class="fas fa-arrow-right ms-2"></i>
               </a>
             </div>
           </div>
@@ -317,12 +402,39 @@
     </div>
   </section>
 
-  <!-- Testimonials -->
-  <section class="py-5 bg-white">
+  <!-- Report Incident Section -->
+  <section id="report" class="py-5 bg-white">
     <div class="container">
-      <h2 class="text-center mb-5">Ils utilisent notre plateforme</h2>
+      <div class="row align-items-center">
+        <div class="col-lg-6 mb-5 mb-lg-0 fade-in">
+          <h2 class="mb-4">Signaler un incident sanitaire</h2>
+          <p class="lead mb-4">Votre signalement peut sauver des vies. Contribuez à la surveillance sanitaire nationale.</p>
+          <ul class="list-unstyled">
+            <li class="mb-3"><i class="fas fa-check-circle text-success me-2"></i> Formulaire simple et rapide</li>
+            <li class="mb-3"><i class="fas fa-check-circle text-success me-2"></i> Géolocalisation automatique</li>
+            <li class="mb-3"><i class="fas fa-check-circle text-success me-2"></i> Traitement en moins de 24h</li>
+          </ul>
+          <a href="{% url 'public_incidentcreate' %}" class="btn btn-primary btn-lg mt-3">
+            <i class="fas fa-plus-circle me-2"></i> Signaler maintenant
+          </a>
+        </div>
+        <div class="col-lg-6 fade-in" style="transition-delay: 0.3s;">
+          <div class="card border-0 shadow-lg">
+            <div class="card-body p-4">
+              <img src="{% static 'assets/media/report-illustration.jpg' %}" alt="Signaler un incident" class="img-fluid rounded">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="py-5 bg-light parallax" style="background-image: url('{% static 'assets/media/testimonial-bg.jpg' %}');">
+    <div class="container">
+      <h2 class="text-center mb-5 text-white fade-in">Ils utilisent notre plateforme</h2>
       <div class="row g-4">
-        <div class="col-md-4">
+        <div class="col-md-4 fade-in">
           <div class="card h-100 border-0 shadow-sm testimonial-card">
             <div class="card-body">
               <div class="d-flex mb-3">
@@ -339,7 +451,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 fade-in" style="transition-delay: 0.2s;">
           <div class="card h-100 border-0 shadow-sm testimonial-card">
             <div class="card-body">
               <div class="d-flex mb-3">
@@ -356,7 +468,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 fade-in" style="transition-delay: 0.4s;">
           <div class="card h-100 border-0 shadow-sm testimonial-card">
             <div class="card-body">
               <div class="d-flex mb-3">
@@ -378,15 +490,15 @@
   </section>
 
   <!-- Regions Coverage -->
-  <section class="py-5">
+  <section id="regions" class="py-5 bg-white">
     <div class="container">
-      <div class="text-center mb-5">
+      <div class="text-center mb-5 fade-in">
         <h2>Couverture nationale</h2>
         <p class="lead">Notre réseau s'étend sur toutes les régions de la Côte d'Ivoire</p>
       </div>
       <div class="row g-4">
         {% for region in health_regions %}
-        <div class="col-md-4">
+        <div class="col-md-4 fade-in" style="transition-delay: {{ forloop.counter0|divisibleby:3|yesno:'0,0.2,0.4' }}s;">
           <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
               <div class="d-flex align-items-center mb-3">
@@ -412,7 +524,7 @@
                 <li class="text-muted">+ {{ region.districts.count|add:"-3" }} autres districts</li>
                 {% endif %}
               </ul>
-              <a href="#" class="btn btn-sm btn-outline-primary mt-2">Voir détails</a>
+              <a href="#map" class="btn btn-sm btn-outline-primary mt-2">Voir sur la carte</a>
             </div>
           </div>
         </div>
@@ -422,23 +534,19 @@
   </section>
 
   <!-- Partners -->
-  <section class="py-5 bg-light">
+  <section id="partners" class="py-5 bg-light">
     <div class="container">
-      <h2 class="text-center mb-5">Nos partenaires </h2>
-      <div class="row align-items-center justify-content-center">
-
-              <div class="col-4 col-md-1 mb-4">
-          <img src="{% static 'assets/media/armoirie_ci.png' %}" height="100" width="auto"  class="img-fluid" alt="UNICEF">
+      <h2 class="text-center mb-5 fade-in">Nos partenaires</h2>
+      <div class="row align-items-center justify-content-center fade-in" style="transition-delay: 0.3s;">
+        <div class="col-4 col-md-2 mb-4">
+          <img src="{% static 'assets/media/armoirie_ci.png' %}" class="img-fluid" alt="Gouvernement de Côte d'Ivoire">
         </div>
-
-        <div class="col-4 col-md-1 ml-5 mb-4">
-          <img src="{% static 'assets/media/logoMSHPCMU.svg' %}"   height="100"  width="auto" class="img-fluid" alt="Ministère de la Santé">
+        <div class="col-4 col-md-2 mb-4">
+          <img src="{% static 'assets/media/logoMSHPCMU.svg' %}" class="img-fluid" alt="Ministère de la Santé">
         </div>
-
-        <div class="col-4 col-md-2 ml-5 mb-4">
-          <img src="{% static 'assets/media/logo-AFRIQ-CONSULTING.png' %}"   height="100"  width="auto" class="img-fluid" alt="UNICEF">
+        <div class="col-4 col-md-2 mb-4">
+          <img src="{% static 'assets/media/logo-AFRIQ-CONSULTING.png' %}" class="img-fluid" alt="AFRIQ Consulting">
         </div>
-
       </div>
     </div>
   </section>
@@ -446,22 +554,133 @@
   <!-- Call to Action -->
   <section class="py-5 bg-primary text-white">
     <div class="container text-center">
-      <h2 class="mb-4">Rejoignez le réseau national de surveillance sanitaire</h2>
-      <p class="lead mb-5">Professionnels de santé, autorités locales, contribuez à la protection de la santé publique en Côte d'Ivoire</p>
-      <div class="d-flex flex-wrap justify-content-center gap-3">
+      <h2 class="mb-4 fade-in">Rejoignez le réseau national de surveillance sanitaire</h2>
+      <p class="lead mb-5 fade-in" style="transition-delay: 0.2s;">Professionnels de santé, autorités locales, contribuez à la protection de la santé publique en Côte d'Ivoire</p>
+      <div class="d-flex flex-wrap justify-content-center gap-3 fade-in" style="transition-delay: 0.4s;">
         <a href="{% url 'account_signup' %}" class="btn btn-light btn-lg px-4">
           <i class="fas fa-user-plus me-2"></i> Créer un compte
         </a>
-        <a href="#" class="btn btn-outline-light btn-lg px-4">
+        <a href="#contact" class="btn btn-outline-light btn-lg px-4">
           <i class="fas fa-file-alt me-2"></i> Documentation
         </a>
-        <a href="#" class="btn btn-outline-light btn-lg px-4">
+        <a href="#contact" class="btn btn-outline-light btn-lg px-4">
           <i class="fas fa-phone-alt me-2"></i> Nous contacter
         </a>
       </div>
     </div>
   </section>
+
+  <!-- Contact Section -->
+  <section id="contact" class="py-5 bg-white">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-6 mb-5 mb-lg-0 fade-in">
+          <h2 class="mb-4">Contactez-nous</h2>
+          <p class="lead">Pour toute question ou demande d'information sur la plateforme COGU.</p>
+
+          <div class="mt-5">
+            <div class="d-flex mb-4">
+              <div class="me-4">
+                <i class="fas fa-map-marker-alt text-primary fa-2x"></i>
+              </div>
+              <div>
+                <h5>Adresse</h5>
+                <p class="mb-0">Ministère de la Santé, Abidjan, Côte d'Ivoire</p>
+              </div>
+            </div>
+
+            <div class="d-flex mb-4">
+              <div class="me-4">
+                <i class="fas fa-phone-alt text-primary fa-2x"></i>
+              </div>
+              <div>
+                <h5>Téléphone</h5>
+                <p class="mb-0">+225 XX XX XX XX</p>
+              </div>
+            </div>
+
+            <div class="d-flex">
+              <div class="me-4">
+                <i class="fas fa-envelope text-primary fa-2x"></i>
+              </div>
+              <div>
+                <h5>Email</h5>
+                <p class="mb-0">contact@cogu-sante.ci</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-6 fade-in" style="transition-delay: 0.3s;">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <h4 class="mb-4">Envoyez-nous un message</h4>
+              <form>
+                <div class="mb-3">
+                  <input type="text" class="form-control" placeholder="Votre nom">
+                </div>
+                <div class="mb-3">
+                  <input type="email" class="form-control" placeholder="Votre email">
+                </div>
+                <div class="mb-3">
+                  <input type="text" class="form-control" placeholder="Sujet">
+                </div>
+                <div class="mb-3">
+                  <textarea class="form-control" rows="5" placeholder="Votre message"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Envoyer le message</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bouton flottant pour remonter -->
+  <a href="#home" class="btn btn-primary rounded-circle floating-btn">
+    <i class="fas fa-arrow-up"></i>
+  </a>
 </div>
+
+<script>
+// Animation au scroll
+document.addEventListener('DOMContentLoaded', function() {
+  const fadeElements = document.querySelectorAll('.fade-in');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, {
+    threshold: 0.1
+  });
+
+  fadeElements.forEach(element => {
+    observer.observe(element);
+  });
+
+  // Smooth scroll pour les ancres
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      const targetId = this.getAttribute('href');
+      if (targetId === '#') return;
+
+      const targetElement = document.querySelector(targetId);
+      if (targetElement) {
+        window.scrollTo({
+          top: targetElement.offsetTop - 70,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+});
+</script>
 {% endblock %}
 
 

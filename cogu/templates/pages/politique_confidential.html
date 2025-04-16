@@ -1,0 +1,214 @@
+{% extends "layout/land_base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-5">
+                    <!-- En-tête -->
+                    <div class="text-center mb-5">
+                        <h1 class="display-4">Politique de Confidentialité</h1>
+                        <p class="lead text-muted">Dernière mise à jour : {% now "d F Y" %}</p>
+                        <hr class="my-4">
+                    </div>
+
+                    <!-- Introduction -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">1. Introduction</h2>
+                        <p>Le Système de Surveillance Sanitaire COGU ("nous", "notre", "nos") s'engage à protéger la vie privée de ses utilisateurs. Cette politique décrit comment nous collectons, utilisons, partageons et protégeons les informations relatives aux utilisateurs de notre plateforme.</p>
+                        <p>En utilisant nos services, vous acceptez les pratiques décrites dans cette politique. Cette politique s'applique à tous les produits et services offerts par le Système COGU.</p>
+                    </section>
+
+                    <!-- Données collectées -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">2. Données que nous collectons</h2>
+                        <h5 class="mt-4">2.1 Données personnelles</h5>
+                        <p>Nous pouvons collecter :</p>
+                        <ul>
+                            <li>Informations d'identification (nom, prénom, numéro d'identification professionnel)</li>
+                            <li>Coordonnées (email, numéro de téléphone, adresse professionnelle)</li>
+                            <li>Informations professionnelles (établissement de santé, poste, spécialité)</li>
+                            <li>Données d'authentification (identifiants de connexion)</li>
+                        </ul>
+
+                        <h5 class="mt-4">2.2 Données sanitaires</h5>
+                        <p>Dans le cadre de la surveillance épidémiologique :</p>
+                        <ul>
+                            <li>Signalements d'incidents sanitaires (type, gravité, localisation)</li>
+                            <li>Données démographiques non identifiantes</li>
+                            <li>Données de suivi des interventions</li>
+                        </ul>
+
+                        <h5 class="mt-4">2.3 Données techniques</h5>
+                        <p>Collectées automatiquement :</p>
+                        <ul>
+                            <li>Adresse IP, type de navigateur, appareil utilisé</li>
+                            <li>Journal d'activité (logs)</li>
+                            <li>Cookies et technologies similaires</li>
+                        </ul>
+                    </section>
+
+                    <!-- Utilisation des données -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">3. Utilisation des données</h2>
+                        <p>Nous utilisons les données collectées pour :</p>
+                        <ul>
+                            <li>Fournir et améliorer nos services de surveillance sanitaire</li>
+                            <li>Détecter et répondre aux urgences de santé publique</li>
+                            <li>Authentifier les utilisateurs et sécuriser l'accès</li>
+                            <li>Générer des rapports et statistiques anonymisés</li>
+                            <li>Respecter nos obligations légales en matière de santé publique</li>
+                            <li>Communiquer avec les professionnels de santé</li>
+                        </ul>
+                    </section>
+
+                    <!-- Base légale -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">4. Base légale du traitement</h2>
+                        <p>Le traitement des données s'appuie sur :</p>
+                        <ul>
+                            <li><strong>L'intérêt public</strong> : Pour la protection contre les menaces sanitaires graves (Règlement Sanitaire International)</li>
+                            <li><strong>Obligation légale</strong> : Conformément aux lois ivoiriennes sur la santé publique</li>
+                            <li><strong>Consentement</strong> : Pour certaines données non essentielles à la mission de santé publique</li>
+                        </ul>
+                    </section>
+
+                    <!-- Partage des données -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">5. Partage des données</h2>
+                        <p>Nous pouvons partager des données avec :</p>
+                        <ul>
+                            <li><strong>Autorités sanitaires</strong> : Ministère de la Santé, Institut National de Santé Publique</li>
+                            <li><strong>Partenaires opérationnels</strong> : SAMU, services d'urgence</li>
+                            <li><strong>Fournisseurs de services</strong> : Hébergeurs agréés, sous-traitants certifiés</li>
+                        </ul>
+                        <p class="mt-3">Les transferts internationaux sont encadrés par des clauses contractuelles types lorsque nécessaire.</p>
+                    </section>
+
+                    <!-- Sécurité -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">6. Sécurité des données</h2>
+                        <p>Nous mettons en œuvre des mesures techniques et organisationnelles strictes :</p>
+                        <ul>
+                            <li>Chiffrement des données en transit et au repos</li>
+                            <li>Contrôles d'accès stricts (authentification forte)</li>
+                            <li>Audits réguliers de sécurité</li>
+                            <li>Formation du personnel</li>
+                            <li>Protocoles de gestion des incidents</li>
+                        </ul>
+                    </section>
+
+                    <!-- Conservation -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">7. Conservation des données</h2>
+                        <p>Les durées de conservation respectent :</p>
+                        <ul>
+                            <li><strong>Données épidémiologiques</strong> : 10 ans (archives scientifiques)</li>
+                            <li><strong>Données personnelles</strong> : 5 ans après la dernière activité</li>
+                            <li><strong>Données techniques</strong> : 1 an</li>
+                        </ul>
+                        <p class="mt-3">Les durées peuvent être prolongées pour répondre à des obligations légales ou à des fins de recherche approuvées.</p>
+                    </section>
+
+                    <!-- Droits des utilisateurs -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">8. Vos droits</h2>
+                        <p>Conformément à la réglementation, vous pouvez :</p>
+                        <ul>
+                            <li>Accéder à vos données personnelles</li>
+                            <li>Demander la rectification des informations inexactes</li>
+                            <li>Demander la limitation du traitement</li>
+                            <li>Vous opposer au traitement pour motifs légitimes</li>
+                            <li>Retirer votre consentement (lorsqu'il constitue la base légale)</li>
+                        </ul>
+                        <div class="alert alert-info mt-4">
+                            <p><strong>Note importante :</strong> Certains droits peuvent être limités lorsque le traitement est nécessaire pour des raisons de santé publique ou pour respecter des obligations légales.</p>
+                        </div>
+                        <p>Pour exercer vos droits, contactez notre Délégué à la Protection des Données :</p>
+                        <address>
+                            <strong>DPD - Système COGU</strong><br>
+                            Ministère de la Santé et de l'Hygiène Publique<br>
+                            BP V-ABIDJAN<br>
+                            Côte d'Ivoire<br>
+                            <abbr title="Email">E:</abbr> dpd@cogu-sante.ci<br>
+                            <abbr title="Téléphone">T:</abbr> +225 XX XX XX XX
+                        </address>
+                    </section>
+
+                    <!-- Cookies -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">9. Cookies et technologies similaires</h2>
+                        <p>Nous utilisons :</p>
+                        <ul>
+                            <li><strong>Cookies essentiels</strong> : Nécessaires au fonctionnement de la plateforme</li>
+                            <li><strong>Cookies analytiques</strong> : Pour mesurer l'audience (anonymisés)</li>
+                            <li><strong>Cookies de sécurité</strong> : Pour protéger contre les attaques</li>
+                        </ul>
+                        <p>Vous pouvez configurer votre navigateur pour refuser les cookies non essentiels.</p>
+                    </section>
+
+                    <!-- Modifications -->
+                    <section class="mb-5">
+                        <h2 class="mb-4">10. Modifications de cette politique</h2>
+                        <p>Nous pouvons mettre à jour cette politique pour refléter :</p>
+                        <ul>
+                            <li>Des changements législatifs</li>
+                            <li>L'évolution de nos services</li>
+                            <li>Des recommandations des autorités</li>
+                        </ul>
+                        <p class="mt-3">Les versions antérieures sont archivées et disponibles sur demande.</p>
+                    </section>
+
+                    <!-- Contact -->
+                    <section class="mt-5 pt-4 border-top">
+                        <h2 class="mb-4">11. Nous contacter</h2>
+                        <p>Pour toute question concernant cette politique :</p>
+                        <address>
+                            <strong>Comité de Protection des Données</strong><br>
+                            Système de Surveillance Sanitaire COGU<br>
+                            Ministère de la Santé et de l'Hygiène Publique<br>
+                            01 BP V-ABIDJAN 01<br>
+                            Côte d'Ivoire<br>
+                            <abbr title="Email">E:</abbr> contact@cogu-sante.ci<br>
+                            <abbr title="Téléphone">T:</abbr> +225 XX XX XX XX
+                        </address>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 0.5rem;
+    }
+
+    h2 {
+        color: #FF8200; /* Orange CI */
+        font-weight: 600;
+    }
+
+    h5 {
+        font-weight: 500;
+        color: #3d3e3d;
+    }
+
+    ul {
+        padding-left: 1.5rem;
+    }
+
+    li {
+        margin-bottom: 0.5rem;
+    }
+
+    address {
+        font-style: normal;
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+    }
+</style>
+{% endblock %}

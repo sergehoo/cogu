@@ -163,76 +163,75 @@
       {% include 'pages/public/public_aside.html' %}
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" style="margin-top: 100px">
         <div class="dashboard-header">
-            <h2>{% block page_title %}{% endblock %}</h2>
+            <h2>Espace Utilisateur publique</h2>
             <div class="alert alert-light">
                 Bonjour <strong>{{ user.first_name }}</strong>, bienvenue sur votre espace
             </div>
         </div>
 
-        {% block dashboard_content %}
-
-<div class="row">
-    <div class="col-md-6">
-        <div class="incident-card">
-            <h4><i class="fas fa-exclamation-triangle text-warning"></i> Mes derniers signalements</h4>
-            {% for incident in mesincidents %}
-            <div class="py-2 border-bottom">
-                <div class="d-flex justify-content-between">
-                    <strong>{{ incident.incident_type.name }}</strong>
-                    <span class="incident-status status-{{ incident.status }}">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="incident-card">
+                        <h4><i class="fas fa-exclamation-triangle text-warning"></i> Mes derniers signalements</h4>
+                        {% for incident in mesincidents %}
+                            <div class="py-2 border-bottom">
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ incident.incident_type.name }}</strong>
+                                    <span class="incident-status status-{{ incident.status }}">
                         {{ incident.get_status_display }}
                     </span>
+                                </div>
+                                <small class="text-muted">
+                                    {{ incident.city.name|default:"Lieu inconnu" }}
+                                    • {{ incident.date_time|date:"d/m/Y" }}
+                                </small>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">Aucun signalement récent</p>
+                        {% endfor %}
+                        <a href="{% url 'public_incidentlist' %}" class="btn btn-sm btn-outline-primary mt-3">
+                            Voir tous mes signalements
+                        </a>
+                    </div>
                 </div>
-                <small class="text-muted">
-                    {{ incident.city.name|default:"Lieu inconnu" }} • {{ incident.date_time|date:"d/m/Y" }}
-                </small>
+
+                <div class="col-md-6">
+                    <div class="incident-card">
+                        <h4><i class="fas fa-chart-line text-info"></i> Statistiques</h4>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="display-6">{{ stats.total }}</div>
+                                <small>Signalements</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="display-6 text-success">{{ stats.validated }}</div>
+                                <small>Validés</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="display-6 text-warning">{{ stats.pending }}</div>
+                                <small>En attente</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="incident-card mt-3">
+                        <h4><i class="fas fa-bullhorn text-danger"></i> Dernières alertes</h4>
+                        {% for alert in alerts %}
+                            <div class="alert alert-light">
+                                <strong>{{ alert.title }}</strong><br>
+                                <small>{{ alert.created_at|naturaltime }}</small>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">Aucune alerte récente</p>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
-            {% empty %}
-            <p class="text-muted">Aucun signalement récent</p>
-            {% endfor %}
-            <a href="{% url 'public_incidentlist' %}" class="btn btn-sm btn-outline-primary mt-3">
-                Voir tous mes signalements
-            </a>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="incident-card">
-            <h4><i class="fas fa-chart-line text-info"></i> Statistiques</h4>
-            <div class="row text-center">
-                <div class="col-4">
-                    <div class="display-6">{{ stats.total }}</div>
-                    <small>Signalements</small>
-                </div>
-                <div class="col-4">
-                    <div class="display-6 text-success">{{ stats.validated }}</div>
-                    <small>Validés</small>
-                </div>
-                <div class="col-4">
-                    <div class="display-6 text-warning">{{ stats.pending }}</div>
-                    <small>En attente</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="incident-card mt-3">
-            <h4><i class="fas fa-bullhorn text-danger"></i> Dernières alertes</h4>
-            {% for alert in alerts %}
-            <div class="alert alert-light">
-                <strong>{{ alert.title }}</strong><br>
-                <small>{{ alert.created_at|naturaltime }}</small>
-            </div>
-            {% empty %}
-            <p class="text-muted">Aucune alerte récente</p>
-            {% endfor %}
-        </div>
-    </div>
-</div>
 
 
-        {% endblock %}
+
     </main>
 </div>
 

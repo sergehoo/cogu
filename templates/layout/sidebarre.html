@@ -1,198 +1,186 @@
 {% load static %}
 <div class="sidebar bg-dark" style="width: 260px; min-height: 100vh; position: fixed;">
     <!-- Header -->
-    <div class="sidebar-header center-align py-3 animate__animated animate__fadeInDown">
-        <div class="logo">
-            <img alt="Logo" src="{% static 'assets/media/armoirie_ci.png' %}" class="responsive-img" style="max-height: 80px;"/>
-        Republique de Côte d'Ivoire
+    <div class="sidebar-header text-center py-3">
+        <div class="logo d-flex flex-column align-items-center">
+            <img alt="Logo" src="{% static 'assets/media/armoirie_ci.png' %}" class="img-fluid mb-2" style="max-height: 80px;"/>
+            <span class="text-white small">République de Côte d'Ivoire</span>
         </div>
     </div>
 
     <!-- Menu -->
     <div class="sidebar-menu mt-2">
-        <ul class="collection z-depth-1 animate__animated animate__fadeInLeft">
-            <li class="collection-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-                <a href="{% url 'home' %}" class="waves-effect">
-                    <i class="material-icons-round left">dashboard</i>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="{% url 'home' %}" class="nav-link text-white {% if request.resolver_match.url_name == 'home' %}active bg-primary{% endif %}">
+                    <i class="fas fa-tachometer-alt me-2"></i>
                     Tableau de bord
                 </a>
             </li>
-            <li class="collection-item {% if request.resolver_match.url_name == 'patient_list' %}active{% endif %}">
-                <a href="{% url 'patient_list' %}" class="waves-effect">
-                    <i class="material-icons-round left">person</i>
-                    Patients
-                </a>
-            </li>
-            <li class="collection-item {% if request.resolver_match.url_name == 'majorevent_list' %}active{% endif %}">
-                <a href="{% url 'majorevent_list' %}" class="waves-effect">
-                    <i class="material-icons-round left">event</i>
-                    Événements majeurs
-                </a>
-            </li>
-            <li class="collection-item {% if request.resolver_match.url_name == 'incidenttype_list' %}active{% endif %}">
-                <a href="{% url 'incidenttype_list' %}" class="waves-effect">
-                    <i class="material-icons-round left">warning</i>
-                    Types d'incidents
-                </a>
-            </li>
-
-            <!-- Menu déroulant Incidents sanitaires -->
-            <li class="collection-item with-submenu {% if 'sanitaryincident' in request.resolver_match.url_name %}active open{% endif %}">
-                <a href="#" class="waves-effect menu-toggle">
-                    <i class="material-icons-round left">emergency</i>
-                    Incidents sanitaires
-                    <i class="material-icons-round right dropdown-icon">arrow_drop_down</i>
-                </a>
-                <ul class="submenu">
-    <li class="{% if request.resolver_match.url_name == 'sanitaryincident_list' %}active{% endif %}">
-        <a href="{% url 'sanitaryincident_list' %}">
-            <i class="material-icons-round left">check_circle</i>
-            Liste d'Incidents validés
-            <span class="label bg-success ml-3" style="float: right">{{ incident_stats.validated }}</span>
-        </a>
-    </li>
-    <li class="{% if request.resolver_match.url_name == 'sanitaryincident_non_valid_list' %}active{% endif %}">
-        <a href="{% url 'sanitaryincident_non_valid_list' %}">
-            <i class="material-icons-round left" style="float: right">hourglass_empty</i>
-            En attente de validation
-            <span class="label ml-3 bg-warning text-dark" style="float: right">{{ incident_stats.pending }}</span>
-        </a>
-    </li>
-    <li class="{% if request.resolver_match.url_name == 'whatsapp_list' %}active{% endif %}">
-        <a href="{% url 'whatsapp_list' %}">
-            <i class="material-icons-round left">chat</i>
-            Messages WhatsApp <span class="label ml-3 bg-success text-dark" style="float: right">{{ incident_stats.whatsapp }}</span>
-        </a>
-    </li>
-</ul>
-            </li>
-
-            <li class="collection-item">
-                <a href="{% url 'incident_map' %}" class="waves-effect">
-                    <i class="material-icons-round left">map</i>
+            <li class="nav-item">
+                <a href="{% url 'incident_map' %}" class="nav-link text-white {% if request.resolver_match.url_name == 'incident_map' %}active bg-primary{% endif %}">
+                    <i class="fas fa-map-marked-alt me-2"></i>
                     Cartographie
                 </a>
             </li>
-            <li class="collection-item">
-                <a href="#" class="waves-effect">
-                    <i class="material-icons-round left">assessment</i>
+            <li class="nav-item">
+                <a href="{% url 'patient_list' %}" class="nav-link text-white {% if request.resolver_match.url_name == 'patient_list' %}active bg-primary{% endif %}">
+                    <i class="fas fa-user me-2"></i>
+                    Patients
+                </a>
+            </li>
+
+
+
+            <!-- Menu déroulant Incidents sanitaires -->
+            <li class="nav-item has-submenu {% if 'sanitaryincident' in request.resolver_match.url_name or 'whatsapp_list' in request.resolver_match.url_name %}menu-open{% endif %}">
+                <a href="#" class="nav-link text-white d-flex justify-content-between align-items-center {% if 'sanitaryincident' in request.resolver_match.url_name or 'whatsapp_list' in request.resolver_match.url_name %}active bg-primary{% endif %}">
+                    <span>
+                        <i class="fas fa-bell me-2"></i>
+                        Incidents sanitaires
+                    </span>
+                    <i class="fas fa-chevron-{% if 'sanitaryincident' in request.resolver_match.url_name or 'whatsapp_list' in request.resolver_match.url_name %}up{% else %}down{% endif %} ms-auto"></i>
+                </a>
+                <ul class="submenu nav flex-column ps-4" style="{% if 'sanitaryincident' not in request.resolver_match.url_name and 'whatsapp_list' not in request.resolver_match.url_name %}display: none;{% endif %}">
+                    
+                 <li class="nav-item">
+                        <a href="{% url 'event_grid' %}" class="nav-link text-white d-flex justify-content-between align-items-center {% if request.resolver_match.url_name == 'event_grid' %}active bg-primary{% endif %}">
+                            <span>
+                                <i class="fas fa-calendar-check me-2"></i>
+                                Evenements
+                            </span>
+                            <span class="badge bg-success">{{ incident_stats.validated }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'sanitaryincident_list' %}" class="nav-link text-white d-flex justify-content-between align-items-center {% if request.resolver_match.url_name == 'sanitaryincident_list' %}active bg-primary{% endif %}">
+                            <span>
+                                <i class="fas fa-check-circle me-2"></i>
+                                Liste validés
+                            </span>
+                            <span class="badge bg-success">{{ incident_stats.validated }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'sanitaryincident_non_valid_list' %}" class="nav-link text-white d-flex justify-content-between align-items-center {% if request.resolver_match.url_name == 'sanitaryincident_non_valid_list' %}active bg-primary{% endif %}">
+                            <span>
+                                <i class="fas fa-hourglass-half me-2"></i>
+                                En attente
+                            </span>
+                            <span class="badge bg-warning text-dark">{{ incident_stats.pending }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'whatsapp_list' %}" class="nav-link text-white d-flex justify-content-between align-items-center {% if request.resolver_match.url_name == 'whatsapp_list' %}active bg-primary{% endif %}">
+                            <span>
+                                <i class="fas fa-comment me-2"></i>
+                                WhatsApp
+                            </span>
+                            <span class="badge bg-success">{{ incident_stats.whatsapp }}</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+
+            <li class="nav-item">
+                <a href="#" class="nav-link text-white">
+                    <i class="fas fa-chart-bar me-2"></i>
                     Rapports
                 </a>
             </li>
-            <li class="collection-item">
-                <a href="#" class="waves-effect">
-                    <i class="material-icons-round left">settings</i>
-                    Paramètres
+
+         <li class="nav-item has-submenu {% if 'majorevent_list' in request.resolver_match.url_name or 'incidenttype_list' in request.resolver_match.url_name %}menu-open{% endif %}">
+                <a href="#" class="nav-link text-white d-flex justify-content-between align-items-center {% if 'incidenttype_list' in request.resolver_match.url_name or 'majorevent_list' in request.resolver_match.url_name %}active bg-primary{% endif %}">
+                    <span>
+                        <i class="fas fa-bell me-2"></i>
+                        Paramètres
+                    </span>
+                    <i class="fas fa-chevron-{% if 'sanitaryincident' in request.resolver_match.url_name or 'whatsapp_list' in request.resolver_match.url_name %}up{% else %}down{% endif %} ms-auto"></i>
                 </a>
+                <ul class="submenu nav flex-column ps-4" style="{% if 'sanitaryincident' not in request.resolver_match.url_name and 'whatsapp_list' not in request.resolver_match.url_name %}display: none;{% endif %}">
+                    <li class="nav-item">
+                <a href="{% url 'majorevent_list' %}" class="nav-link text-white {% if request.resolver_match.url_name == 'majorevent_list' %}active bg-primary{% endif %}">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Événements majeurs
+                </a>
+            </li>
+                     <li class="nav-item">
+                <a href="{% url 'incidenttype_list' %}" class="nav-link text-white {% if request.resolver_match.url_name == 'incidenttype_list' %}active bg-primary{% endif %}">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Types d'incidents
+                </a>
+            </li>
+                    <li class="nav-item">
+                        <a href="" class="nav-link text-white d-flex justify-content-between align-items-center {% if request.resolver_match.url_name == 'iuser_list' %}active bg-primary{% endif %}">
+                            <span>
+                                <i class="fas fa-user me-2"></i>
+                                Gestion des utilisateurs
+                            </span>
+                            <span class="badge bg-success">{{ incident_stats.whatsapp }}</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
         </ul>
     </div>
 
     <!-- Footer -->
-    <div class="sidebar-footer px-3 py-3 animate__animated animate__fadeInUp">
+    <div class="sidebar-footer px-3 py-3 position-absolute bottom-0 start-0 end-0">
         <div class="user-profile d-flex align-items-center">
-            <img src="https://randomuser.me/api/portraits/men/3.jpg" alt="User" class="circle responsive-img" style="width: 45px; height: 45px; object-fit: cover;">
-            <div class="user-info ml-3">
-                <span class="white-text" style="font-weight: 600;">{{ request.user }}</span><br>
-                <small class="grey-text text-lighten-1">{{ request.user.roleemployee|default:"Utilisateur" }}</small>
+            <img src="https://randomuser.me/api/portraits/men/3.jpg" alt="User" class="rounded-circle me-2" style="width: 45px; height: 45px; object-fit: cover;">
+            <div class="user-info">
+                <span class="text-white d-block" style="font-weight: 600;">{{ request.user }}</span>
+                <small class="text-white-50">{{ request.user.roleemployee|default:"Utilisateur" }}</small>
             </div>
         </div>
     </div>
 </div>
 
-
-
 <script>
-// Script pour gérer l'ouverture/fermeture des menus déroulants
+// Gestion des menus déroulants
 document.addEventListener('DOMContentLoaded', function() {
-    const menuToggles = document.querySelectorAll('.menu-toggle');
+    const menuToggles = document.querySelectorAll('.has-submenu > .nav-link');
 
     menuToggles.forEach(toggle => {
         toggle.addEventListener('click', function(e) {
             e.preventDefault();
             const parent = this.parentElement;
-            parent.classList.toggle('open');
+            const submenu = parent.querySelector('.submenu');
+            const icon = this.querySelector('.fa-chevron-down, .fa-chevron-up');
+
+            // Basculer l'état du menu
+            parent.classList.toggle('menu-open');
+
+            // Basculer l'affichage du sous-menu
+            if (submenu.style.display === 'none') {
+                submenu.style.display = 'block';
+                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            } else {
+                submenu.style.display = 'none';
+                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            }
 
             // Fermer les autres menus ouverts
-            document.querySelectorAll('.with-submenu').forEach(menu => {
-                if (menu !== parent && menu.classList.contains('open')) {
-                    menu.classList.remove('open');
+            document.querySelectorAll('.has-submenu').forEach(menu => {
+                if (menu !== parent && menu.classList.contains('menu-open')) {
+                    menu.classList.remove('menu-open');
+                    menu.querySelector('.submenu').style.display = 'none';
+                    menu.querySelector('.fa-chevron-up').classList.replace('fa-chevron-up', 'fa-chevron-down');
                 }
             });
         });
     });
+
+    // Activer automatiquement le menu parent si un enfant est actif
+    document.querySelectorAll('.submenu .active').forEach(activeItem => {
+        const parentMenu = activeItem.closest('.has-submenu');
+        if (parentMenu) {
+            parentMenu.classList.add('menu-open');
+            parentMenu.querySelector('.submenu').style.display = 'block';
+            parentMenu.querySelector('.nav-link').classList.add('active', 'bg-primary');
+            parentMenu.querySelector('.fa-chevron-down')?.classList.replace('fa-chevron-down', 'fa-chevron-up');
+        }
+    });
 });
 </script>
-{#<div class="sidebar bg-dark" style="width: 260px; min-height: 100vh; position: fixed;">#}
-{#    <!-- Header -->#}
-{#    <div class="sidebar-header center-align py-3 animate__animated animate__fadeInDown">#}
-{#        <div class="logo">#}
-{#            <img alt="Logo" src="{% static 'assets/media/images.jpeg' %}" class="responsive-img" style="max-height: 60px;"/>#}
-{#        </div>#}
-{#    </div>#}
-{##}
-{#    <!-- Menu -->#}
-{#    <div class="sidebar-menu mt-2">#}
-{#        <ul class="collection z-depth-1 animate__animated animate__fadeInLeft">#}
-{#            <li class="collection-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">#}
-{#                <a href="{% url 'home' %}" class="waves-effect">#}
-{#                    <i class="material-icons-round left">dashboard</i>#}
-{#                    Tableau de bord#}
-{#                </a>#}
-{#            </li>#}
-{#            <li class="collection-item {% if request.resolver_match.url_name == 'patient_list' %}active{% endif %}">#}
-{#                <a href="{% url 'patient_list' %}" class="waves-effect">#}
-{#                    <i class="material-icons-round left">person</i>#}
-{#                    Patients#}
-{#                </a>#}
-{#            </li>#}
-{#            <li class="collection-item {% if request.resolver_match.url_name == 'majorevent_list' %}active{% endif %}">#}
-{#                <a href="{% url 'majorevent_list' %}" class="waves-effect">#}
-{#                    <i class="material-icons-round left">event</i>#}
-{#                    Événements majeurs#}
-{#                </a>#}
-{#            </li>#}
-{#            <li class="collection-item {% if request.resolver_match.url_name == 'incidenttype_list' %}active{% endif %}">#}
-{#                <a href="{% url 'incidenttype_list' %}" class="waves-effect">#}
-{#                    <i class="material-icons-round left">warning</i>#}
-{#                    Types d'incidents#}
-{#                </a>#}
-{#            </li>#}
-{#            <li class="collection-item {% if request.resolver_match.url_name == 'sanitaryincident_list' %}active{% endif %}">#}
-{#                <a href="{% url 'sanitaryincident_list' %}" class="waves-effect">#}
-{#                    <i class="material-icons-round left">emergency</i>#}
-{#                    Incidents sanitaires#}
-{#                </a>#}
-{#            </li>#}
-{#            <li class="collection-item">#}
-{#                <a href="#" class="waves-effect">#}
-{#                    <i class="material-icons-round left">map</i>#}
-{#                    Cartographie#}
-{#                </a>#}
-{#            </li>#}
-{#            <li class="collection-item">#}
-{#                <a href="#" class="waves-effect">#}
-{#                    <i class="material-icons-round left">assessment</i>#}
-{#                    Rapports#}
-{#                </a>#}
-{#            </li>#}
-{#            <li class="collection-item">#}
-{#                <a href="#" class="waves-effect">#}
-{#                    <i class="material-icons-round left">settings</i>#}
-{#                    Paramètres#}
-{#                </a>#}
-{#            </li>#}
-{#        </ul>#}
-{#    </div>#}
-{##}
-{#    <!-- Footer -->#}
-{#    <div class="sidebar-footer px-3 py-3 animate__animated animate__fadeInUp">#}
-{#        <div class="user-profile d-flex align-items-center">#}
-{#            <img src="https://randomuser.me/api/portraits/men/3.jpg" alt="User" class="circle responsive-img" style="width: 45px; height: 45px; object-fit: cover;">#}
-{#            <div class="user-info ml-3">#}
-{#                <span class="white-text" style="font-weight: 600;">{{ request.user }}</span><br>#}
-{#                <small class="grey-text text-lighten-1">{{ request.user.roleemployee|default:"Utilisateur" }}</small>#}
-{#            </div>#}
-{#        </div>#}
-{#    </div>#}
-{#</div>#}

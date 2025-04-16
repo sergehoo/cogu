@@ -86,7 +86,7 @@ class EmployeeUser(AbstractUser):
     contact = models.CharField(max_length=100, blank=True, null=True)
     email = models.CharField(max_length=100, blank=True, null=True)
     fonction = models.CharField(max_length=255, blank=True, null=True)
-    photo = models.ImageField(upload_to='users/images/', default='media/users/images/user.webp', blank=True, null=True)
+    photo = models.ImageField(upload_to='users/images/', default='users/images/user.webp', blank=True, null=True)
     roleemployee = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Public')
 
     # centre = models.ForeignKey('CentreAntirabique', on_delete=models.CASCADE, null=True, blank=True)

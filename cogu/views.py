@@ -1,8 +1,13 @@
+import calendar
+import locale
+
+locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
 from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.gis.db.models.functions import AsGeoJSON
 from django.core.paginator import Paginator
 from django.core.serializers import serialize
 from django.db.models import Q, Count, F
@@ -13,7 +18,6 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, ListView, CreateView, DetailView, UpdateView, DeleteView
-
 from cogu.filters import PatientFilter
 from cogu.forms import SanitaryIncidentForm, PublicIncidentForm
 from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune, HealthRegion, VictimCare, \
@@ -37,6 +41,39 @@ class RoleRequiredMixin(UserPassesTestMixin):
 
 class LandingView(TemplateView):
     template_name = "pages/landing.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Récupération des données pour les statistiques
+        context['incidents_count'] = SanitaryIncident.objects.count()
+        context['active_cases'] = SanitaryIncident.objects.filter(
+            status='validated',
+            outcome__in=['mort', 'blessure']
+        ).count()
+        context['regions_count'] = HealthRegion.objects.count()
+        context['interventions_count'] = VictimCare.objects.count()
+
+        # Incidents récents pour la sidebar
+        context['recent_incidents'] = SanitaryIncident.objects.select_related(
+            'incident_type', 'city'
+        ).order_by('-date_time')[:5]
+
+        # Données pour la carte
+        context['map_incidents'] = SanitaryIncident.objects.filter(
+            location__isnull=False
+        ).select_related('incident_type')[:20]
+
+        # Régions sanitaires avec leurs districts
+        context['health_regions'] = HealthRegion.objects.annotate(
+            district_count=Count('districts')
+        ).prefetch_related('districts').order_by('name')
+
+        return context
+
+
+class PolitiqueConfidentialiteView(TemplateView):
+    template_name = "pages/politique_confidential.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -187,13 +224,25 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
         incident_types_data = self.get_incident_types_data()
 
         # Données carte
-        incidents_map_data = list(SanitaryIncident.objects.filter(
-            location__isnull=False
-        ).values(
-            'id', 'incident_type__name', 'incident_type_id', 'city__name', 'date_time', 'location'
-        ))
+        incidents_map_data = list(
+            SanitaryIncident.objects.filter(location__isnull=False)
+            .annotate(
+                location_json=AsGeoJSON('location')  # Transforme Point en JSON lisible
+            )
+            .values(
+                'id',
+                'incident_type__name',
+                'incident_type_id',
+                'city__name',
+                'date_time',
+                'location_json'  # à utiliser dans le JS
+            )
+        )
 
         context = {
+            'available_years': list(range(2019, timezone.now().year + 1)),
+            'event_labels': [e['name'] for e in self.get_event_distribution()],
+            'event_data': [e['count'] for e in self.get_event_distribution()],
             'incidents_count': incidents_count,
             'active_cases': active_cases_count,
             'interventions_count': interventions_count,
@@ -211,14 +260,60 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
             'incident_types': IncidentType.objects.all(),
             'regions_labels': [r['name'] for r in regions_data],
             'regions_data': [r['count'] for r in regions_data],
-            'monthly_labels': [m['month'] for m in monthly_data],
-            'monthly_data': [m['count'] for m in monthly_data],
+            # 'monthly_labels': [m['month'] for m in monthly_data],
+            # 'monthly_data': [m['count'] for m in monthly_data],
+
+            'monthly_labels': monthly_data['labels'],
+            'monthly_current_data': monthly_data['current_year'],
+            'monthly_previous_data': monthly_data['previous_year'],
+            'monthly_current_label': monthly_data['current_year_label'],
+            'monthly_previous_label': monthly_data['previous_year_label'],
+
             'incident_types_labels': [t['name'] for t in incident_types_data],
             'incident_types_data': [t['count'] for t in incident_types_data],
             'incidents_map_data': incidents_map_data,
+
         }
 
         return self.render_to_response(context)
+
+    def get_monthly_trends(self):
+        from collections import defaultdict
+        import calendar
+
+        current_year = timezone.now().year
+        previous_year = current_year - 1
+
+        MONTHS_FR = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+                     "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+
+        current_data = defaultdict(int)
+        previous_data = defaultdict(int)
+
+        incidents = SanitaryIncident.objects.filter(
+            date_time__year__in=[current_year, previous_year]
+        ).annotate(
+            month=F('date_time__month'),
+            year=F('date_time__year')
+        ).values('month', 'year').annotate(count=Count('id'))
+
+        for entry in incidents:
+            if entry['year'] == current_year:
+                current_data[entry['month']] = entry['count']
+            elif entry['year'] == previous_year:
+                previous_data[entry['month']] = entry['count']
+
+        monthly_labels = [f"{MONTHS_FR[m]}" for m in range(1, 13)]
+        current_year_data = [current_data[m] for m in range(1, 13)]
+        previous_year_data = [previous_data[m] for m in range(1, 13)]
+
+        return {
+            'labels': monthly_labels,
+            'current_year': current_year_data,
+            'previous_year': previous_year_data,
+            'current_year_label': current_year,
+            'previous_year_label': previous_year
+        }
 
     def calculate_change(self, last, current):
         if last == 0:
@@ -234,14 +329,15 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
             .order_by('-count')
         )
 
-    def get_monthly_trends(self):
+    def get_event_distribution(self):
         return (
             SanitaryIncident.objects
-            .annotate(month=F('date_time__month'))
-            .values(month=F('month'))
+            .filter(event__isnull=False)
+            .values(name=F('event__name'))
             .annotate(count=Count('id'))
-            .order_by('month')
+            .order_by('-count')
         )
+
 
     def get_incident_types_data(self):
         return (
@@ -355,6 +451,28 @@ class MajorEventListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     allowed_roles = ['National', 'Regional']
 
 
+class MajorEventGridView(LoginRequiredMixin, RoleRequiredMixin, ListView):
+    model = MajorEvent
+    template_name = 'majorevent/event_grid.html'
+    context_object_name = 'events'
+    paginate_by = 20
+    # ordering = ['-start_date']
+    allowed_roles = ['National', 'Regional']
+
+    def get_queryset(self):
+        now = timezone.now()
+        return MajorEvent.objects.filter(start_date__gte=now).order_by('start_date')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        for event in context['events']:
+            event.mort_count = event.sanitaryincident_set.filter(outcome='mort').count()
+            event.blessure_count = event.sanitaryincident_set.filter(outcome='blessure').count()
+            event.sauve_count = event.sanitaryincident_set.filter(outcome='sauvé').count()
+            event.incident_count = event.sanitaryincident_set.all().count()
+        return context
+
+
 class MajorEventCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateView):
     model = MajorEvent
     template_name = 'majorevent/event_create.html'
@@ -455,8 +573,29 @@ class SanitaryIncidentCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateVi
     allowed_roles = ['National', 'Regional']
 
     def form_valid(self, form):
-        messages.success(self.request, 'Incident enregistré avec succès!')
-        return super().form_valid(form)
+        # 1. Sauvegarde sans commit pour ajouter l'événement
+        incident = form.save(commit=False)
+
+        # 2. Recherche d’un événement en cours à la date de l’incident
+        incident_date = form.cleaned_data.get('date_time')
+
+        matching_event = MajorEvent.objects.filter(
+            start_date__lte=incident_date,
+            end_date__gte=incident_date
+        ).first()
+
+        if matching_event:
+            incident.event = matching_event
+
+        # 3. Ajout de l'utilisateur qui poste si besoin
+        incident.posted_by = self.request.user if self.request.user.is_authenticated else None
+
+        # 4. Sauvegarde finale
+        incident.save()
+        form.save_m2m()
+
+        messages.success(self.request, 'Incident enregistré avec succès !')
+        return redirect(self.success_url)
 
     def form_invalid(self, form):
         messages.error(self.request, 'Veuillez corriger les erreurs ci-dessous :')

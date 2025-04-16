@@ -1,79 +1,85 @@
 {% load static %}
-<div class="header-fixed ">
-                <!--begin::Container-->
-                <div class=" container-fluid  d-flex align-items-stretch justify-content-between">
-                    <!--begin::Header Menu Wrapper-->
-                    <div class="header-menu-wrapper header-menu-wrapper-left" id="kt_header_menu_wrapper">
-                        <!--begin::Header Menu-->
-                        <div id="kt_header_menu" class="header-menu header-menu-mobile  header-menu-layout-default ">
-                            <!--begin::Header Nav-->
-
-                            <ul class="menu-nav ">
-                                <li class="menu-item  menu-item-active h2 "><img alt="Logo" src="{% static 'assets/media/logoMSHPCMU.png' %}" class="max-h-50px"/></li>
-                                <li class="menu-item  menu-item-active h2 text-warning">COGU-Comite de Gestion des Urgence Sanitaire</li>
-                                <li class="menu-item  menu-item-active h2 text-primary">{{ request.user.centre.nom }}</li>
-                                <li class="menu-item  menu-item-active h6 text-muted">{{ request.user.centre.district }}</li>
-                            </ul>
-
-                        </div>
-                        <!--end::Header Menu-->
-                    </div>
-                    <!--end::Header Menu Wrapper-->
-
-                    <!--begin::Topbar-->
-                    <div class="topbar">
-
-                       
-
-
-                        <!--begin::User-->
-                        <div class="topbar-item dropdown">
-                            <a href="#" class="btn btn-icon w-auto btn-clean d-flex align-items-center btn-lg px-2 dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <span class="text-muted font-weight-bold font-size-base d-none d-md-inline me-1">Bonjour,</span>
-                                <span class="text-dark-50 font-weight-bolder font-size-base d-none d-md-inline me-2">{{ request.user.username }}</span>
-                                <span class="symbol symbol-35 symbol-light-success">
-                                    <span class="symbol-label font-size-h5 font-weight-bold ml-2">{{ request.user.username|first|upper }}</span>
-                                </span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center" href="">
-                                        <i class="fas fa-user me-2 text-secondary"></i> Mon profil
-                                    </a>
-                                </li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li>
-                                    <a class="dropdown-item d-flex align-items-center text-danger"
-                                       href="{% url 'account_logout' %}">
-                                        <i class="fas fa-sign-out-alt me-2"></i> Déconnexion
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                        <!--end::User-->
-                    </div>
-                    <!--end::Topbar-->
+<header class="header-fixed bg-dark shadow-sm py-2 mb-10">
+    <div class="container-fluid">
+        <div class="d-flex align-items-center justify-content-between">
+            <!-- Logo et informations -->
+            <div class="d-flex align-items-center">
+                <!-- Logo -->
+                <div class="me-4">
+                    <img alt="Logo" src="{% static 'assets/media/logoMSHPCMU.png' %}" class="img-fluid" style="max-height: 50px;">
                 </div>
-                <!--end::Container-->
+
+                <!-- Texte institutionnel -->
+                <div class="d-none d-md-block">
+                    <div class="d-flex flex-column">
+                        <span class="h5 mb-0 text-warning fw-bold">COGU-Comité de Gestion des Urgences Sanitaires</span>
+                        <span class="h6 mb-0 text-primary">{{ request.user.centre.nom }}</span>
+                        <small class="text-muted">{{ request.user.centre.district }}</small>
+                    </div>
+                </div>
             </div>
-{# <div class="main-header">#}
-{#            <div class="page-title">#}
-{#                <h4>Tableau de Bord</h4>#}
-{#                <nav class="breadcrumb">#}
-{#                    <span>Gestion des Incidents Sanitaires</span>#}
-{#                </nav>#}
-{#            </div>#}
-{##}
-{#            <div class="header-actions">#}
-{#                <div class="search-bar">#}
-{#                    <i class="material-icons-round">search</i>#}
-{#                    <input type="text" placeholder="Rechercher...">#}
-{#                </div>#}
-{##}
-{#                <a href="#" class="menu-toggle btn-flat waves-effect" style="display: none;">#}
-{#                    <i class="material-icons-round">menu</i>#}
-{#                </a>#}
-{#            </div>#}
-{#        </div>#}
+
+            <!-- Menu utilisateur -->
+            <div class="dropdown">
+                <button class="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center"
+                        id="userDropdown"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                    <div class="d-flex flex-column text-end me-2 d-none d-md-block">
+                        <span class="small text-muted">Bonjour,</span>
+                        <span class="fw-bold">{{ request.user.username }}</span>
+                    </div>
+                    <div class="rounded-circle bg-light-success d-flex align-items-center justify-content-center"
+                         style="width: 36px; height: 36px;">
+                        <span class="fw-bold text-dark">{{ request.user.username|first|upper }}</span>
+                    </div>
+                </button>
+
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="userDropdown">
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2" href="#">
+                            <i class="fas fa-user-circle me-2 text-secondary"></i>
+                            Mon profil
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center py-2 text-danger"
+                           href="{% url 'account_logout' %}">
+                            <i class="fas fa-sign-out-alt me-2"></i>
+                            Déconnexion
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</header>
+
+<style>
+.header-fixed {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    transition: all 0.3s ease;
+}
+
+.dropdown-menu {
+    min-width: 200px;
+    border-radius: 0.5rem;
+}
+
+.dropdown-item {
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+@media (max-width: 768px) {
+    .header-fixed {
+        padding: 0.5rem 0;
+    }
+}
+</style>

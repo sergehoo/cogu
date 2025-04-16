@@ -27,7 +27,8 @@ from cogu.views import (
     SanitaryIncidentListView, SanitaryIncidentCreateView, SanitaryIncidentDetailView,
     SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, LandingView, IncidentToValidListView,
     WhatsAppMessageListView, validate_incident, reject_incident, IncidentMapView, PublicUserDashboard,
-    PublicIncidentCreateView, PublicIncidentListView, PublicIncidentDetailView,
+    PublicIncidentCreateView, PublicIncidentListView, PublicIncidentDetailView, PolitiqueConfidentialiteView,
+    MajorEventGridView,
 )
 from coguMSHP.services import twilio_whatsapp_webhook, meta_whatsapp_webhook
 from coguMSHP.utils import notifications
@@ -35,7 +36,7 @@ from coguMSHP.utils.notifications import send_whatsapp_message
 
 urlpatterns = [
                   path("__reload__/", include("django_browser_reload.urls")),
-                  path('admin/', admin.site.urls),
+                  path('backend/admin/v1', admin.site.urls),
                   path('api-auth/', include('rest_framework.urls')),
                   path('accounts/', include('allauth.urls')),
 
@@ -53,6 +54,7 @@ urlpatterns = [
 
                   # MajorEvent URLs
                   path('events/', MajorEventListView.as_view(), name='majorevent_list'),
+                  path('events/grid', MajorEventGridView.as_view(), name='event_grid'),
                   path('events/create/', MajorEventCreateView.as_view(), name='majorevent_create'),
                   path('events/<int:pk>/', MajorEventDetailView.as_view(), name='majorevent_detail'),
                   path('events/<int:pk>/update/', MajorEventUpdateView.as_view(), name='majorevent_update'),
@@ -83,6 +85,7 @@ urlpatterns = [
                   #publique access
 
                   path('', LandingView.as_view(), name='landing'),
+                  path('politique/de/confidentialite', PolitiqueConfidentialiteView.as_view(), name='politique'),
                   path('mon-espace/', PublicUserDashboard.as_view(), name='public_dashboard'),
                   path('mon-espace/Signaler/incident', PublicIncidentCreateView.as_view(), name='public_incidentcreate'),
                   path('mon-espace/incident/list', PublicIncidentListView.as_view(), name='public_incidentlist'),

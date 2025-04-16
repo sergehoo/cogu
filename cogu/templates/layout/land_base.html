@@ -12,7 +12,11 @@
   <!-- CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+
+
   <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
   <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -189,46 +193,48 @@
 }
 </style>
   <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-cogu fixed-top">
+ <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
     <div class="container">
-      <a class="navbar-brand" href="#">
-        <img src="{% static 'assets/media/logoMSHPCMU.svg' %}" alt="COGU Logo"> <strong class="ml-5">MSHP-CMU</strong>
+      <a class="navbar-brand" href="{% url 'landing' %}">
+        <img src="{% static 'assets/media/logoMSHPCMU.svg' %}" alt="Logo" height="40" class="me-2">
+        COGU Surveillance
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link active" href="{% url 'landing' %}"><i class="fas fa-home me-1"></i> Accueil</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-hand-holding-medical me-1"></i> Impact </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-map-marked-alt me-1"></i> Cartographie</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-users me-1"></i> Couverture</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#"><i class="fas fa-phone me-1"></i> Contact </a>
-          </li>
-            {% if user.is_authenticated %}
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-              <i class="fas fa-user-circle me-1"></i> Mon Espace
-            </a>
+         {% if user.is_authenticated %}
 
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="{% url 'public_dashboard' %}"><i class="fas fa-cog me-2"></i> Dashboard</a></li>
-              <li><a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt me-2"></i> Déconnexion</a></li>
-            </ul>
-          {% else %}
-<li class="nav-item">
-            <a class="nav-link btn btn-primary" href="{% url 'account_login' %}"><i class="fas fa-user-clock me-1"></i> Connexion</a>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'landing' %}">Revenir en Accueil</a>
           </li>
-          </li>{% endif %}
+         {% else %}
+             <li class="nav-item">
+            <a class="nav-link" href="{% url 'landing' %}">Accueil</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#features">Fonctionnalités</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#map">Carte interactive</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#regions">Couverture</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#partners">Partenaires</a>
+          </li>
+        {% endif %}
+            {% if user.is_authenticated %}
+          <li class="nav-item ms-lg-3">
+            <a class="btn btn-sm btn-outline-light" href="{% url 'account_logout' %}">Deconnexion</a>
+          </li>
+                {% else %}
+                <li class="nav-item ms-lg-3">
+            <a class="btn btn-sm btn-outline-light" href="{% url 'account_login' %}">Connexion</a>
+          </li>
+            {% endif %}
         </ul>
       </div>
     </div>
@@ -297,6 +303,7 @@
   </footer>
 
   <!-- Scripts -->
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/fontawesome.min.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>

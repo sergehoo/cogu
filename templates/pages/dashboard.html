@@ -1,24 +1,28 @@
 {% extends 'layout/base.html' %}
 {% load humanize %}
 {% block content %}
-<div class="main-content bg-dark">
+<div class="main-content">
     <!-- Header -->
     {% include 'layout/nav-head.html' %}
 
     <!-- Alert Card - Basé sur le dernier incident critique -->
     {% with critical_incident=incidents_critical.first %}
     {% if critical_incident %}
-    <div class="card alert-card" data-aos="fade-up">
-        <div class="card-body">
-            <div class="alert-content">
-                <div class="alert-icon">
-                    <i class="material-icons-round">warning</i>
+    <div class="card alert-card mb-4 animate__animated animate__fadeInDown">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="alert-icon bg-danger bg-opacity-10 rounded-circle p-3 me-3">
+                        <i class="fas fa-exclamation-triangle text-danger fs-2"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1 text-danger">ALERTE: {{ critical_incident.incident_type }} à {{ critical_incident.city|default:"Localité inconnue" }}</h5>
+                        <p class="mb-0 text-muted">{{ critical_incident.description|truncatechars:120 }}</p>
+                    </div>
                 </div>
-                <div class="alert-text">
-                    <h6>ALERTE: {{ critical_incident.incident_type }} à {{ critical_incident.city|default:"Localité inconnue" }}</h6>
-                    <p>{{ critical_incident.description|truncatechars:100 }}</p>
-                </div>
-                <a href="{% url 'sanitaryincident_detail' critical_incident.id %}" class="btn waves-effect waves-light right ml-10" style="background-color: var(--ci-accent); float: right">Intervenir</a>
+                <a href="{% url 'sanitaryincident_detail' critical_incident.id %}" class="btn btn-danger btn-lg px-4 animate__animated animate__pulse animate__infinite">
+                    <i class="fas fa-ambulance me-2"></i> Intervenir
+                </a>
             </div>
         </div>
     </div>
@@ -26,225 +30,351 @@
     {% endwith %}
 
     <!-- Stats Cards - Données réelles -->
-    <div class="row">
-        <div class="col s12 m6 l3" data-aos="fade-up" data-aos-delay="0">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="icon">
-                        <i class="material-icons-round">healing</i>
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="card stat-card h-100 animate__animated animate__fadeInUp" data-animation-delay="0">
+                <div class="card-body text-center p-4">
+                    <div class="icon bg-primary bg-opacity-10 text-primary mx-auto mb-3">
+                        <i class="fas fa-heartbeat fs-2"></i>
                     </div>
-                    <div class="value">{{ incidents_count|intcomma }}</div>
-                    <div class="label">Incidents signalés</div>
-                    <div class="progress">
-                        <div class="determinate" style="width: {{ incidents_percentage }}%; background-color: var(--ci-primary);"></div>
+                    <h2 class="mb-2">{{ incidents_count|intcomma }}</h2>
+                    <p class="text-muted mb-3">Incidents signalés</p>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-primary" style="width: {{ incidents_percentage }}%"></div>
                     </div>
-                    <small class="grey-text">{{ incidents_monthly_change }}% ce mois</small>
+                    <small class="text-muted d-block">
+                        <i class="fas fa-arrow-{% if incidents_monthly_change >= 0 %}up text-danger{% else %}down text-success{% endif %} me-1"></i>
+                        {{ incidents_monthly_change }}% ce mois
+                    </small>
                 </div>
             </div>
         </div>
 
-        <div class="col s12 m6 l3" data-aos="fade-up" data-aos-delay="100">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="icon">
-                        <i class="material-icons-round">sick</i>
+        <div class="col-md-6 col-lg-3">
+            <div class="card stat-card h-100 animate__animated animate__fadeInUp" data-animation-delay="100">
+                <div class="card-body text-center p-4">
+                    <div class="icon bg-warning bg-opacity-10 text-warning mx-auto mb-3">
+                        <i class="fas fa-procedures fs-2"></i>
                     </div>
-                    <div class="value">{{ active_cases|intcomma }}</div>
-                    <div class="label">Cas actifs</div>
-                    <div class="progress">
-                        <div class="determinate" style="width: {{ active_cases_percentage }}%; background-color: #FF9800;"></div>
+                    <h2 class="mb-2">{{ active_cases|intcomma }}</h2>
+                    <p class="text-muted mb-3">Cas actifs</p>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-warning" style="width: {{ active_cases_percentage }}%"></div>
                     </div>
-                    <small class="grey-text">{{ active_cases_change }}% ce mois</small>
+                    <small class="text-muted d-block">
+                        <i class="fas fa-arrow-{% if active_cases_change >= 0 %}up text-danger{% else %}down text-success{% endif %} me-1"></i>
+                        {{ active_cases_change }}% ce mois
+                    </small>
                 </div>
             </div>
         </div>
 
-        <div class="col s12 m6 l3" data-aos="fade-up" data-aos-delay="200">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="icon">
-                        <i class="material-icons-round">ambulance</i>
+        <div class="col-md-6 col-lg-3">
+            <div class="card stat-card h-100 animate__animated animate__fadeInUp" data-animation-delay="200">
+                <div class="card-body text-center p-4">
+                    <div class="icon bg-info bg-opacity-10 text-info mx-auto mb-3">
+                        <i class="fas fa-ambulance fs-2"></i>
                     </div>
-                    <div class="value">{{ interventions_count|intcomma }}</div>
-                    <div class="label">Interventions</div>
-                    <div class="progress">
-                        <div class="determinate" style="width: {{ interventions_percentage }}%; background-color: #2196F3;"></div>
+                    <h2 class="mb-2">{{ interventions_count|intcomma }}</h2>
+                    <p class="text-muted mb-3">Interventions</p>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-info" style="width: {{ interventions_percentage }}%"></div>
                     </div>
-                    <small class="grey-text">{{ interventions_change }}% ce mois</small>
+                    <small class="text-muted d-block">
+                        <i class="fas fa-arrow-{% if interventions_change >= 0 %}up text-danger{% else %}down text-success{% endif %} me-1"></i>
+                        {{ interventions_change }}% ce mois
+                    </small>
                 </div>
             </div>
         </div>
 
-        <div class="col s12 m6 l3" data-aos="fade-up" data-aos-delay="300">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="icon">
-                        <i class="material-icons-round">check_circle</i>
+        <div class="col-md-6 col-lg-3">
+            <div class="card stat-card h-100 animate__animated animate__fadeInUp" data-animation-delay="300">
+                <div class="card-body text-center p-4">
+                    <div class="icon bg-success bg-opacity-10 text-success mx-auto mb-3">
+                        <i class="fas fa-check-circle fs-2"></i>
                     </div>
-                    <div class="value">{{ resolved_cases|intcomma }}</div>
-                    <div class="label">Cas résolus</div>
-                    <div class="progress">
-                        <div class="determinate" style="width: {{ resolved_percentage }}%; background-color: #4CAF50;"></div>
+                    <h2 class="mb-2">{{ resolved_cases|intcomma }}</h2>
+                    <p class="text-muted mb-3">Cas résolus</p>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: {{ resolved_percentage }}%"></div>
                     </div>
-                    <small class="grey-text">{{ resolved_change }}% ce mois</small>
+                    <small class="text-muted d-block">
+                        <i class="fas fa-arrow-{% if resolved_change >= 0 %}up text-success{% else %}down text-danger{% endif %} me-1"></i>
+                        {{ resolved_change }}% ce mois
+                    </small>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Map and Region Chart -->
-    <div class="row">
-        <div class="col-md-6" data-aos="fade-up">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Cartographie des Incidents</h5>
-                    <select id="incidentTypeFilter" class="form-select" style="width: 180px; margin: 0;">
-                        <option value="" selected>Tous les types</option>
-                        {% for type in incident_types %}
-                        <option value="{{ type.id }}">{{ type.name }}</option>
-                        {% endfor %}
-                    </select>
+    <div class="row g-4 mb-4">
+
+
+        <div class="col-lg-6">
+            <div class="card h-100 animate__animated animate__fadeIn" data-animation-delay="100">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <h5 class="mb-0">Répartition des incidents par événements</h5>
                 </div>
                 <div class="card-body">
-                    <div id="map" class="map-container"></div>
+                    <canvas id="eventChart" height="300"></canvas>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-6" data-aos="fade-up" data-aos-delay="100">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Répartition par région</h5>
+            <div class="col-lg-6">
+            <div class="card h-100 animate__animated animate__fadeIn">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <h5 class="mb-0">Évolution mensuelle des incidents</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="regionChart" height="300"></canvas>
+{#                    <div class="mb-3 d-flex justify-content-end">#}
+{#  <label for="yearSelector" class="form-label me-2">Comparer avec :</label>#}
+{#  <select id="yearSelector" class="form-select w-auto">#}
+{#  {% for y in available_years %}#}
+{#    {% if y != monthly_current_label %}#}
+{#      <option value="{{ y }}">{{ y }}</option>#}
+{#    {% endif %}#}
+{#  {% endfor %}#}
+{#</select>#}
+{#</div>#}
+
+                    <canvas id="monthlyTrendChart" height="250"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Charts Row -->
-    <div class="row">
-        <div class="col s12 l6" data-aos="fade-up">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Évolution mensuelle des incidents</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="monthlyTrendChart" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="col s12 l6" data-aos="fade-up" data-aos-delay="100">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Types d'incidents</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="incidentTypeChart" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+{#    <div class="row g-4 mb-4">#}
+{##}
+{##}
+{#        <div class="col-lg-12">#}
+{#            <div class="card h-100 animate__animated animate__fadeIn" data-animation-delay="100">#}
+{#                <div class="card-header bg-white border-bottom-0 py-3">#}
+{#                    <h5 class="mb-0">Types d'incidents</h5>#}
+{#                </div>#}
+{#                <div class="card-body">#}
+{#                    <canvas id="incidentTypeChart" height="250"></canvas>#}
+{#                </div>#}
+{#            </div>#}
+{#        </div>#}
+{#    </div>#}
 
     <!-- Incidents Table -->
-    <div class="row">
-        <div class="col s12" data-aos="fade-up">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Derniers Incidents Signalés</h5>
-                    <a href="{% url 'sanitaryincident_create' %}" class="btn waves-effect waves-light" style="background-color: var(--ci-primary);">
-                        <i class="material-icons-round left">add</i> Nouvel Incident
-                    </a>
-                </div>
-                <div class="card-body">
-                    <table class="data-table">
-                        <thead>
+    <div class="card animate__animated animate__fadeInUp">
+        <div class="card-header bg-white border-bottom-0 py-3 d-flex align-items-center">
+            <h5 class="mb-0 flex-grow-1">Derniers Incidents Signalés</h5>
+            <a href="{% url 'sanitaryincident_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Nouvel Incident
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
                         <tr>
-                            <th>ID</th>
+                            <th class="ps-4">ID</th>
                             <th>Type</th>
                             <th>Localisation</th>
                             <th>Date</th>
                             <th>Statut</th>
-                            <th>Personnes</th>
-                            <th>Actions</th>
+                            <th class="text-center">Personnes</th>
+                            <th class="pe-4">Actions</th>
                         </tr>
-                        </thead>
-                        <tbody style="text-align: center" class="center">
+                    </thead>
+                    <tbody>
                         {% for incident in recent_incidents %}
-                        <tr style="text-align: center; " class="center">
-                            <td>#INC-{{ incident.id|stringformat:"04d" }}</td>
+                        <tr class="animate__animated animate__fadeIn" style="animation-delay: {{ forloop.counter0|divisibleby:2|yesno:'0,50' }}ms">
+                            <td class="ps-4 fw-bold">#INC-{{ incident.id|stringformat:"04d" }}</td>
                             <td>
-                                <i class="material-icons-round
-                                    {% if incident.outcome == 'mort' %}red-text
-                                    {% elif incident.outcome == 'blessure' %}orange-text
-                                    {% else %}green-text{% endif %}"
-                                   style="font-size: 1.2rem; vertical-align: middle;">
-                                    {% if incident.incident_type.name|lower == 'cholera' %}coronavirus
-                                    {% elif incident.incident_type.name|lower == 'intoxication' %}emoji_food_beverage
-                                    {% else %}healing{% endif %}
-                                </i>
-                                {{ incident.incident_type }}
+                                <div class="d-flex align-items-center">
+                                    <i class="fas
+                                        {% if incident.incident_type.name|lower == 'cholera' %}fa-virus text-danger
+                                        {% elif incident.incident_type.name|lower == 'intoxication' %}fa-utensils text-warning
+                                        {% else %}fa-heartbeat text-primary{% endif %}
+                                        me-2 fs-5"></i>
+                                    <span>{{ incident.incident_type }}</span>
+                                </div>
                             </td>
                             <td>{{ incident.city|default:"Non spécifié" }}</td>
                             <td>{{ incident.date_time|date:"d/m/Y H:i" }}</td>
                             <td>
-                                <span class="badge
-                                    {% if incident.outcome == 'mort' %}critical
-                                    {% elif incident.outcome == 'blessure' %}in-progress
-                                    {% else %}resolved{% endif %}">
+                                <span class="badge rounded-pill
+                                    {% if incident.outcome == 'mort' %}bg-danger
+                                    {% elif incident.outcome == 'blessure' %}bg-warning text-dark
+                                    {% else %}bg-success{% endif %}">
                                     {{ incident.get_outcome_display }}
                                 </span>
                             </td>
-                            <td style="text-align: center">{{ incident.number_of_people_involved }}</td>
-                            <td>
-                                <a href="{% url 'sanitaryincident_detail' incident.id %}" class="btn-flat waves-effect">
-                                    <i class="material-icons-round grey-text">visibility</i>
+                            <td class="text-center">{{ incident.number_of_people_involved }}</td>
+                            <td class="pe-4">
+                                <a href="{% url 'sanitaryincident_detail' incident.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i> Voir
                                 </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">Aucun incident récent</td>
+                            <td colspan="7" class="text-center py-4 text-muted">Aucun incident récent</td>
                         </tr>
                         {% endfor %}
-                        </tbody>
-                    </table>
+                    </tbody>
+                </table>
+            </div>
 
-                    {% if recent_incidents.has_other_pages %}
-                    <ul class="pagination center">
+            {% if recent_incidents.has_other_pages %}
+            <div class="card-footer bg-white border-top-0 py-3">
+                <nav aria-label="Pagination">
+                    <ul class="pagination justify-content-center mb-0">
                         {% if recent_incidents.has_previous %}
-                        <li class="waves-effect"><a href="?page={{ recent_incidents.previous_page_number }}"><i class="material-icons-round">chevron_left</i></a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ recent_incidents.previous_page_number }}" aria-label="Previous">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
                         {% else %}
-                        <li class="disabled"><a href="#!"><i class="material-icons-round">chevron_left</i></a></li>
+                        <li class="page-item disabled">
+                            <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                        </li>
                         {% endif %}
 
                         {% for i in recent_incidents.paginator.page_range %}
                         {% if recent_incidents.number == i %}
-                        <li class="active"><a href="#!">{{ i }}</a></li>
+                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
                         {% else %}
-                        <li class="waves-effect"><a href="?page={{ i }}">{{ i }}</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
                         {% endif %}
                         {% endfor %}
 
                         {% if recent_incidents.has_next %}
-                        <li class="waves-effect"><a href="?page={{ recent_incidents.next_page_number }}"><i class="material-icons-round">chevron_right</i></a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ recent_incidents.next_page_number }}" aria-label="Next">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
                         {% else %}
-                        <li class="disabled"><a href="#!"><i class="material-icons-round">chevron_right</i></a></li>
+                        <li class="page-item disabled">
+                            <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                        </li>
                         {% endif %}
                     </ul>
-                    {% endif %}
-                </div>
+                </nav>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <!-- Scripts pour les graphiques et la carte -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const ctx = document.getElementById("eventChart").getContext("2d");
+
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ event_labels|safe }},
+      datasets: [{
+        label: 'Nombre d’incidents',
+        data: {{ event_data|safe }},
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Incidents'
+          }
+        }
+      }
+    }
+  });
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const ctx = document.getElementById('monthlyTrendChart').getContext('2d');
+
+    const monthlyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ monthly_labels|safe }},
+            datasets: [
+                {
+                    label: '{{ monthly_previous_label }}',
+                    data: {{ monthly_previous_data|safe }},
+                    borderColor: 'rgba(200, 200, 200, 0.7)',
+                    backgroundColor: 'rgba(200, 200, 200, 0.2)',
+                    tension: 0.3,
+                    hidden: false
+                },
+                {
+                    label: '{{ monthly_current_label }}',
+                    data: {{ monthly_current_data|safe }},
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    onClick: (e, legendItem, legend) => {
+                        const index = legendItem.datasetIndex;
+                        const ci = legend.chart;
+                        ci.data.datasets[index].hidden = !ci.data.datasets[index].hidden;
+                        ci.update();
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Nombre d’incidents'
+                    }
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuad'
+            }
+        }
+    });
+
+    // Gestion du selecteur si on va plus loin (API dynamique à venir)
+    document.getElementById('yearSelector')?.addEventListener('change', function () {
+        const selectedYear = this.value;
+        alert('Fonction dynamique non encore connectée — pour activer, prévoir appel AJAX vers les données de l’année ' + selectedYear);
+    });
+});
+</script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Données pour les graphiques (passées depuis la vue)
+    // Animation des éléments avec délai
+    const animateElements = document.querySelectorAll('[data-animation-delay]');
+    animateElements.forEach(el => {
+        const delay = el.getAttribute('data-animation-delay');
+        el.style.animationDelay = `${delay}ms`;
+    });
+
+    // Données pour les graphiques
     const regionData = {
         labels: {{ regions_labels|safe }},
         datasets: [{
@@ -289,37 +419,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }]
     };
 
-    // Initialisation des graphiques
+    // Initialisation des graphiques avec animations
     new Chart(document.getElementById('regionChart'), {
         type: 'bar',
         data: regionData,
         options: {
             responsive: true,
             plugins: {
-                legend: {
-                    display: false
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y} incidents`;
+                        }
+                    }
                 }
+            },
+            animation: {
+                duration: 1500,
+                easing: 'easeOutQuart'
             }
         }
     });
 
-    new Chart(document.getElementById('monthlyTrendChart'), {
-        type: 'line',
-        data: monthlyTrendData,
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
 
     new Chart(document.getElementById('incidentTypeChart'), {
         type: 'doughnut',
@@ -327,33 +449,79 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             plugins: {
-                legend: {
-                    position: 'right'
+                legend: { position: 'right' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
                 }
-            }
+            },
+            animation: {
+                duration: 1500,
+                easing: 'easeOutQuart'
+            },
+            cutout: '70%'
         }
     });
 
-    // Initialisation de la carte Leaflet
-    const map = L.map('map').setView([7.5399, -5.5471], 7); // Centré sur la Côte d'Ivoire
+    // Initialisation de la carte Leaflet avec animation
+    const map = L.map('map').setView([7.5399, -5.5471], 7);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    // Ajout des marqueurs pour chaque incident
+    // Icônes personnalisées avec animations
+    const redIcon = L.divIcon({
+        html: '<i class="fas fa-map-marker-alt fa-2x text-danger animate__animated animate__pulse" style="text-shadow: 0 0 8px white;"></i>',
+        iconSize: [24, 24],
+        className: 'leaflet-div-icon'
+    });
+
+    const orangeIcon = L.divIcon({
+        html: '<i class="fas fa-map-marker-alt fa-2x text-warning animate__animated animate__pulse" style="text-shadow: 0 0 8px white;"></i>',
+        iconSize: [24, 24],
+        className: 'leaflet-div-icon'
+    });
+
+    const greenIcon = L.divIcon({
+        html: '<i class="fas fa-map-marker-alt fa-2x text-success animate__animated animate__pulse" style="text-shadow: 0 0 8px white;"></i>',
+        iconSize: [24, 24],
+        className: 'leaflet-div-icon'
+    });
+
+    const markers = L.markerClusterGroup({
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true
+    });
+
     const incidentsData = {{ incidents_map_data|safe }};
-    const markers = L.markerClusterGroup();
 
     incidentsData.forEach(incident => {
         if (incident.location) {
-            const marker = L.marker([incident.location.y, incident.location.x])
+            const icon = incident.outcome === 'mort' ? redIcon :
+                         incident.outcome === 'blessure' ? orangeIcon : greenIcon;
+
+            const marker = L.marker([incident.location.y, incident.location.x], { icon })
                 .bindPopup(`
-                    <b>${incident.incident_type}</b><br>
-                    ${incident.city || 'Localité inconnue'}<br>
-                    ${new Date(incident.date_time).toLocaleDateString()}<br>
-                    <a href="/sanitaryincident/${incident.id}/" class="btn btn-sm btn-primary">Détails</a>
+                    <div class="incident-popup">
+                        <h6>${incident.incident_type}</h6>
+                        <p><i class="fas fa-map-marker-alt me-1"></i> ${incident.city || 'Localité inconnue'}</p>
+                        <p><i class="fas fa-calendar-alt me-1"></i> ${new Date(incident.date_time).toLocaleDateString()}</p>
+                        <p><i class="fas fa-users me-1"></i> ${incident.number_of_people_involved} personnes</p>
+                        <a href="/sanitaryincident/${incident.id}/" class="btn btn-sm btn-primary w-100 mt-2">
+                            <i class="fas fa-eye me-1"></i> Détails
+                        </a>
+                    </div>
                 `);
+
             markers.addLayer(marker);
         }
     });
@@ -367,13 +535,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         incidentsData.forEach(incident => {
             if (incident.location && (!typeId || incident.incident_type_id == typeId)) {
-                const marker = L.marker([incident.location.y, incident.location.x])
+                const icon = incident.outcome === 'mort' ? redIcon :
+                             incident.outcome === 'blessure' ? orangeIcon : greenIcon;
+
+                const marker = L.marker([incident.location.y, incident.location.x], { icon })
                     .bindPopup(`
-                        <b>${incident.incident_type}</b><br>
-                        ${incident.city || 'Localité inconnue'}<br>
-                        ${new Date(incident.date_time).toLocaleDateString()}<br>
-                        <a href="/sanitaryincident/${incident.id}/" class="btn btn-sm btn-primary">Détails</a>
+                        <div class="incident-popup">
+                            <h6>${incident.incident_type}</h6>
+                            <p><i class="fas fa-map-marker-alt me-1"></i> ${incident.city || 'Localité inconnue'}</p>
+                            <p><i class="fas fa-calendar-alt me-1"></i> ${new Date(incident.date_time).toLocaleDateString()}</p>
+                            <p><i class="fas fa-users me-1"></i> ${incident.number_of_people_involved} personnes</p>
+                            <a href="/sanitaryincident/${incident.id}/" class="btn btn-sm btn-primary w-100 mt-2">
+                                <i class="fas fa-eye me-1"></i> Détails
+                            </a>
+                        </div>
                     `);
+
                 markers.addLayer(marker);
             }
         });
@@ -382,65 +559,104 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+/* Styles globaux */
+.main-content {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Carte d'alerte */
 .alert-card {
-    background-color: #FFF3E0;
-    border-left: 4px solid #FF9800;
+    background-color: #fff8e1;
+    border-left: 4px solid #ffc107;
 }
 
-.stat-card {
-    transition: transform 0.3s;
+/* Cartes de statistiques */
+.stat-card .icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
 }
 
-.stat-card:hover {
-    transform: translateY(-5px);
+.stat-card h2 {
+    font-weight: 700;
+    font-size: 2rem;
 }
 
+/* Carte de la carte */
 .map-container {
     height: 400px;
-    border-radius: 4px;
+    border-radius: 0.5rem;
     overflow: hidden;
 }
 
+/* Tableau */
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    background-color: #f8f9fa !important;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Badges */
 .badge {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
     font-weight: 500;
+    padding: 0.35em 0.65em;
 }
 
-.badge.critical {
-    background-color: #FFEBEE;
-    color: #C62828;
+/* Animation */
+.animate__animated {
+    --animate-duration: 0.5s;
 }
 
-.badge.in-progress {
-    background-color: #FFF8E1;
-    color: #FF8F00;
+/* Popup de la carte */
+.incident-popup {
+    min-width: 200px;
 }
 
-.badge.resolved {
-    background-color: #E8F5E9;
-    color: #2E7D32;
+.incident-popup h6 {
+    color: #212529;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
+.incident-popup p {
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+    color: #6c757d;
 }
 
-.data-table th {
-    background-color: #f5f5f5;
-    font-weight: 500;
-}
+/* Responsive */
+@media (max-width: 768px) {
+    .stat-card h2 {
+        font-size: 1.5rem;
+    }
 
-.data-table td, .data-table th {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.data-table tr:hover {
-    background-color: #f9f9f9;
+    .map-container {
+        height: 300px;
+    }
 }
 </style>
 {% endblock %}

@@ -72,12 +72,12 @@ class SanitaryIncidentForm(forms.ModelForm):
 
     class Meta:
         model = SanitaryIncident
-        exclude = ['location']  # on utilise location_text à la place
+        exclude = ['location', 'status']  # on utilise location_text à la place
         widgets = {
             'incident_type': forms.Select(attrs={'class': 'form-select'}),
             'date_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'city': forms.Select(attrs={'class': 'form-select'}),
+            'city': forms.Select(attrs={'class': 'form-control ', 'id': "kt_select2_1", "name": "param"}),
             'number_of_people_involved': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'outcome': forms.Select(attrs={'class': 'form-select'}),
             'event': forms.Select(attrs={'class': 'form-select'}),

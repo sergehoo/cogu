@@ -57,7 +57,7 @@
                         <!-- Ville -->
                         <div class="mb-3">
                             <label class="form-label">Ville</label>
-                            {% render_field form.city class="form-select" %}
+                            {% render_field form.city class="form-select select2" %}
                         </div>
 
                         <!-- Coordonnées GPS -->
@@ -116,6 +116,7 @@
             </form>
         </div>
     </div>
+{% include 'layout/footer.html' %}
 </div>
 
 <!-- Styles -->
