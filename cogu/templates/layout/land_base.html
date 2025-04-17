@@ -329,19 +329,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
   {% for incident in map_incidents %}
   {% if incident.location %}
-  markers[{{ incident.id }}] = L.marker([{{ incident.location.y }}, {{ incident.location.x }}], {
-    icon: L.icon({
-      iconUrl: "{% static 'assets/media/marker-' %}{{ incident.severity }}.png",
-      iconSize: [32, 32],
-      iconAnchor: [16, 32]
-    })
-  }).addTo(map)
+    markers[{{ incident.id }}] = L.marker([{{ incident.location.y }}, {{ incident.location.x }}], {
+      icon: L.divIcon({
+        className: 'custom-div-icon',
+        html: `
+          <div class="marker-dot bg-{% if incident.severity == 'high' %}danger{% elif incident.severity == 'medium' %}warning{% else %}success{% endif %}">
+            <i class="fas fa-exclamation-circle text-white"></i>
+          </div>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      })
+    }).addTo(map)
     .bindPopup(`
       <div class="map-popup">
-        <h6 class="popup-title">{{ incident.incident_type }}</h6>
+        <h6 class="popup-title">{{ incident.incident_type.name }}</h6>
         <p class="popup-location">
           <i class="fas fa-map-marker-alt me-1"></i>
-          {{ incident.city|default:"Localité inconnue" }}, {{ incident.region.name|default:"" }}
+          {{ incident.city.name|default:"Localité inconnue" }}, {{ incident.city.region.name|default:"" }}
         </p>
         <p class="popup-date">
           <i class="far fa-clock me-1"></i>
@@ -351,12 +356,11 @@ document.addEventListener('DOMContentLoaded', function() {
           <span class="badge bg-{% if incident.severity == 'high' %}danger{% elif incident.severity == 'medium' %}warning{% else %}success{% endif %}">
             {{ incident.get_severity_display }}
           </span>
-
         </div>
       </div>
     `);
   {% endif %}
-  {% endfor %}
+{% endfor %}
 
   // Fit map to markers bounds if there are markers
   if (Object.keys(markers).length > 0) {
