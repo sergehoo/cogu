@@ -654,6 +654,12 @@
             <div class="text-danger">{{ form.message.errors }}</div>
           {% endif %}
         </div>
+      <div class="mb-3">
+  {{ form.captcha }}
+  {% if form.captcha.errors %}
+    <div class="text-danger">{{ form.captcha.errors }}</div>
+  {% endif %}
+</div>
         <button type="submit" class="btn btn-primary">Envoyer le message</button>
       </form>
     </div>
@@ -707,6 +713,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 {% endblock %}
 
 

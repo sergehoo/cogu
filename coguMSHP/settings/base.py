@@ -71,9 +71,9 @@ SITE_ID = 1
 TAILWIND_APP_NAME = 'theme'
 INTERNAL_IPS = ['127.0.0.1']
 
-RECAPTCHA_PUBLIC_KEY = "votre_clé_site"
-RECAPTCHA_PRIVATE_KEY = "votre_clé_secrète"
-RECAPTCHA_REQUIRED_SCORE = 0.85
+
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
