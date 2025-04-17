@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
   {% if incident.location %}
   markers[{{ incident.id }}] = L.marker([{{ incident.location.y }}, {{ incident.location.x }}], {
     icon: L.icon({
-      iconUrl: '{% static "assets/media/marker-" %}' + '{{ incident.severity }}' + '.png',
+      iconUrl: "{% static 'assets/media/marker-' %}{{ incident.severity }}.png",
       iconSize: [32, 32],
       iconAnchor: [16, 32]
     })

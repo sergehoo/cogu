@@ -327,6 +327,19 @@ class SanitaryIncident(models.Model):
     validated_by = models.ForeignKey(EmployeeUser, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
+    @property
+    def severity(self):
+        """
+        Retourne un niveau de sévérité basé sur le nombre de personnes ou le résultat.
+        Adapte cette logique selon ton besoin métier.
+        """
+        if self.number_of_people_involved >= 5 or self.outcome == 'mort':
+            return 'high'
+        elif self.number_of_people_involved >= 2:
+            return 'medium'
+        else:
+            return 'low'
+
     def __str__(self):
         return f"{self.incident_type.name} - {self.city} ({self.date_time.date()})"
 
