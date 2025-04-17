@@ -1,6 +1,5 @@
 import calendar
 import locale
-
 locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
 from datetime import timedelta
 
