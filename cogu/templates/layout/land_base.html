@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Add country borders overlay
-  fetch('{% static "geo/ci.geojson" %}')
+  fetch('{% static "assets/ci.geojson" %}')
     .then(response => response.json())
     .then(data => {
       L.geoJSON(data, {
