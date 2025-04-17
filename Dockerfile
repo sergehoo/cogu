@@ -18,13 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && \
-    apt-get install -y locales && \
-    locale-gen fr_FR.UTF-8 && \
-    update-locale LANG=fr_FR.UTF-8
-ENV LANG fr_FR.UTF-8
-ENV LANGUAGE fr_FR:fr
-ENV LC_ALL fr_FR.UTF-8
 
 # Optional: force Django to use the correct GEOS lib
 ENV GEOS_LIBRARY_PATH=/usr/lib/libgeos_c.so
