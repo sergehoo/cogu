@@ -48,12 +48,16 @@ LOGGING = {
         "file": {
             "level": "DEBUG",
             "class": "logging.FileHandler",
-            'filename': os.path.join(LOG_DIR, 'whatsapp_webhook.log'),
+            "filename": os.path.join(LOG_DIR, "whatsapp_webhook.log"),
+        },
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
         },
     },
     "loggers": {
         "django": {
-            "handlers": ["file"],
+            "handlers": ["file", "console"],  # Ajoute 'console' ici
             "level": "DEBUG",
             "propagate": True,
         },
