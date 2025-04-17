@@ -469,23 +469,23 @@
                 {% block content %}
                 {% endblock %}
 
-                <div class="social-login-buttons">
-  {% for provider in socialaccount_providers %}
-     {% if provider.id == 'google' %}
-    <a href="{% provider_login_url 'google' %}" class="btn btn-danger w-100 mb-2">
-      <i class="fab fa-google me-2"></i> Se connecter avec Google
-    </a>
-    {% elif provider.id == 'facebook' %}
-      <a href="{% provider_login_url 'facebook' %}" class="btn btn-primary w-100 mb-2">
-        <i class="fab fa-facebook-f me-2"></i> Se connecter avec Facebook
-      </a>
-    {% elif provider.id == 'apple' %}
-      <a href="{% provider_login_url 'apple' %}" class="btn btn-dark w-100 mb-2">
-        <i class="fab fa-apple me-2"></i> Se connecter avec Apple
-      </a>
-    {% endif %}
-  {% endfor %}
-</div>
+{#                <div class="social-login-buttons">#}
+{#  {% for provider in socialaccount_providers %}#}
+{#     {% if provider.id == 'google' %}#}
+{#    <a href="{% provider_login_url 'google' %}" class="btn btn-danger w-100 mb-2">#}
+{#      <i class="fab fa-google me-2"></i> Se connecter avec Google#}
+{#    </a>#}
+{#    {% elif provider.id == 'facebook' %}#}
+{#      <a href="{% provider_login_url 'facebook' %}" class="btn btn-primary w-100 mb-2">#}
+{#        <i class="fab fa-facebook-f me-2"></i> Se connecter avec Facebook#}
+{#      </a>#}
+{#    {% elif provider.id == 'apple' %}#}
+{#      <a href="{% provider_login_url 'apple' %}" class="btn btn-dark w-100 mb-2">#}
+{#        <i class="fab fa-apple me-2"></i> Se connecter avec Apple#}
+{#      </a>#}
+{#    {% endif %}#}
+{#  {% endfor %}#}
+{#</div>#}
             </div>
 
 
