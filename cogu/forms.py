@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django_select2.forms import Select2MultipleWidget
 from django.utils.translation import gettext_lazy as _
-from cogu.models import Patient, MajorEvent, SanitaryIncident
+from cogu.models import Patient, MajorEvent, SanitaryIncident, ContactMessage
 from django.contrib.gis.geos import Point
 
 
@@ -199,3 +199,23 @@ class PublicIncidentForm(forms.ModelForm):
             self.save_m2m()
 
         return instance
+
+
+class ContactForm(forms.ModelForm):
+    honeypot = forms.CharField(required=False, widget=forms.HiddenInput)
+
+    class Meta:
+        model = ContactMessage
+        fields = ['name', 'email', 'subject', 'message']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Votre nom'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Votre email'}),
+            'subject': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Sujet'}),
+            'message': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Votre message'}),
+        }
+
+        def clean_honeypot(self):
+            data = self.cleaned_data.get('honeypot')
+            if data:
+                raise forms.ValidationError("Bot détecté.")
+            return data

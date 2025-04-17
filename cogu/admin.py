@@ -4,7 +4,17 @@ from import_export.admin import ImportExportModelAdmin
 from leaflet.admin import LeafletGeoAdmin
 
 from cogu.models import IncidentType, SanitaryIncident, MajorEvent, Patient, Commune, DistrictSanitaire, HealthRegion, \
-    PolesRegionaux, EmployeeUser, WhatsAppMessage, IncidentMedia
+    PolesRegionaux, EmployeeUser, WhatsAppMessage, IncidentMedia, ContactMessage
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'subject', 'created_at', 'is_read')
+    list_filter = ('is_read', 'created_at')
+    search_fields = ('name', 'email', 'subject', 'message')
+    readonly_fields = ('created_at',)
+    list_editable = ('is_read',)
+    date_hierarchy = 'created_at'
 
 
 # Register your models here.
@@ -123,6 +133,7 @@ class SanitaryIncidentAdmin(admin.ModelAdmin):
     @admin.action(description="Rejeter les incidents sélectionnés")
     def rejeter_incidents(self, request, queryset):
         queryset.update(status='rejected')
+
 
 @admin.register(WhatsAppMessage)
 class WhatsAppMessageAdmin(admin.ModelAdmin):

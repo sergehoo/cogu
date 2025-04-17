@@ -28,7 +28,7 @@ from cogu.views import (
     SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, LandingView, IncidentToValidListView,
     WhatsAppMessageListView, validate_incident, reject_incident, IncidentMapView, PublicUserDashboard,
     PublicIncidentCreateView, PublicIncidentListView, PublicIncidentDetailView, PolitiqueConfidentialiteView,
-    MajorEventGridView,
+    MajorEventGridView, contact,
 )
 from coguMSHP.services import twilio_whatsapp_webhook, meta_whatsapp_webhook
 from coguMSHP.utils import notifications
@@ -45,6 +45,7 @@ urlpatterns = [
                   path('notifications/', send_whatsapp_message, name='send_whatsapp_notify'),
 
                   path('dashboard', CADashborad.as_view(), name='home'),
+                  path('contact/', contact, name='contact'),
 
                   path('patients/', PatientListView.as_view(), name='patient_list'),
                   path('patients/create/', PatientCreateView.as_view(), name='patient_create'),

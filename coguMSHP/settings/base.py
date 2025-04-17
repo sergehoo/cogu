@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -61,6 +62,7 @@ INSTALLED_APPS = [
     # Ajoute les fournisseurs que tu veux :
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.facebook',
+    'django_recaptcha',
 
 ]
 
@@ -68,6 +70,10 @@ SITE_ID = 1
 
 TAILWIND_APP_NAME = 'theme'
 INTERNAL_IPS = ['127.0.0.1']
+
+RECAPTCHA_PUBLIC_KEY = "votre_clé_site"
+RECAPTCHA_PRIVATE_KEY = "votre_clé_secrète"
+RECAPTCHA_REQUIRED_SCORE = 0.85
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -138,7 +144,6 @@ SOCIALACCOUNT_FORMS = {
     'signup': 'allauth.socialaccount.forms.SignupForm',
 }
 
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -176,8 +181,6 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

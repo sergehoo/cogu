@@ -14,9 +14,9 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.html import format_html
 from django.views.decorators.http import require_POST
-from django.views.generic import TemplateView, ListView, CreateView, DetailView, UpdateView, DeleteView
+from django.views.generic import TemplateView, ListView, CreateView, DetailView, UpdateView, DeleteView, FormView
 from cogu.filters import PatientFilter
-from cogu.forms import SanitaryIncidentForm, PublicIncidentForm
+from cogu.forms import SanitaryIncidentForm, PublicIncidentForm, ContactForm
 from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune, HealthRegion, VictimCare, \
     WhatsAppMessage
 from django.contrib.gis.geos import Point
@@ -36,13 +36,26 @@ class RoleRequiredMixin(UserPassesTestMixin):
         return redirect(self.redirect_view_if_denied)
 
 
-class LandingView(TemplateView):
+class LandingView(FormView):
+    # template_name = "pages/landing.html"
     template_name = "pages/landing.html"
+    form_class = ContactForm
+    success_url = reverse_lazy('landing')
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, "Votre message a été envoyé avec succès. Nous vous contacterons bientôt!")
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Il y a eu une erreur dans l'envoi de votre message. Veuillez réessayer.")
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         # Récupération des données pour les statistiques
+        # context['form'] = ContactForm()
         context['incidents_count'] = SanitaryIncident.objects.count()
         context['active_cases'] = SanitaryIncident.objects.filter(
             status='validated',
@@ -71,6 +84,8 @@ class LandingView(TemplateView):
 
 class PolitiqueConfidentialiteView(TemplateView):
     template_name = "pages/politique_confidential.html"
+
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -211,7 +226,7 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
 
         # Derniers incidents paginés
         recent_incidents = SanitaryIncident.objects.select_related('incident_type', 'city').order_by('-date_time')
-        paginator = Paginator(recent_incidents, 10)
+        paginator = Paginator(recent_incidents, 5)
         page = request.GET.get("page")
         recent_incidents_page = paginator.get_page(page)
 
@@ -334,7 +349,6 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
             .annotate(count=Count('id'))
             .order_by('-count')
         )
-
 
     def get_incident_types_data(self):
         return (
@@ -726,3 +740,18 @@ class WhatsAppMessageListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
 
     def get_queryset(self):
         return WhatsAppMessage.objects.all().order_by(*self.ordering)
+
+
+def contact(request):
+    if request.method == 'POST':
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Votre message a été envoyé avec succès. Nous vous contacterons bientôt!")
+            return redirect('contact')  # Replace with your actual contact URL name
+        else:
+            messages.error(request, "Il y a eu une erreur dans l'envoi de votre message. Veuillez réessayer.")
+    else:
+        form = ContactForm()
+
+    return render(request, 'pages/landing.html', {'form': form})

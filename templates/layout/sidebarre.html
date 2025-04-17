@@ -81,8 +81,7 @@
                     </li>
                 </ul>
             </li>
-
-
+        
             <li class="nav-item">
                 <a href="#" class="nav-link text-white">
                     <i class="fas fa-chart-bar me-2"></i>
@@ -128,7 +127,7 @@
     <!-- Footer -->
     <div class="sidebar-footer px-3 py-3 position-absolute bottom-0 start-0 end-0">
         <div class="user-profile d-flex align-items-center">
-            <img src="https://randomuser.me/api/portraits/men/3.jpg" alt="User" class="rounded-circle me-2" style="width: 45px; height: 45px; object-fit: cover;">
+            <img src="{% static 'assets/media/users/default.jpg' %}" alt="User" class="rounded-circle me-2" style="width: 45px; height: 45px; object-fit: cover;">
             <div class="user-info">
                 <span class="text-white d-block" style="font-weight: 600;">{{ request.user }}</span>
                 <small class="text-white-50">{{ request.user.roleemployee|default:"Utilisateur" }}</small>
