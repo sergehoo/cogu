@@ -126,6 +126,7 @@ class SanitaryIncidentAdmin(admin.ModelAdmin):
     list_filter = ('status', 'incident_type', 'city', 'outcome')
     search_fields = ('description', 'city__name')
     actions = ['valider_incidents', 'rejeter_incidents']
+    autocomplete_fields = ['city', 'centre_sante','incident_type']
 
     @admin.action(description="Valider les incidents sélectionnés")
     def valider_incidents(self, request, queryset):

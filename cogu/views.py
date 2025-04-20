@@ -573,16 +573,12 @@ class SanitaryIncidentListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     allowed_roles = ['National', 'Regional']
 
     def get_queryset(self):
-        queryset = SanitaryIncident.objects.filter(
-            status='validated',
-            location__isnull=False  # 👈 On ajoute ce filtre
-        ).order_by(*self.ordering)
+        queryset = SanitaryIncident.objects.filter(status='validated').order_by(*self.ordering)
         search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(
                 Q(description__icontains=search) |
-                Q(city__name__icontains=search)
-            )
+                Q(city__name__icontains=search))
 
         if self.request.GET.get('incident_type'):
             queryset = queryset.filter(incident_type_id=self.request.GET.get('incident_type'))
