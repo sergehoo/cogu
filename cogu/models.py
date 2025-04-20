@@ -143,9 +143,19 @@ class Commune(models.Model):
         return f"{self.name} - {self.district}"
 
 
+class TypeServiceSanitaire(models.Model):
+    nom = models.CharField(max_length=500, null=True, blank=True)
+    acronyme = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.acronyme}"
+
+
 class ServiceSanitaire(models.Model):
     nom = models.CharField(max_length=100, null=True, blank=True)
-    district = models.ForeignKey(Commune, on_delete=models.CASCADE, null=True, blank=True, )
+    type = models.ForeignKey(TypeServiceSanitaire, on_delete=models.SET_NULL, null=True, blank=True)
+    commune = models.ForeignKey(Commune, on_delete=models.CASCADE, null=True, blank=True, )
+    district = models.ForeignKey(DistrictSanitaire, on_delete=models.CASCADE, null=True, blank=True, )
     geom = models.PointField(srid=4326, null=True, blank=True)
     upstream = models.CharField(max_length=255, null=True, blank=True)
     date_modified = models.DateTimeField(null=True, blank=True)
@@ -294,19 +304,22 @@ class SanitaryIncident(models.Model):
         ('validated', 'Validé'),
         ('rejected', 'Rejeté'),
     ]
+
+    OUTCOME_CHOICES = [('mort', 'Décès'),
+                       ('blessure', 'Blessure'),
+                       ('sauvé', 'Sauvé'),
+                       ('autre', 'Autre'), ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
     incident_type = models.ForeignKey(IncidentType, on_delete=models.CASCADE, db_index=True)
     description = models.TextField()
     date_time = models.DateTimeField()
     location = gis_models.PointField(geography=True, null=True, blank=True, db_index=True)
     city = models.ForeignKey(Commune, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
+    centre_sante = models.ForeignKey(ServiceSanitaire, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     number_of_people_involved = models.PositiveIntegerField()
-    outcome = models.CharField(max_length=100, choices=[
-        ('mort', 'Décès'),
-        ('blessure', 'Blessure'),
-        ('sauvé', 'Sauvé'),
-        ('autre', 'Autre'),
-    ])
+    outcome = models.CharField(max_length=100, choices=OUTCOME_CHOICES, db_index=True)
+    deces_nbr = models.PositiveIntegerField()
+    blessure_nbr = models.PositiveIntegerField()
     source = models.CharField(max_length=255)
     event = models.ForeignKey(
         MajorEvent, null=True, blank=True,
@@ -454,6 +467,13 @@ class IncidentMedia(models.Model):
 
     def __str__(self):
         return f"{self.media_type} - {self.media_url}"
+
+
+class ReportRecipient(models.Model):
+    email = models.EmailField(unique=True)
+
+    def __str__(self):
+        return self.email
 
 
 class Testimony(models.Model):

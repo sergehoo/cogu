@@ -1,6 +1,10 @@
+from django import template
+
 import django_filters
 
 from cogu.models import Patient
+
+register = template.Library()
 
 
 class PatientFilter(django_filters.FilterSet):
@@ -23,10 +27,15 @@ class PatientFilter(django_filters.FilterSet):
 
     def filter_by_age_min(self, queryset, name, value):
         from datetime import date, timedelta
-        max_date = date.today() - timedelta(days=int(value)*365)
+        max_date = date.today() - timedelta(days=int(value) * 365)
         return queryset.filter(date_naissance__lte=max_date)
 
     def filter_by_age_max(self, queryset, name, value):
         from datetime import date, timedelta
-        min_date = date.today() - timedelta(days=int(value)*365)
+        min_date = date.today() - timedelta(days=int(value) * 365)
         return queryset.filter(date_naissance__gte=min_date)
+
+
+@register.filter
+def filter_by_status(queryset, status):
+    return queryset.filter(status=status).count()

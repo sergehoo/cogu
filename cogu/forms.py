@@ -1,3 +1,4 @@
+from allauth.account.forms import SignupForm
 from django import forms
 from django.core.exceptions import ValidationError
 from django_recaptcha.fields import ReCaptchaField
@@ -55,158 +56,162 @@ class MajorEventForm(forms.ModelForm):
 class SanitaryIncidentForm(forms.ModelForm):
     location_text = forms.CharField(
         required=False,
-        label="Coordonnées GPS",
+        label="Coordonnées GPS (manuel)",
         widget=forms.TextInput(attrs={
             "placeholder": "POINT(longitude latitude)",
             "class": "form-control",
             "name": "auto_location",
-            "id": "location_text_field"  # 👈 Important pour le JS
+            "id": "location_text_field"
         }),
-        help_text="Format : POINT(longitude latitude)"
+        help_text="Format : POINT(longitude latitude) - Exemple: POINT(-1.654 12.345)"
     )
-    auto_location = forms.CharField(required=False, widget=forms.HiddenInput())
+
+    auto_location = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+        label="Coordonnées GPS automatiques"
+    )
+
     patients_related = forms.ModelMultipleChoiceField(
         queryset=Patient.objects.all(),
         required=False,
-        widget=Select2MultipleWidget(attrs={"class": "form-select select2-multiple"}),
-        label="Patients concernés"
+        widget=Select2MultipleWidget(
+            attrs={"class": "form-control select2-multiple", 'id': 'kt_select2_3', 'name': 'param'}),
+        label="Patients concernés",
+        help_text="Sélectionnez un ou plusieurs patients concernés par cet incident"
     )
 
     class Meta:
         model = SanitaryIncident
-        exclude = ['location', 'status']  # on utilise location_text à la place
-        widgets = {
-            'incident_type': forms.Select(attrs={'class': 'form-select'}),
-            'date_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'city': forms.Select(attrs={'class': 'form-control ', 'id': "kt_select2_1", "name": "param"}),
-            'number_of_people_involved': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
-            'outcome': forms.Select(attrs={'class': 'form-select'}),
-            'event': forms.Select(attrs={'class': 'form-select'}),
-            'source': forms.TextInput(attrs={'class': 'form-control'}),
+        exclude = ['location', 'status', 'message', 'posted_by', 'validated_by']
+        labels = {
+            'incident_type': "Type d'incident",
+            'date_time': "Date et heure de l'incident",
+            'description': "Description détaillée",
+            'city': "Ville/Commune",
+            'number_of_people_involved': "Nombre de personnes impliquées",
+            'outcome': "Conséquence Majeure",
+            'event': "Événement associé",
+            'source': "Source de l'information",
+            'deces_nbr': "Nombre de décès",
+            'blessure_nbr': " nombre de blessés"
         }
-
-    def clean_location_text(self):
-        location_str = self.cleaned_data.get("location_text")
-        auto_str = self.cleaned_data.get("auto_location")
-
-        if location_str:
-            try:
-                if not location_str.startswith("POINT(") or not location_str.endswith(")"):
-                    raise ValueError
-                lon, lat = map(float, location_str[6:-1].split())
-                return Point(lon, lat)
-            except Exception:
-                raise forms.ValidationError("Le format est invalide. Utilisez : POINT(longitude latitude).")
-
-        elif auto_str:
-            try:
-                if not auto_str.startswith("POINT(") or not auto_str.endswith(")"):
-                    raise ValueError
-                lon, lat = map(float, auto_str[6:-1].split())
-                return Point(lon, lat)
-            except Exception:
-                raise forms.ValidationError("Impossible d’utiliser la localisation automatique.")
-
-        raise forms.ValidationError("Veuillez renseigner ou autoriser votre position GPS.")
-
-    def clean_number_of_people_involved(self):
-        nb = self.cleaned_data.get("number_of_people_involved")
-        if nb is not None and nb <= 0:
-            raise forms.ValidationError("Le nombre de personnes doit être supérieur à zéro.")
-        return nb
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.location = self.cleaned_data.get("location_text")
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
+        widgets = {
+            'incident_type': forms.Select(
+                attrs={'class': 'form-control select2', 'id': 'kt_select2_2', 'name': 'param'}),
+            'date_time': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'form-control',
+                'help_text': "Sélectionnez la date et l'heure exactes de l'incident"
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': "Décrivez l'incident en détail..."
+            }),
+            'city': forms.Select(attrs={
+                'class': 'form-control',
+                'id': "kt_select2_1",
+                "name": "param",
+                'help_text': "Sélectionnez la localité concernée"
+            }),
+            'centre_sante': forms.Select(attrs={
+                'class': 'form-control',
+                'id': "kt_select2_1",
+                "name": "param",
+                'help_text': "Sélectionnez la localité concernée"
+            }),
+            'number_of_people_involved': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1,
+                'help_text': "Nombre total de personnes affectées"
+            }),
+            'outcome': forms.Select(attrs={
+                'class': 'form-select',
+                'help_text': "Quel a été le résultat de cet incident?"
+            }),
+            'deces_nbr': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'help_text': "Nombre total de personnes affectées"
+            }),
+            'blessure_nbr': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'help_text': "Nombre total de personnes affectées"
+            }),
+            'event': forms.Select(attrs={
+                'class': 'form-select',
+                'help_text': "Sélectionnez l'événement associé si applicable"
+            }),
+            'source': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': "Qui a rapporté cet incident?",
+                'help_text': "Personne ou entité ayant signalé l'incident"
+            }),
+        }
 
 
 class PublicIncidentForm(forms.ModelForm):
     location_text = forms.CharField(
         required=False,
-        label="Coordonnées GPS",
+        label="Coordonnées GPS (manuel)",
         widget=forms.TextInput(attrs={
             "placeholder": "POINT(longitude latitude)",
             "class": "form-control",
-            "id": "location_text_field"  # 👈 Important pour le JS
+            "id": "location_text_field"
         }),
-        help_text="Format : POINT(longitude latitude)"
+        help_text="Format : POINT(longitude latitude) - Exemple: POINT(-1.654 12.345)"
     )
 
     auto_location = forms.CharField(
         required=False,
-        widget=forms.HiddenInput()
+        widget=forms.HiddenInput(),
+        label="Coordonnées GPS automatiques"
     )
 
     class Meta:
         model = SanitaryIncident
-        exclude = ['location', 'patients_related', 'status', 'source', 'posted_by', 'validated_by', 'outcome',
-                   'message', 'event',
-                   'created_at']  # handled manually or auto
-        widgets = {
-            'incident_type': forms.Select(attrs={'class': 'form-select'}),
-            'date_time': forms.DateTimeInput(attrs={
-                'type': 'datetime-local', 'class': 'form-control'
-            }),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'city': forms.Select(attrs={'class': 'form-select'}),
-            'number_of_people_involved': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
-            'outcome': forms.Select(attrs={'class': 'form-select'}),
-            'event': forms.Select(attrs={'class': 'form-select'}),
-            'source': forms.TextInput(attrs={'class': 'form-control'}),
+        exclude = ['location', 'patients_related', 'status', 'source', 'posted_by',
+                   'validated_by', 'outcome', 'message', 'event', 'created_at']
+        labels = {
+            'incident_type': "Type d'incident",
+            'date_time': "Date et heure de l'incident",
+            'description': "Description détaillée",
+            'city': "Ville/Commune",
+            'number_of_people_involved': "Nombre de personnes impliquées",
         }
-
-    def clean_location_text(self):
-        location_raw = self.cleaned_data.get("location_text")
-        auto_raw = self.cleaned_data.get("auto_location")
-
-        def parse_point(raw):
-            if isinstance(raw, Point):
-                return raw
-            if not isinstance(raw, str):
-                raise ValidationError("Format invalide.")
-            if not raw.startswith("POINT(") or not raw.endswith(")"):
-                raise ValidationError("Format invalide. Exemple attendu : POINT(-3.978 5.336)")
-            try:
-                lon, lat = map(float, raw[6:-1].split())
-                return Point(lon, lat)
-            except Exception:
-                raise ValidationError("Coordonnées GPS non valides.")
-
-        if location_raw:
-            return parse_point(location_raw)
-        elif auto_raw:
-            return parse_point(auto_raw)
-
-        raise ValidationError("Veuillez saisir ou autoriser votre position GPS.")
-
-    def clean_number_of_people_involved(self):
-        nb = self.cleaned_data.get("number_of_people_involved")
-        if nb is not None and nb <= 0:
-            raise forms.ValidationError("Le nombre de personnes doit être supérieur à zéro.")
-        return nb
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-
-        # Récupère la valeur nettoyée (déjà un objet Point ou None)
-        instance.location = self.cleaned_data.get("location_text")
-
-        if commit:
-            instance.save()
-            self.save_m2m()
-
-        return instance
+        widgets = {
+            'incident_type': forms.Select(attrs={
+                'class': 'form-select',
+                'help_text': "Sélectionnez le type d'incident sanitaire"
+            }),
+            'date_time': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'form-control',
+                'help_text': "Quand cet incident s'est-il produit?"
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': "Décrivez ce que vous avez observé...",
+                'help_text': "Décrivez l'incident avec le plus de détails possible"
+            }),
+            'city': forms.Select(attrs={
+                'class': 'form-select',
+                'help_text': "Dans quelle localité cet incident s'est-il produit?"
+            }),
+            'number_of_people_involved': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1,
+                'help_text': "Nombre approximatif de personnes affectées"
+            }),
+        }
 
 
 class ContactForm(forms.ModelForm):
     honeypot = forms.CharField(required=False, widget=forms.HiddenInput)
     captcha = ReCaptchaField(widget=ReCaptchaV2Checkbox)
-
 
     class Meta:
         model = ContactMessage
@@ -223,3 +228,10 @@ class ContactForm(forms.ModelForm):
             if data:
                 raise forms.ValidationError("Bot détecté.")
             return data
+
+
+class CustomSignupForm(SignupForm):
+    captcha = ReCaptchaField(widget=ReCaptchaV2Checkbox)
+
+    def save(self, request):
+        return super().save(request)

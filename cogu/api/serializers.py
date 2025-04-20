@@ -1,3 +1,8 @@
+from rest_framework import serializers
+
+from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, DistrictSanitaire
+
+
 class PatientSerializer(serializers.ModelSerializer):
     age = serializers.SerializerMethodField()
     contact_formatte = serializers.SerializerMethodField()
@@ -27,7 +32,15 @@ class IncidentTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = IncidentType
         fields = '__all__'
+
+
 class SanitaryIncidentSerializer(serializers.ModelSerializer):
     class Meta:
         model = SanitaryIncident
+        fields = '__all__'
+
+
+class DistrictSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DistrictSanitaire
         fields = '__all__'

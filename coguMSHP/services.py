@@ -389,7 +389,12 @@ def twilio_whatsapp_webhook(request):
     try:
         info = extract_info_from_message(message_body)
 
-        matched_commune = Commune.objects.filter(name__icontains=message_body).first()
+        communes = Commune.objects.all()
+        matched_commune = next(
+            (commune for commune in communes if commune.name.lower() in message_body.lower()),
+            None
+        )
+
         location = matched_commune.location if matched_commune else None
 
         incident_type_name = info.get('incident_type_name')

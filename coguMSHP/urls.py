@@ -19,6 +19,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include, re_path
 
+from cogu.api.views import DistrictListAPIView
+from cogu.repport_send import send_generate_cogu_report, send_report_view
 from cogu.views import (
     PatientListView, PatientCreateView, PatientDetailView, PatientUpdateView, PatientDeleteView,
     MajorEventListView, MajorEventCreateView, MajorEventDetailView, MajorEventUpdateView, MajorEventDeleteView,
@@ -28,7 +30,7 @@ from cogu.views import (
     SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, LandingView, IncidentToValidListView,
     WhatsAppMessageListView, validate_incident, reject_incident, IncidentMapView, PublicUserDashboard,
     PublicIncidentCreateView, PublicIncidentListView, PublicIncidentDetailView, PolitiqueConfidentialiteView,
-    MajorEventGridView, contact,
+    MajorEventGridView, contact, generate_cogu_report, IncidentReportView,
 )
 from coguMSHP.services import twilio_whatsapp_webhook, meta_whatsapp_webhook
 from coguMSHP.utils import notifications
@@ -83,15 +85,28 @@ urlpatterns = [
                   path('incidents/<int:pk>/delete/', SanitaryIncidentDeleteView.as_view(),
                        name='sanitaryincident_delete'),
 
+                  path('cogu-report/', generate_cogu_report, name='generate_cogu_report'),
+                  path('cogu-report/', send_generate_cogu_report, name='send_generate_cogu_report'),
+                  path('cogu-report/send/', send_report_view, name='send_generate_cogu_report'),
+                  # path('cogu-report/pdf/', generate_cogu_report, {'format': 'pdf'}, name='generate_cogu_report_pdf'),
+                  # path('cogu-report/word/', generate_cogu_report, {'format': 'word'}, name='generate_cogu_report_word'),
+
+                  path('incidents/report/', IncidentReportView.as_view(), name='incident_report'),
+                  # path('incidents/export/excel/', ExportIncidentsExcel.as_view(), name='export_incidents'),
+                  # path('incidents/export/pdf/', ExportIncidentsPDF.as_view(), name='export_incidents_pdf'),
+                  path('api/districts/', DistrictListAPIView.as_view(), name='district_list_api'),
+
                   #publique access
 
                   path('', LandingView.as_view(), name='landing'),
                   path('politique/de/confidentialite', PolitiqueConfidentialiteView.as_view(), name='politique'),
                   path('mon-espace/', PublicUserDashboard.as_view(), name='public_dashboard'),
-                  path('mon-espace/Signaler/incident', PublicIncidentCreateView.as_view(), name='public_incidentcreate'),
+                  path('mon-espace/Signaler/incident', PublicIncidentCreateView.as_view(),
+                       name='public_incidentcreate'),
                   path('mon-espace/incident/list', PublicIncidentListView.as_view(), name='public_incidentlist'),
 
-                  re_path(r'^mon-espace/incident/detail/incident-(?P<pk>\d+)/$', PublicIncidentDetailView.as_view(), name='public_incidentdetail'),
+                  re_path(r'^mon-espace/incident/detail/incident-(?P<pk>\d+)/$', PublicIncidentDetailView.as_view(),
+                          name='public_incidentdetail'),
               ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

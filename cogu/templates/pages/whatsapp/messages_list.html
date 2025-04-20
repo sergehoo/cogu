@@ -4,140 +4,142 @@
 <div class="main-content">
     {% include 'layout/nav-head.html' %}
 
-    <!-- Liste des incidents -->
+    <!-- Liste des messages -->
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Incidents Sanitaires</h5>
-{#            <a href="{% url 'sanitaryincident_create' %}" class="btn btn-primary">#}
-{#                <i class="fas fa-plus me-2"></i> Nouvel Incident#}
-{#            </a>#}
+            <h5 class="mb-0">Messages SMS</h5>
+            <a href="" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> Nouveau Message
+            </a>
         </div>
 
         <div class="card-body">
-         <!-- Carte -->
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="50">#</th>
+                            <th width="120">Direction</th>
+                            <th>Expéditeur</th>
+                            <th>Destinataire</th>
+                            <th>Message</th>
+                            <th width="150">Date</th>
+                            <th width="120">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in messages %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                {% if msg.direction == 'in' %}
+                                    <span class="badge bg-success">Entrant</span>
+                                {% else %}
+                                    <span class="badge bg-primary">Sortant</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ msg.sender|default:"-" }}</td>
+                            <td>{{ msg.recipient|default:"-" }}</td>
+                            <td>
+                                <span class="d-inline-block text-truncate" style="max-width: 200px;"
+                                      title="{{ msg.body }}">
+                                    {{ msg.body|truncatechars:80 }}
+                                </span>
+                            </td>
+                            <td>{{ msg.timestamp|date:'d/m/Y H:i' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href=""
+                                       class="btn btn-outline-primary"
+                                       title="Voir">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
 
-
-              <table class="table table-hover">
-    <thead class="table-light">
-      <tr>
-        <th>#</th>
-        <th>Direction</th>
-        <th>Expéditeur</th>
-        <th>Destinataire</th>
-        <th>Message</th>
-        <th>Date</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for msg in messages %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>
-          {% if msg.direction == 'in' %}
-            <span class="badge bg-success">Entrant</span>
-          {% else %}
-            <span class="badge bg-primary">Sortant</span>
-          {% endif %}
-        </td>
-        <td>{{ msg.sender }}</td>
-        <td>{{ msg.recipient }}</td>
-        <td>{{ msg.body|truncatechars:80 }}</td>
-        <td>{{ msg.timestamp|date:'d/m/Y H:i' }}</td>
-       <td>
-                                <div class="btn-group">
-                                    <a href="" class="btn btn-xs btn-outline-primary"><i class="fas fa-eye"></i></a>
-                                    <a href="" class="btn btn-xs btn-outline-secondary"><i class="fas fa-edit"></i></a>
-                                    <a href="" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></a>
+                                    <a href=""
+                                       class="btn btn-outline-danger"
+                                       title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
                                 </div>
                             </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="6" class="text-center">Aucun message trouvé.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                                <p class="text-muted">Aucun message trouvé</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
             {% if is_paginated %}
-            <nav class="mt-4" aria-label="Page navigation">
+            <nav class="mt-4" aria-label="Pagination">
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&laquo;</a>
+                        <a class="page-link"
+                           href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                            &laquo; Précédent
+                        </a>
                     </li>
                     {% else %}
-                    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo; Précédent</span>
+                    </li>
                     {% endif %}
 
                     {% for num in page_obj.paginator.page_range %}
                         {% if page_obj.number == num %}
-                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
                         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
                         {% endif %}
                     {% endfor %}
 
                     {% if page_obj.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&raquo;</a>
+                        <a class="page-link"
+                           href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                            Suivant &raquo;
+                        </a>
                     </li>
                     {% else %}
-                    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    <li class="page-item disabled">
+                        <span class="page-link">Suivant &raquo;</span>
+                    </li>
                     {% endif %}
                 </ul>
             </nav>
             {% endif %}
-
-
         </div>
     </div>
 
-{% include 'layout/footer.html' %}
+    {% include 'layout/footer.html' %}
 </div>
+{% endblock %}
 
-
+{% block javascripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const map = L.map('incidentMap').setView([7.5, -5.5], 7);
+document.addEventListener('DOMContentLoaded', function() {
+    // Tooltips pour les boutons d'action
+    $('[title]').tooltip();
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    const markerCluster = L.markerClusterGroup();
-    const markerBounds = [];
-
-    {% for incident in incidents %}
-    {% if incident.location %}
-    try {
-        const lat = {{ incident.location.y }};
-        const lng = {{ incident.location.x }};
-        const popupContent = `
-            <b>{{ incident.incident_type.name }}</b><br>
-            {{ incident.date_time|date:"d/m/Y H:i" }}<br>
-            {{ incident.get_outcome_display }}<br>
-            <a href="{% url 'sanitaryincident_detail' incident.id %}" class="btn btn-sm btn-primary mt-2">
-                <i class="fas fa-eye"></i> Détails
-            </a>`;
-
-        const marker = L.marker([lat, lng]);
-        marker.bindPopup(popupContent);
-        markerCluster.addLayer(marker);
-        markerBounds.push([lat, lng]);
-    } catch (err) {
-        console.error("Erreur lors de l'ajout d'un incident sur la carte:", err);
-    }
-    {% endif %}
-    {% endfor %}
-
-    map.addLayer(markerCluster);
-
-    if (markerBounds.length > 0) {
-        map.fitBounds(markerBounds, { padding: [30, 30] });
-    }
+    // Confirmation avant suppression
+    $('.btn-outline-danger').click(function(e) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce message ?')) {
+            e.preventDefault();
+        }
+    });
 });
 </script>
 {% endblock %}
-
-

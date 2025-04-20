@@ -1,3 +1,27 @@
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, permissions, filters
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from cogu.api.serializers import PatientSerializer, DistrictSerializer, MajorEventSerializer, IncidentTypeSerializer, \
+    SanitaryIncidentSerializer
+from cogu.models import DistrictSanitaire, Patient, MajorEvent, IncidentType, SanitaryIncident
+
+
+class DistrictListAPIView(ListAPIView):
+    serializer_class = DistrictSerializer
+    # permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        region_id = self.request.GET.get('region')
+        if region_id:
+            return DistrictSanitaire.objects.filter(region_id=region_id)
+        return DistrictSanitaire.objects.all()
+
+
 class PatientListCreateView(generics.ListCreateAPIView):
     queryset = Patient.objects.all()
     serializer_class = PatientSerializer

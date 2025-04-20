@@ -4,7 +4,8 @@ from import_export.admin import ImportExportModelAdmin
 from leaflet.admin import LeafletGeoAdmin
 
 from cogu.models import IncidentType, SanitaryIncident, MajorEvent, Patient, Commune, DistrictSanitaire, HealthRegion, \
-    PolesRegionaux, EmployeeUser, WhatsAppMessage, IncidentMedia, ContactMessage
+    PolesRegionaux, EmployeeUser, WhatsAppMessage, IncidentMedia, ContactMessage, ReportRecipient, ServiceSanitaire, \
+    TypeServiceSanitaire
 
 
 @admin.register(ContactMessage)
@@ -145,3 +146,24 @@ class WhatsAppMessageAdmin(admin.ModelAdmin):
 @admin.register(IncidentMedia)
 class IncidentMediaAdmin(admin.ModelAdmin):
     list_display = ('incident', 'media_type', 'media_url', 'downloaded_file')
+
+
+@admin.register(ReportRecipient)
+class ReportRecipientAdmin(admin.ModelAdmin):
+    list_display = ['email']
+
+
+@admin.register(TypeServiceSanitaire)
+class TypeServiceSanitaireAdmin(ImportExportModelAdmin):
+    # resource_class = SyntheseDistrictResource
+    list_display = ('nom', 'acronyme')
+    search_fields = ['nom']
+    list_filter = ['acronyme', 'nom']
+
+
+@admin.register(ServiceSanitaire)
+class ServiceSanitaireDistrictAdmin(ImportExportModelAdmin):
+    # resource_class = SyntheseDistrictResource
+    list_display = ('nom', 'commune')
+    search_fields = ['nom', 'commune__name', 'type__acronyme']
+    list_filter = ['type__acronyme', 'commune__name']

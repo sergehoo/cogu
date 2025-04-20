@@ -1,6 +1,8 @@
 import calendar
+import os
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -15,11 +17,23 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, ListView, CreateView, DetailView, UpdateView, DeleteView, FormView
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+
 from cogu.filters import PatientFilter
 from cogu.forms import SanitaryIncidentForm, PublicIncidentForm, ContactForm
 from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune, HealthRegion, VictimCare, \
-    WhatsAppMessage
+    WhatsAppMessage, DistrictSanitaire
 from django.contrib.gis.geos import Point
+from django.http import HttpResponse
+from django.template.loader import get_template
+from django.shortcuts import render
+from django.utils import timezone
+from datetime import datetime, timedelta
+from docx import Document
+from docx.shared import Inches, Pt
+from xhtml2pdf import pisa
+from io import BytesIO
+from .models import SanitaryIncident, IncidentType, MajorEvent, Commune
 
 
 # Create your views here.
@@ -84,8 +98,6 @@ class LandingView(FormView):
 
 class PolitiqueConfidentialiteView(TemplateView):
     template_name = "pages/politique_confidential.html"
-
-
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -561,7 +573,48 @@ class SanitaryIncidentListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     allowed_roles = ['National', 'Regional']
 
     def get_queryset(self):
-        return SanitaryIncident.objects.filter(status='validated').order_by(*self.ordering)
+        queryset = SanitaryIncident.objects.filter(
+            status='validated',
+            location__isnull=False  # 👈 On ajoute ce filtre
+        ).order_by(*self.ordering)
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(description__icontains=search) |
+                Q(city__name__icontains=search)
+            )
+
+        if self.request.GET.get('incident_type'):
+            queryset = queryset.filter(incident_type_id=self.request.GET.get('incident_type'))
+
+        if self.request.GET.get('outcome'):
+            queryset = queryset.filter(outcome=self.request.GET.get('outcome'))
+
+        if self.request.GET.get('date'):
+            queryset = queryset.filter(date_time__date=self.request.GET.get('date'))
+
+        if self.request.GET.get('city'):
+            queryset = queryset.filter(city_id=self.request.GET.get('city'))
+
+        if self.request.GET.get('event'):
+            queryset = queryset.filter(event_id=self.request.GET.get('event'))
+
+        min_people = self.request.GET.get('min_people')
+        max_people = self.request.GET.get('max_people')
+        if min_people:
+            queryset = queryset.filter(number_of_people_involved__gte=min_people)
+        if max_people:
+            queryset = queryset.filter(number_of_people_involved__lte=max_people)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['incident_types'] = IncidentType.objects.all()
+        context['cities'] = Commune.objects.all()
+        context['events'] = MajorEvent.objects.all()
+        context['outcome_choices'] = SanitaryIncident.OUTCOME_CHOICES
+        return context
 
 
 class IncidentToValidListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
@@ -580,7 +633,7 @@ class SanitaryIncidentCreateView(LoginRequiredMixin, RoleRequiredMixin, CreateVi
     model = SanitaryIncident
     template_name = 'sanitaryincident/create.html'
     form_class = SanitaryIncidentForm
-    success_url = reverse_lazy('sanitaryincident_list')
+    success_url = reverse_lazy('sanitaryincident_non_valid_list')
     allowed_roles = ['National', 'Regional']
 
     def form_valid(self, form):
@@ -641,6 +694,7 @@ def reject_incident(request, pk):
 class IncidentMapView(RoleRequiredMixin, TemplateView):
     template_name = 'sanitaryincident/incident_map.html'
     allowed_roles = ['National', 'Regional']
+    redirect_view_if_denied = 'public_dashboard'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -690,6 +744,7 @@ class SanitaryIncidentDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailVi
     template_name = 'sanitaryincident/detail.html'
     context_object_name = 'incident'
     allowed_roles = ['National', 'Regional']
+    redirect_view_if_denied = 'public_dashboard'
 
     def get_queryset(self):
         return (
@@ -706,6 +761,7 @@ class SanitaryIncidentUpdateView(LoginRequiredMixin, RoleRequiredMixin, UpdateVi
     form_class = SanitaryIncidentForm
     success_url = reverse_lazy('sanitaryincident_list')
     allowed_roles = ['National', 'Regional']
+    redirect_view_if_denied = 'public_dashboard'
 
     def form_valid(self, form):
         messages.success(self.request, 'Incident enregistré avec succès!')
@@ -728,6 +784,7 @@ class SanitaryIncidentDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteVi
     template_name = 'sanitaryincident/delete.html'
     success_url = reverse_lazy('sanitaryincident_list')
     allowed_roles = ['National', 'Regional']
+    redirect_view_if_denied = 'public_dashboard'
 
 
 class WhatsAppMessageListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
@@ -737,6 +794,7 @@ class WhatsAppMessageListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     paginate_by = 20
     ordering = ['-timestamp']
     allowed_roles = ['National', 'Regional']
+    redirect_view_if_denied = 'public_dashboard'
 
     def get_queryset(self):
         return WhatsAppMessage.objects.all().order_by(*self.ordering)
@@ -755,3 +813,417 @@ def contact(request):
         form = ContactForm()
 
     return render(request, 'pages/landing.html', {'form': form})
+
+
+def generate_cogu_report(request, *args, **kwargs):
+    today = timezone.now().date()
+    yesterday = today - timedelta(days=1)
+
+    output_format = request.GET.get('format') or kwargs.get('format', 'pdf')
+
+    daily_incidents = SanitaryIncident.objects.filter(
+        date_time__date=today
+    ).select_related(
+        'incident_type', 'city__district__region'
+    )
+
+    total_incidents = daily_incidents.count()
+    validated_incidents = daily_incidents.filter(status='validated').count()
+    pending_incidents = daily_incidents.filter(status='pending').count()
+
+    resolved_incidents = SanitaryIncident.objects.filter(
+        date_time__date=yesterday,
+        status='validated'
+    ).count()
+
+    regions = HealthRegion.objects.all()
+    region_data = []
+
+    for region in regions:
+        region_incidents = daily_incidents.filter(city__district__region=region)
+
+        incident_types = {}
+        for incident in region_incidents:
+            type_name = incident.incident_type.name
+            if type_name not in incident_types:
+                incident_types[type_name] = {
+                    'validated': 0,
+                    'pending': 0,
+                    'total': 0
+                }
+            incident_types[type_name]['total'] += 1
+            if incident.status == 'validated':
+                incident_types[type_name]['validated'] += 1
+            else:
+                incident_types[type_name]['pending'] += 1
+
+        region_data.append({
+            'name': region.name,
+            'total_incidents': region_incidents.count(),
+            'incident_types': incident_types,
+            'actions': get_actions_for_region(region.name)
+        })
+
+    context = {
+        'date': today.strftime("%d %B %Y"),
+        'total_incidents': total_incidents,
+        'validated_incidents': validated_incidents,
+        'pending_incidents': pending_incidents,
+        'resolved_incidents': resolved_incidents,
+        'region_data': region_data,
+        'actions_taken': get_actions_taken(),
+        'recommendations': get_recommendations(),
+        'next_steps': get_next_steps(),
+        'logo_armoirie_path': '/static/assets/media/armoirie_ci.png',
+        'logo_sante_path': '/static/assets/media/logoMSHPCMU.png',
+        'logo_afriqconsulting_path': '/static/assets/media/logo-AFRIQ-CONSULTING.png',
+    }
+
+    if output_format == 'pdf':
+        return generate_pdf_report(context)
+    elif output_format == 'word':
+        return generate_word_report(context)
+    else:
+        return HttpResponse("Invalid format specified", status=400)
+
+
+def generate_pdf_report(context):
+    template = get_template('reports/cogu_report.html')
+    html = template.render(context)
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+
+    if not pdf.err:
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="COGU_Report_{context["date"]}.pdf"'
+        return response
+    return HttpResponse('Error generating PDF', status=500)
+
+
+def generate_word_report(context):
+    document = Document()
+
+    # ==================== EN-TÊTE AVEC LOGOS ====================
+    section = document.sections[0]
+    header = section.header
+
+    # Créer un tableau pour organiser les logos et le titre
+    table = header.add_table(rows=1, cols=3, width=Inches(6.5))
+    table.autofit = False
+
+    # Configurer les largeurs des colonnes
+    widths = (Inches(1.5), Inches(3.5), Inches(1.5))
+    for row in table.rows:
+        for idx, width in enumerate(widths):
+            row.cells[idx].width = width
+
+    # Cellule gauche - Logo des armoiries
+    left_cell = table.cell(0, 0)
+    left_para = left_cell.paragraphs[0]
+    left_para.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+    try:
+        left_para.add_run().add_picture(
+            os.path.join(settings.STATIC_ROOT, 'assets/media/images.jpeg'),
+            width=Inches(1.3)
+        )
+    except:
+        left_para.add_run("[LOGO ARMOIRIES CIV]")
+
+    # Cellule centrale - Titre
+    center_cell = table.cell(0, 1)
+    center_para = center_cell.paragraphs[0]
+    center_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    title_run = center_para.add_run('RAPPORT JOURNALIER COGU')
+    title_run.bold = True
+    title_run.font.size = Pt(16)
+
+    subtitle = center_para.add_run('\nMinistère de la Santé et de l\'Hygiène Publique')
+    subtitle.font.size = Pt(12)
+
+    # Cellule droite - Logo ministère santé
+    right_cell = table.cell(0, 2)
+    right_para = right_cell.paragraphs[0]
+    right_para.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+    try:
+        right_para.add_run().add_picture(
+            os.path.join(settings.STATIC_ROOT, 'assets/media/logoMSHPCMU.png'),
+            width=Inches(1.3)
+        )
+    except:
+        right_para.add_run("[LOGO MINISTERE SANTE]")
+
+    # Ajouter une ligne de séparation
+    header.add_paragraph()
+    p = header.add_paragraph()
+    p.add_run().add_break()
+    p.add_run("_" * 100).bold = True
+
+    # ==================== CORPS DU DOCUMENT ====================
+    document.add_paragraph(f"Date : {context['date']}")
+    document.add_paragraph("Destinataires : Monsieur le Ministre de la Santé, Membres du COGU")
+    document.add_paragraph("Émetteur : Directeur Général de la Santé et de l'Hygiène Publique (DGSHP)")
+
+    # document.add_heading('RAPPORT JOURNALIER COGU', level=0)
+    # document.add_paragraph(f"Date : {context['date']}")
+    # document.add_paragraph("Destinataires : Monsieur le Ministre de la Santé, Membres du COGU")
+    # document.add_paragraph("Émetteur : Directeur Général de la Santé et de l'Hygiène Publique (DGSHP)")
+
+    document.add_heading('RÉCAPITULATIF GLOBAL', level=1)
+    document.add_paragraph(f"Nombre total d'incidents signalés : {context['total_incidents']}")
+    document.add_paragraph(f"Incidents validés : {context['validated_incidents']}")
+    document.add_paragraph(f"Incidents en cours de validation : {context['pending_incidents']}")
+    document.add_paragraph(f"Incidents résolus hier : {context['resolved_incidents']}")
+
+    document.add_heading('DÉTAILS PAR RÉGION SANITAIRE', level=1)
+    table = document.add_table(rows=1, cols=5)
+    table.style = 'Table Grid'
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Région'
+    hdr_cells[1].text = 'Total'
+    hdr_cells[2].text = 'Types d’incidents'
+    hdr_cells[3].text = 'Statuts'
+    hdr_cells[4].text = 'Actions'
+
+    for region in context['region_data']:
+        row = table.add_row().cells
+        row[0].text = region['name']
+        row[1].text = str(region['total_incidents'])
+        types = [f"- {c['total']} cas de {t}" for t, c in region['incident_types'].items()]
+        row[2].text = "\n".join(types)
+        statuts = [f"- {c['validated']} validés, {c['pending']} en cours" for t, c in region['incident_types'].items()]
+        row[3].text = "\n".join(statuts)
+        row[4].text = "\n".join([f"- {a}" for a in region['actions']])
+
+    for title, items in [
+        ("ACTIONS MENÉES ET INTERVENTIONS EN COURS", context['actions_taken']),
+        ("RECOMMANDATIONS ET PERSPECTIVES", context['recommendations']),
+        ("PROCHAINES ÉTAPES", context['next_steps']),
+    ]:
+        document.add_heading(title, level=1)
+        for item in items:
+            document.add_paragraph(item, style='List Bullet')
+
+    document.add_heading('Conclusion', level=1)
+    document.add_paragraph(
+        "La situation reste sous contrôle, avec un bon niveau de réactivité des équipes de terrain. "
+        "Les investigations se poursuivent. Un suivi quotidien est maintenu pour informer Monsieur le Ministre."
+    )
+    document.add_paragraph(f"Fait à Abidjan, le {context['date']}")
+    document.add_paragraph("Signature :")
+    document.add_paragraph("Pr. SAMBA Mamadou")
+    document.add_paragraph("Directeur Général de la Santé et de l'Hygiène Publique")
+
+    # ==================== PIED DE PAGE ====================
+    footer = section.footer
+    footer_para = footer.paragraphs[0]
+    footer_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    footer_para.text = f"© {datetime.now().year} Ministère de la Santé - Tous droits réservés"
+
+    # Ajouter le logo Afriq Consulting
+    footer_para.add_run().add_break()
+    try:
+        footer_para.add_run().add_picture(
+            os.path.join(settings.STATIC_ROOT, 'assets/media/logo-AFRIQ-CONSULTING.png'),
+            width=Inches(1.0)
+        )
+        footer_para.add_run(" - Solution développée par Afriq Consulting")
+    except:
+        footer_para.add_run("[LOGO AFRIQ CONSULTING]")
+
+    file_stream = BytesIO()
+    document.save(file_stream)
+    file_stream.seek(0)
+    response = HttpResponse(file_stream.read(),
+                            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = f'attachment; filename="COGU_Report_{context["date"]}.docx"'
+    return response
+
+
+# Helper functions
+def get_actions_for_region(region_name):
+    # This would be customized based on your business logic
+    actions = {
+        'Abidjan 1': [
+            "Enquête épidémiologique",
+            "Prélèvements et analyses en cours"
+        ],
+        'Gbêkê (Bouaké)': [
+            "Équipe de surveillance déployée",
+            "Sensibilisation communautaire"
+        ],
+        'Haut-Sassandra': [
+            "Traitement symptomatique",
+            "Aucune complication signalée"
+        ],
+        'Poro (Korhogo)': [
+            "Mise en observation des cas",
+            "Campagne d'hygiène alimentaire"
+        ],
+        'Sud-Comoé (Aboisso)': [
+            "Investigation médicale",
+            "Surveillance renforcée"
+        ]
+    }
+    return actions.get(region_name, ["Actions en cours d'évaluation"])
+
+
+def get_actions_taken():
+    return [
+        "Des équipes multidisciplinaires (épidémiologistes, agents communautaires) sont actuellement sur le terrain pour confirmer ou infirmer les cas de maladies à potentiel épidémique.",
+        "Les districts concernés ont reçu des directives pour intensifier la surveillance épidémiologique dans les formations sanitaires voisines.",
+        "Une mise à jour du protocole d'investigation a été transmise à tous les agents de santé.",
+        "Campagnes de sensibilisation en cours dans les zones touchées (mesures d'hygiène, importance du lavage des mains, consommation d'eau potable).",
+        "Distribution de kits de chlore dans les localités à risque de choléra.",
+        "Les équipes de coordination du COGU restent en contact permanent avec les responsables de districts.",
+        "Des briefings quotidiens ont lieu pour actualiser la situation et définir les actions prioritaires."
+    ]
+
+
+def get_recommendations():
+    return [
+        "Intensifier la communication locale et les activités de promotion de la santé (radio, SMS, affiches) pour prévenir la propagation de maladies infectieuses.",
+        "Réduire le délai de validation des alertes en attente afin de permettre une réaction rapide et d'éviter tout retard dans la prise en charge.",
+        "Impliquer davantage les collectivités locales (chefs de village, leaders communautaires) pour identifier rapidement les nouveaux cas et encourager la vaccination (le cas échéant).",
+        "Vérifier la disponibilité des stocks de médicaments essentiels et de matériel médical dans les centres de santé concernés."
+    ]
+
+
+def get_next_steps():
+    return [
+        "Finalisation des analyses : Les laboratoires régionaux enverront leurs résultats dans un délai de 48 heures pour confirmer le diagnostic des cas suspects.",
+        "Renforcement de la vaccination : En cas de confirmation de maladies épidémiques, une campagne de vaccination ou de traitement préventif sera envisagée en priorité dans les zones touchées.",
+        "Prochain rapport : Un nouveau point de situation sera diffusé demain à la même heure pour tous les membres du COGU et le cabinet du Ministre."
+    ]
+
+
+class IncidentReportView(LoginRequiredMixin, TemplateView):
+    template_name = "reports/incident_report.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Récupération des paramètres de filtre
+        date_from = self.request.GET.get('date_from')
+        date_to = self.request.GET.get('date_to')
+        status = self.request.GET.get('status')
+        incident_type = self.request.GET.get('incident_type')
+        region = self.request.GET.get('region')
+        district = self.request.GET.get('district')
+        severity = self.request.GET.get('severity')
+        outcome = self.request.GET.get('outcome')
+
+        # Filtrage de base
+        incidents = SanitaryIncident.objects.all().select_related(
+            'incident_type', 'city', 'city__district', 'city__district__region'
+        ).prefetch_related('patients_related')
+
+        # Application des filtres
+        if date_from and date_to:
+            try:
+                date_from = datetime.strptime(date_from, '%Y-%m-%d')
+                date_to = datetime.strptime(date_to, '%Y-%m-%d')
+                incidents = incidents.filter(
+                    date_time__date__range=[date_from, date_to]
+                )
+            except ValueError:
+                pass
+        else:
+            # Par défaut, afficher les 30 derniers jours
+            default_from = timezone.now() - timedelta(days=30)
+            incidents = incidents.filter(date_time__gte=default_from)
+
+        if status:
+            incidents = incidents.filter(status=status)
+
+        if incident_type:
+            incidents = incidents.filter(incident_type_id=incident_type)
+
+        if region:
+            incidents = incidents.filter(city__district__region_id=region)
+
+        if district:
+            incidents = incidents.filter(city__district_id=district)
+
+        if severity:
+            if severity == 'high':
+                incidents = incidents.filter(Q(number_of_people_involved__gte=5) | Q(outcome='mort'))
+            elif severity == 'medium':
+                incidents = incidents.filter(number_of_people_involved__gte=2, number_of_people_involved__lt=5)
+            else:
+                incidents = incidents.filter(number_of_people_involved=1)
+
+        if outcome:
+            incidents = incidents.filter(outcome=outcome)
+
+        # Préparation des données pour les graphiques
+        incidents_by_type = incidents.values(
+            'incident_type__name'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        incidents_by_region = incidents.values(
+            'city__district__region__name'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        incidents_by_status = incidents.values(
+            'status'
+        ).annotate(
+            count=Count('id')
+        ).order_by('status')
+
+        # Récupération des options de filtre
+        incident_types = IncidentType.objects.all()
+        regions = HealthRegion.objects.all()
+        districts = DistrictSanitaire.objects.all()
+        if region:
+            districts = districts.filter(region_id=region)
+
+        total_count = incidents.count()
+        validated_count = incidents.filter(status='validated').count()
+        pending_count = incidents.filter(status='pending').count()
+        rejected_count = incidents.filter(status='rejected').count()
+
+        # Ajout au contexte
+        context.update({
+
+            'total_count': total_count,
+            'validated_count': validated_count,
+            'pending_count': pending_count,
+            'rejected_count': rejected_count,
+
+            'incidents': incidents.order_by('-date_time'),
+            'incident_types': incident_types,
+            'regions': regions,
+            'districts': districts,
+            'incidents_by_type': incidents_by_type,
+            'incidents_by_region': incidents_by_region,
+            'incidents_by_status': incidents_by_status,
+            'filter_params': {
+                'date_from': date_from.strftime('%Y-%m-%d') if date_from else '',
+                'date_to': date_to.strftime('%Y-%m-%d') if date_to else '',
+                'status': status,
+                'incident_type': incident_type,
+                'region': region,
+                'district': district,
+                'severity': severity,
+                'outcome': outcome,
+            },
+            'status_choices': SanitaryIncident.STATUS_CHOICES,
+            'outcome_choices': [
+                ('mort', 'Décès'),
+                ('blessure', 'Blessure'),
+                ('sauvé', 'Sauvé'),
+                ('autre', 'Autre'),
+            ],
+            'severity_choices': [
+                ('high', 'Élevée'),
+                ('medium', 'Moyenne'),
+                ('low', 'Faible'),
+            ],
+        })
+
+        return context

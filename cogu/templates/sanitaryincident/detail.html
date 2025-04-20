@@ -8,7 +8,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Détails de l'Incident</h5>
             <div class="btn-group">
-                <div class="d-flex justify-content-end mb-3 btn btn-outline-success mr-5">
+                <div class="d-flex justify-content-end  mr-5">
 
                     {% if incident.status == 'pending' %}
     <form method="post" action="{% url 'incident_validate' incident.id %}" class="me-2">

@@ -369,111 +369,112 @@ body, html {
   </a>
 </div>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.72.0/dist/L.Control.Locate.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.72.0/dist/L.Control.Locate.min.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.72.0/dist/L.Control.Locate.min.js"></script>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.72.0/dist/L.Control.Locate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser la carte en plein écran
-    const map = L.map('map', {
-        fullscreenControl: true,
-        zoomControl: false
-    }).setView([7.5399, -5.5471], 7);
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialiser la carte en plein écran
+            const map = L.map('map', {
+                fullscreenControl: true,
+                zoomControl: false
+            }).setView([7.5399, -5.5471], 7);
 
-    // Style personnalisé pour la carte
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        className: 'map-tiles'
-    }).addTo(map);
-
-    // Ajouter le contrôle de localisation
-    L.control.locate({
-        position: 'topright',
-        drawCircle: true,
-        follow: true,
-        setView: 'always',
-        keepCurrentZoomLevel: true,
-        markerStyle: {
-            weight: 1,
-            opacity: 0.8,
-            fillOpacity: 0.8
-        },
-        icon: 'fas fa-location-arrow',
-        locateOptions: {
-            maxZoom: 15
-        }
-    }).addTo(map);
-
-    // Contrôle de zoom personnalisé
-    L.control.zoom({
-        position: 'topright'
-    }).addTo(map);
-
-    // Style des marqueurs
-    function createMarkerIcon(status) {
-        let iconClass, iconColor;
-
-        switch(status) {
-            case 'validated':
-                iconClass = 'validated';
-                iconColor = 'var(--ci-green)';
-                break;
-            case 'rejected':
-                iconClass = 'rejected';
-                iconColor = '#DF7861';
-                break;
-            default:
-                iconClass = 'pending';
-                iconColor = 'var(--ci-orange)';
-        }
-
-        return L.divIcon({
-            className: `incident-marker ${iconClass}`,
-            html: `<i class="fas fa-exclamation-circle" style="color: ${iconColor}"></i>`,
-            iconSize: [30, 30]
-        });
-    }
-
-    // Charger les incidents
-    function loadIncidents() {
-        fetch('{% url "incident_map" %}', {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            updateMap(data.features);
-            updateSummary(data.features);
-            updateIncidentList(data.features);
-        });
-    }
-
-    // Mettre à jour la carte
-    function updateMap(features) {
-        // Supprimer les anciens marqueurs
-        map.eachLayer(layer => {
-            if (layer instanceof L.Marker) {
-                map.removeLayer(layer);
-            }
-        });
-
-        // Ajouter les nouveaux marqueurs
-        features.forEach(feature => {
-            if (!feature.geometry?.coordinates) return;
-
-            const [lng, lat] = feature.geometry.coordinates;
-            const status = feature.properties.status === 'Validé' ? 'validated' :
-                          feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';
-
-            const marker = L.marker([lat, lng], {
-                icon: createMarkerIcon(status)
+            // Style personnalisé pour la carte
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                className: 'map-tiles'
             }).addTo(map);
 
-            marker.bindPopup(`
+            // Ajouter le contrôle de localisation
+            L.control.locate({
+                position: 'topright',
+                drawCircle: true,
+                follow: true,
+                setView: 'always',
+                keepCurrentZoomLevel: true,
+                markerStyle: {
+                    weight: 1,
+                    opacity: 0.8,
+                    fillOpacity: 0.8
+                },
+                icon: 'fas fa-location-arrow',
+                locateOptions: {
+                    maxZoom: 15
+                }
+            }).addTo(map);
+
+            // Contrôle de zoom personnalisé
+            L.control.zoom({
+                position: 'topright'
+            }).addTo(map);
+
+            // Style des marqueurs
+            function createMarkerIcon(status) {
+                let iconClass, iconColor;
+
+                switch (status) {
+                    case 'validated':
+                        iconClass = 'validated';
+                        iconColor = 'var(--ci-green)';
+                        break;
+                    case 'rejected':
+                        iconClass = 'rejected';
+                        iconColor = '#DF7861';
+                        break;
+                    default:
+                        iconClass = 'pending';
+                        iconColor = 'var(--ci-orange)';
+                }
+
+                return L.divIcon({
+                    className: `incident-marker ${iconClass}`,
+                    html: `<i class="fas fa-exclamation-circle" style="color: ${iconColor}"></i>`,
+                    iconSize: [30, 30]
+                });
+            }
+
+            // Charger les incidents
+            function loadIncidents() {
+                fetch('{% url "incident_map" %}', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        updateMap(data.features);
+                        updateSummary(data.features);
+                        updateIncidentList(data.features);
+                    });
+            }
+
+            // Mettre à jour la carte
+            function updateMap(features) {
+                // Supprimer les anciens marqueurs
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Marker) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                // Ajouter les nouveaux marqueurs
+                features.forEach(feature => {
+                    if (!feature.geometry?.coordinates) return;
+
+                    const [lng, lat] = feature.geometry.coordinates;
+                    const status = feature.properties.status === 'Validé' ? 'validated' :
+                        feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';
+
+                    const marker = L.marker([lat, lng], {
+                        icon: createMarkerIcon(status)
+                    }).addTo(map);
+
+                    marker.bindPopup(`
                 <div class="popup-header">
                     <span>${feature.properties.type}</span>
                     <span class="popup-status ${status}">
@@ -485,36 +486,36 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p><i class="fas fa-map-marker-alt"></i> ${feature.properties.location}</p>
                     <p><i class="fas fa-user-injured"></i> ${feature.properties.people_involved} personne(s)</p>
                     <p><i class="fas fa-bolt"></i> ${feature.properties.outcome}</p>
-                    <a href="/sanitary-incidents/${feature.properties.id}/" class="btn-ci text-white">
+                    <a href="/incidents/${feature.properties.id}/" class="btn-ci text-white">
                         <i class="fas fa-eye"></i> Voir détails
                     </a>
                 </div>
             `);
-        });
-    }
+                });
+            }
 
-    // Mettre à jour le résumé
-    function updateSummary(features) {
-        document.getElementById('pending-count').textContent =
-            features.filter(f => f.properties.status === 'À valider').length;
-        document.getElementById('validated-count').textContent =
-            features.filter(f => f.properties.status === 'Validé').length;
-        document.getElementById('rejected-count').textContent =
-            features.filter(f => f.properties.status === 'Rejeté').length;
-    }
+            // Mettre à jour le résumé
+            function updateSummary(features) {
+                document.getElementById('pending-count').textContent =
+                    features.filter(f => f.properties.status === 'À valider').length;
+                document.getElementById('validated-count').textContent =
+                    features.filter(f => f.properties.status === 'Validé').length;
+                document.getElementById('rejected-count').textContent =
+                    features.filter(f => f.properties.status === 'Rejeté').length;
+            }
 
-    // Mettre à jour la liste des incidents
-    function updateIncidentList(features) {
-        const container = document.getElementById('incident-list-container');
-        container.innerHTML = '';
+            // Mettre à jour la liste des incidents
+            function updateIncidentList(features) {
+                const container = document.getElementById('incident-list-container');
+                container.innerHTML = '';
 
-        features.slice(0, 5).forEach(feature => {
-            const status = feature.properties.status === 'Validé' ? 'validated' :
-                           feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';
+                features.slice(0, 5).forEach(feature => {
+                    const status = feature.properties.status === 'Validé' ? 'validated' :
+                        feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';
 
-            const card = document.createElement('div');
-            card.className = `incident-card ${status}`;
-            card.innerHTML = `
+                    const card = document.createElement('div');
+                    card.className = `incident-card ${status}`;
+                    card.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center">
                     <strong>${feature.properties.type}</strong>
                     <small>${feature.properties.date.split(' ')[0]}</small>
@@ -527,39 +528,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            card.addEventListener('click', () => {
-                const [lng, lat] = feature.geometry.coordinates;
-                map.flyTo([lat, lng], 15);
+                    card.addEventListener('click', () => {
+                        const [lng, lat] = feature.geometry.coordinates;
+                        map.flyTo([lat, lng], 15);
 
-                // Ouvrir le popup si disponible
-                map.eachLayer(layer => {
-                    if (layer instanceof L.Marker &&
-                        layer.getLatLng().lat === lat &&
-                        layer.getLatLng().lng === lng) {
-                        layer.openPopup();
-                    }
+                        // Ouvrir le popup si disponible
+                        map.eachLayer(layer => {
+                            if (layer instanceof L.Marker &&
+                                layer.getLatLng().lat === lat &&
+                                layer.getLatLng().lng === lng) {
+                                layer.openPopup();
+                            }
+                        });
+                    });
+
+                    container.appendChild(card);
                 });
-            });
-
-            container.appendChild(card);
-        });
-    }
-
-    // Gestion du plein écran
-    document.getElementById('fullscreen-toggle').addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                console.error(`Erreur plein écran: ${err.message}`);
-            });
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
             }
-        }
-    });
 
-    // Charger les données initiales
-    loadIncidents();
-});
-</script>
+            // Gestion du plein écran
+            document.getElementById('fullscreen-toggle').addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.error(`Erreur plein écran: ${err.message}`);
+                    });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            });
+
+            // Charger les données initiales
+            loadIncidents();
+        });
+    </script>
 {% endblock %}

@@ -162,6 +162,10 @@ AUTH_PASSWORD_VALIDATORS = [
 SELECT2_JS = 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js'
 SELECT2_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css'
 
+ACCOUNT_FORMS = {
+    'signup': 'cogu.forms.CustomSignupForm',
+}
+
 # Configuration Leaflet (pour les cartes)
 LEAFLET_CONFIG = {
     'DEFAULT_CENTER': (7.539989, -5.547080),  # Côte d'ivoire par défaut

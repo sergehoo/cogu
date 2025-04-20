@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>RAPPORT JOURNALIER COGU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        h1 {
+            text-align: center;
+            font-size: 18pt;
+        }
+        h2 {
+            font-size: 14pt;
+            margin-top: 20px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        .signature {
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+        <div class="logo-container">
+            <img src="{{ logo_armoirie_path }}" class="logo" alt="Armoiries de la Côte d'Ivoire">
+            <img src="{{ logo_sante_path }}" class="logo" alt="Ministère de la Santé">
+        </div>
+        <div class="title">
+            <h1>RAPPORT JOURNALIER COGU</h1>
+            <p>Ministère de la Santé, de l'Hygiène Publique et de la Couverture Maladie Universelle</p>
+        </div>
+    </div>
+
+
+    <p><strong>Date</strong> : {{ date }}</p>
+    <p><strong>Destinataires</strong> : Monsieur le Ministre de la Santé, Membres du COGU</p>
+    <p><strong>Émetteur</strong> : Directeur Général de la Santé et de l'Hygiène Publique (DGSHP)</p>
+
+    <h2>RÉCAPITULATIF GLOBAL</h2>
+    <ul>
+        <li>Nombre total d'incidents signalés (aujourd'hui) : <strong>{{ total_incidents }}</strong></li>
+        <li>Incidents validés : <strong>{{ validated_incidents }}</strong></li>
+        <li>Incidents en cours de validation : <strong>{{ pending_incidents }}</strong></li>
+        <li>Incidents résolus (depuis hier) : <strong>{{ resolved_incidents }}</strong></li>
+    </ul>
+    <p><strong>Commentaire</strong> : Les signalements reçus concernent principalement des suspicions de maladies à potentiel épidémique et quelques cas isolés d'intoxications alimentaires.</p>
+
+    <h2>DÉTAILS PAR RÉGION SANITAIRE</h2>
+    <table>
+        <tr>
+            <th>Région Sanitaire</th>
+            <th>Incidents signalés</th>
+            <th>Type principal d'incident</th>
+            <th>Statut</th>
+            <th>Actions en cours</th>
+        </tr>
+        {% for region in region_data %}
+        <tr>
+            <td>{{ region.name }}</td>
+            <td>{{ region.total_incidents }}</td>
+            <td>
+                {% for incident_type, counts in region.incident_types.items %}
+                - {{ counts.total }} cas de {{ incident_type }}<br>
+                {% endfor %}
+            </td>
+            <td>
+                {% for incident_type, counts in region.incident_types.items %}
+                - {{ counts.validated }} validés, {{ counts.pending }} en cours<br>
+                {% endfor %}
+            </td>
+            <td>
+                {% for action in region.actions %}
+                - {{ action }}<br>
+                {% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>ACTIONS MENÉES ET INTERVENTIONS EN COURS</h2>
+    <ol>
+        {% for action in actions_taken %}
+        <li>{{ action }}</li>
+        {% endfor %}
+    </ol>
+
+    <h2>RECOMMANDATIONS ET PERSPECTIVES</h2>
+    <ol>
+        {% for recommendation in recommendations %}
+        <li>{{ recommendation }}</li>
+        {% endfor %}
+    </ol>
+
+    <h2>PROCHAINES ÉTAPES</h2>
+    <ul>
+        {% for step in next_steps %}
+        <li>{{ step }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Conclusion</h2>
+    <p>La situation reste <strong>sous contrôle</strong>, avec un bon niveau de réactivité de la part des équipes de terrain. Les investigations se poursuivent pour confirmer ou écarter toute menace épidémique. Nous maintiendrons un <strong>suivi quotidien</strong> et informerons régulièrement Monsieur le Ministre et les membres du COGU de l'évolution de la situation.</p>
+
+    <div class="signature">
+        <p>Fait à Abidjan, le {{ date }}</p>
+        <p><strong>Signature</strong> :</p>
+        <p>Pr. SAMBA Mamadou</p>
+        <p>Directeur Général de la Santé et de l'Hygiène Publique</p>
+    </div>
+ <div class="footer">
+        <p>© {% now "Y" %} Ministère de la Santé - Tous droits réservés</p>
+        <div class="footer-logos">
+            <img src="{{ logo_afriqconsulting_path }}" class="footer-logo" alt="Afriq Consulting">
+            <p>Solution développée par Afriq Consulting</p>
+        </div>
+    </div>
+</body>
+</html>

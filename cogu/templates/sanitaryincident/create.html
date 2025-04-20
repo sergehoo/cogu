@@ -14,106 +14,149 @@
         </div>
 
         <div class="card-body">
-            <form method="post" id="incidentForm" novalidate>
+
+             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
+{#                {{ form|crispy }}#}
+             <div class="row">
+                {% for field in form %}
+            <div class="col-md-4 mb-3">
+                <div class="form-group">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.help_text %}
+                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+             </div>
 
-                <div class="row g-4">
-                    <!-- Colonne Gauche -->
-                    <div class="col-md-6">
-                        <!-- Type d'incident -->
-                        <div class="mb-3">
-    <label class="form-label">Type d'incident <span class="text-danger">*</span></label>
-    {% if form.incident_type.errors %}
-        {% render_field form.incident_type class="form-select is-invalid" %}
-        <div class="invalid-feedback d-block">
-            {{ form.incident_type.errors.0 }}
-        </div>
-    {% else %}
-        {% render_field form.incident_type class="form-select" %}
-    {% endif %}
-</div>
 
-                        <!-- Date et heure -->
-                        <div class="mb-3">
-                            <label class="form-label">Date & Heure <span class="text-danger">*</span></label>
-                            {% render_field form.date_time type="datetime-local" class="form-control" %}
-                        </div>
-
-                        <!-- Description -->
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            {% render_field form.description class="form-control" rows="3" %}
-                        </div>
-
-                        <!-- Source -->
-                        <div class="mb-3">
-                            <label class="form-label">Source d'information <span class="text-danger">*</span></label>
-                            {% render_field form.source class="form-control" %}
-                        </div>
-                    </div>
-
-                    <!-- Colonne Droite -->
-                    <div class="col-md-6">
-                        <!-- Ville -->
-                        <div class="mb-3">
-                            <label class="form-label">Ville</label>
-                            {% render_field form.city class="form-select select2" %}
-                        </div>
-
-                        <!-- Coordonnées GPS -->
-                        <div class="mb-3">
-    <label class="form-label">Coordonnées GPS <span class="text-danger">*</span></label>
-    <div class="input-group">
-        <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
-        {% if form.location_text.errors %}
-            {% render_field form.location_text class="form-control is-invalid" placeholder="POINT(longitude latitude)" %}
-        {% else %}
-            {% render_field form.location_text class="form-control" placeholder="POINT(longitude latitude)" %}
-        {% endif %}
-    <input type="hidden" id="auto-location" name="auto_location" />
+<div class="form-group mt-4">
+    <label for="incident-map">📍 Localisation de l’incident</label>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">Cliquez sur la carte ou utilisez votre position actuelle</small>
+        <button type="button" class="btn btn-sm btn-outline-success" id="use-my-location">
+            <i class="fas fa-crosshairs"></i> Utiliser ma position
+        </button>
     </div>
-    {% if form.location_text.errors %}
-        <div class="invalid-feedback d-block">
-            {{ form.location_text.errors.0 }}
-        </div>
-    {% endif %}
-    <small class="form-text text-muted">Ex: POINT(-1.677792 48.117266)</small>
+    <div class="map-container rounded" style="height: 300px; border: 1px solid #ccc;">
+        <div id="incident-map" style="height: 100%; width: 100%;"></div>
+    </div>
+
+    <!-- Champs auto-remplis -->
+    <input type="hidden" name="auto_location" id="auto_location_field">
 </div>
 
-                        <!-- Nombre de personnes -->
-                        <div class="mb-3">
-                            <label class="form-label">Personnes impliquées <span class="text-danger">*</span></label>
-                            {% render_field form.number_of_people_involved class="form-control" min="1" %}
-                        </div>
-
-                        <!-- Résultat -->
-                        <div class="mb-3">
-                            <label class="form-label">Résultat <span class="text-danger">*</span></label>
-                            {% render_field form.outcome class="form-select" %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Événement lié -->
-                <div class="mb-3">
-                    <label class="form-label">Événement majeur lié</label>
-                    {% render_field form.event class="form-select" %}
-                </div>
-
-                <!-- Patients concernés -->
-                <div class="mb-3">
-                    <label class="form-label">Patients concernés</label>
-                    {% render_field form.patients_related class="form-select select2-multiple" multiple="multiple" %}
-                    <small class="form-text text-muted">Utilisez Ctrl (Windows) ou Cmd (Mac) pour multi-sélectionner</small>
-                </div>
-
-                <!-- Bouton -->
-                <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i> Enregistrer
-                    </button>
-                </div>
+                <button type="submit" class="btn btn-primary float-right">
+                    <i class="fas fa-paper-plane"></i> Envoyer le signalement
+                </button>
             </form>
+
+{#            <form method="post" id="incidentForm" novalidate>#}
+{#                {% csrf_token %}#}
+{##}
+{#                <div class="row g-4">#}
+{#                    <!-- Colonne Gauche -->#}
+{#                    <div class="col-md-6">#}
+{#                        <!-- Type d'incident -->#}
+{#                        <div class="mb-3">#}
+{#    <label class="form-label">Type d'incident <span class="text-danger">*</span></label>#}
+{#    {% if form.incident_type.errors %}#}
+{#        {% render_field form.incident_type class="form-select is-invalid" %}#}
+{#        <div class="invalid-feedback d-block">#}
+{#            {{ form.incident_type.errors.0 }}#}
+{#        </div>#}
+{#    {% else %}#}
+{#        {% render_field form.incident_type class="form-select" %}#}
+{#    {% endif %}#}
+{#</div>#}
+{##}
+{#                        <!-- Date et heure -->#}
+{#                        <div class="mb-3">#}
+{#                            <label class="form-label">Date & Heure <span class="text-danger">*</span></label>#}
+{#                            {% render_field form.date_time type="datetime-local" class="form-control" %}#}
+{#                        </div>#}
+{##}
+{#                        <!-- Description -->#}
+{#                        <div class="mb-3">#}
+{#                            <label class="form-label">Description</label>#}
+{#                            {% render_field form.description class="form-control" rows="3" %}#}
+{#                        </div>#}
+{##}
+{#                        <!-- Source -->#}
+{#                        <div class="mb-3">#}
+{#                            <label class="form-label">Source d'information <span class="text-danger">*</span></label>#}
+{#                            {% render_field form.source class="form-control" %}#}
+{#                        </div>#}
+{#                    </div>#}
+{##}
+{#                    <!-- Colonne Droite -->#}
+{#                    <div class="col-md-6">#}
+{#                        <!-- Ville -->#}
+{#                        <div class="mb-3">#}
+{#                            <label class="form-label">Ville</label>#}
+{#                            {% render_field form.city class="form-select select2" %}#}
+{#                        </div>#}
+{##}
+{#                        <!-- Coordonnées GPS -->#}
+{#                        <div class="mb-3">#}
+{#    <label class="form-label">Coordonnées GPS <span class="text-danger">*</span></label>#}
+{#    <div class="input-group">#}
+{#        <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>#}
+{#        {% if form.location_text.errors %}#}
+{#            {% render_field form.location_text class="form-control is-invalid" placeholder="POINT(longitude latitude)" %}#}
+{#        {% else %}#}
+{#            {% render_field form.location_text class="form-control" placeholder="POINT(longitude latitude)" %}#}
+{#        {% endif %}#}
+{#    <input type="hidden" id="auto-location" name="auto_location" />#}
+{#    </div>#}
+{#    {% if form.location_text.errors %}#}
+{#        <div class="invalid-feedback d-block">#}
+{#            {{ form.location_text.errors.0 }}#}
+{#        </div>#}
+{#    {% endif %}#}
+{#    <small class="form-text text-muted">Ex: POINT(-1.677792 48.117266)</small>#}
+{#</div>#}
+{##}
+{#                        <!-- Nombre de personnes -->#}
+{#                        <div class="mb-3">#}
+{#                            <label class="form-label">Personnes impliquées <span class="text-danger">*</span></label>#}
+{#                            {% render_field form.number_of_people_involved class="form-control" min="1" %}#}
+{#                        </div>#}
+{##}
+{#                        <!-- Résultat -->#}
+{#                        <div class="mb-3">#}
+{#                            <label class="form-label">Résultat <span class="text-danger">*</span></label>#}
+{#                            {% render_field form.outcome class="form-select" %}#}
+{#                        </div>#}
+{#                    </div>#}
+{#                </div>#}
+{##}
+{#                <!-- Événement lié -->#}
+{#                <div class="mb-3">#}
+{#                    <label class="form-label">Événement majeur lié</label>#}
+{#                    {% render_field form.event class="form-select" %}#}
+{#                </div>#}
+{##}
+{#                <!-- Patients concernés -->#}
+{#                <div class="mb-3">#}
+{#                    <label class="form-label">Patients concernés</label>#}
+{#                    {% render_field form.patients_related class="form-select select2-multiple" multiple="multiple" %}#}
+{#                    <small class="form-text text-muted">Utilisez Ctrl (Windows) ou Cmd (Mac) pour multi-sélectionner</small>#}
+{#                </div>#}
+{##}
+{#                <!-- Bouton -->#}
+{#                <div class="d-flex justify-content-end">#}
+{#                    <button type="submit" class="btn btn-primary">#}
+{#                        <i class="fas fa-save me-2"></i> Enregistrer#}
+{#                    </button>#}
+{#                </div>#}
+{#            </form>#}
         </div>
     </div>
 {% include 'layout/footer.html' %}
@@ -141,17 +184,94 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-    <script>
-document.addEventListener('DOMContentLoaded', function () {
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const lat = position.coords.latitude.toFixed(6);
-            const lng = position.coords.longitude.toFixed(6);
-            document.getElementById("auto-location").value = `POINT(${lng} ${lat})`;
-        }, function(error) {
-            console.warn("Géolocalisation refusée ou indisponible.");
-        });
+{#    <script>#}
+{#document.addEventListener('DOMContentLoaded', function () {#}
+{#    if ("geolocation" in navigator) {#}
+{#        navigator.geolocation.getCurrentPosition(function(position) {#}
+{#            const lat = position.coords.latitude.toFixed(6);#}
+{#            const lng = position.coords.longitude.toFixed(6);#}
+{#            document.getElementById("auto-location").value = `POINT(${lng} ${lat})`;#}
+{#        }, function(error) {#}
+{#            console.warn("Géolocalisation refusée ou indisponible.");#}
+{#        });#}
+{#    }#}
+{#});#}
+{#</script>#}
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const map = L.map("incident-map").setView([7.54, -5.55], 7); // Vue initiale sur la Côte d’Ivoire
+
+  const markerIcon = L.icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/512/854/854866.png",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
+  });
+
+  let marker = null;
+  const autoField = document.getElementById("auto_location_field");
+  const textField = document.getElementById("location_text_field");
+  const locateBtn = document.getElementById("use-my-location");
+
+  // Fond de carte
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
+  }).addTo(map);
+
+  // Fonction de mise à jour
+  function updatePosition(lat, lon) {
+    const wkt = `POINT(${lon} ${lat})`;
+    if (autoField) autoField.value = wkt;
+    if (textField) textField.value = wkt;
+
+    if (marker) {
+      marker.setLatLng([lat, lon]);
+    } else {
+      marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map);
     }
+
+    map.setView([lat, lon], 13);
+  }
+
+  // Clic utilisateur sur la carte
+  map.on("click", function (e) {
+    updatePosition(e.latlng.lat, e.latlng.lng);
+  });
+
+  // Bouton "Utiliser ma position"
+  if (locateBtn) {
+    locateBtn.addEventListener("click", function () {
+      if (!navigator.geolocation) {
+        alert("Votre navigateur ne supporte pas la géolocalisation.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function (position) {
+          const { latitude, longitude } = position.coords;
+          updatePosition(latitude, longitude);
+        },
+        function (error) {
+          alert("Impossible de récupérer la position : " + error.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
+  }
+
+  // Détection automatique au chargement
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        updatePosition(latitude, longitude);
+      },
+      () => {
+        console.warn("⚠️ L'utilisateur a refusé la géolocalisation automatique.");
+      }
+    );
+  }
 });
 </script>
 {% endblock %}
