@@ -1,336 +1,266 @@
-<!-- templates/sanitary_incidents/incident_map.html -->
-{#{% extends "base.html" %}#}
 {% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Incidents Sanitaires - Côte d'Ivoire</title>
 
-{% block content %}
-<style>
-:root {
-    --ci-orange: #FF8200;
-    --ci-white: #FFFFFF;
-    --ci-green: #009A44;
-    --ci-orange-light: rgba(255, 130, 0, 0.1);
-    --ci-green-light: rgba(0, 154, 68, 0.1);
-}
+    <!-- CSS optimisé -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
 
-body, html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    overflow: hidden;
-}
+    <!-- Custom CSS -->
+    <link href="{% static 'assets/css/style.bundle.css' %}" rel="stylesheet">
+    <link rel="shortcut icon" href="{% static 'assets/media/logos/favicon.ico' %}"/>
 
-#map {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 100%;
-    z-index: 1;
-}
+    <style>
+        :root {
+            --ci-primary: #5D9C59;
+            --ci-secondary: #C7E8CA;
+            --ci-accent: #DF7861;
+            --ci-light: #FCF8E8;
+            --ci-dark: #2C3639;
+            --ci-text: #4A4A4A;
+            --ci-bg: #F9F9F9;
+            --ci-orange: #FF8200;
+            --ci-white: #FFFFFF;
+            --ci-green: #009A44;
+            --ci-orange-light: rgba(255, 130, 0, 0.1);
+            --ci-green-light: rgba(0, 154, 68, 0.1);
+        }
 
-.map-controls {
-    position: relative;
-    top: 20px;
-    left:100px;
-    right: 5px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    max-width: 300px;
-}
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--ci-bg);
+            color: var(--ci-text);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
 
-.filter-panel {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(5px);
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
 
-}
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 300px;
+        }
 
-.filter-panel h4 {
-    color: var(--ci-orange);
-    margin-top: 0;
-    border-bottom: 2px solid var(--ci-green-light);
-    padding-bottom: 8px;
-}
+        .filter-panel, .incident-summary, .incident-list {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+        }
 
-.incident-summary {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(5px);
-}
+        .incident-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
 
-.incident-list {
-    position: relative;
-    bottom: 20px;
-    left: 0px;
-    right: 20px;
-    top:10px;
-    max-height: 200px;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(5px);
-    z-index: 1000;
-    overflow-y: auto;
-}
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
 
-.incident-list h4 {
-    color: var(--ci-orange);
-    margin-top: 0;
-}
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
 
-.summary-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    padding: 5px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
+        .badge.pending {
+            background-color: var(--ci-orange-light);
+            color: var(--ci-orange);
+        }
 
-.badge {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-}
+        .badge.validated {
+            background-color: var(--ci-green-light);
+            color: var(--ci-green);
+        }
 
-.badge.pending {
-    background-color: rgba(255, 130, 0, 0.15);
-    color: var(--ci-orange);
-}
+        .badge.rejected {
+            background-color: rgba(223, 120, 97, 0.15);
+            color: #DF7861;
+        }
 
-.badge.validated {
-    background-color: rgba(0, 154, 68, 0.15);
-    color: var(--ci-green);
-}
+        .incident-card {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-.badge.rejected {
-    background-color: rgba(223, 120, 97, 0.15);
-    color: #DF7861;
-}
+        .incident-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
 
-.incident-card {
-    padding: 10px;
-    margin-bottom: 10px;
-    border-left: 4px solid;
-    border-radius: 4px;
-    background: white;
-    cursor: pointer;
-    transition: all 0.2s;
-}
+        .incident-card.pending {
+            border-color: var(--ci-orange);
+        }
 
-.incident-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
+        .incident-card.validated {
+            border-color: var(--ci-green);
+        }
 
-.incident-card.pending {
-    border-color: var(--ci-orange);
-}
+        .incident-card.rejected {
+            border-color: #DF7861;
+        }
 
-.incident-card.validated {
-    border-color: var(--ci-green);
-}
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.5rem;
+            display: none;
+        }
 
-.incident-card.rejected {
-    border-color: #DF7861;
-}
+        #home-button {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            background-color: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            width: 45px;
+            height: 45px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
 
-.leaflet-popup-content {
-    min-width: 250px;
-    font-family: 'Roboto', sans-serif;
-}
-
-.popup-header {
-    font-weight: 600;
-    margin-bottom: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: var(--ci-orange);
-}
-
-.popup-status {
-    font-size: 12px;
-    padding: 3px 10px;
-    border-radius: 12px;
-}
-
-.popup-status.pending {
-    background-color: rgba(255, 130, 0, 0.15);
-    color: var(--ci-orange);
-}
-
-.popup-status.validated {
-    background-color: rgba(0, 154, 68, 0.15);
-    color: var(--ci-green);
-}
-
-.popup-status.rejected {
-    background-color: rgba(223, 120, 97, 0.15);
-    color: #DF7861;
-}
-
-.popup-details {
-    margin-top: 10px;
-    font-size: 14px;
-}
-
-.popup-details p {
-    margin: 5px 0;
-}
-
-.btn-ci {
-    background-color: var(--ci-orange);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 5px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-ci:hover {
-    background-color: #e67300;
-    color: white;
-}
-
-.form-control {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-    padding: 8px 12px;
-    width: 100%;
-    margin-bottom: 10px;
-    background: rgba(255, 255, 255, 0.8);
-}
-
-.leaflet-control-layers {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.1);
-}
-
-.leaflet-control-layers-toggle {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF8200'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z'/%3E%3C/svg%3E");
-    width: 36px;
-    height: 36px;
-}
-
-/* Icônes personnalisées */
-.incident-marker {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.incident-marker i {
-    font-size: 18px;
-}
-
-.incident-marker.pending {
-    color: var(--ci-orange);
-    text-shadow: 0 0 3px white;
-}
-
-.incident-marker.validated {
-    color: var(--ci-green);
-    text-shadow: 0 0 3px white;
-}
-
-.incident-marker.rejected {
-    color: #DF7861;
-    text-shadow: 0 0 3px white;
-}
-
-/* Bouton plein écran */
-.fullscreen-toggle {
-    position: absolute;
-    bottom: 80px;
-    right: 20px;
-    z-index: 1000;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 4px;
-    padding: 8px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.1);
-    cursor: pointer;
-    color: var(--ci-orange);
-}
-
-#home-button {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  z-index: 1000;
-  background-color: #fff;
-  border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  width: 45px;
-  height: 45px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: background-color 0.3s;
-}
-
-#home-button:hover {
-  background-color: #f0f0f0;
-}
-
-#home-button i {
-  font-size: 20px;
-  color: #0a1c01;
-}
-</style>
+        #home-button:hover {
+            background-color: #f0f0f0;
+        }
+         .fullscreen-toggle {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 4px;
+            padding: 8px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            color: var(--ci-orange);
+        }
+    </style>
+</head>
+<body>
 
 <div id="map"></div>
+<div class="loading-overlay">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Chargement...</span>
+    </div>
+</div>
 
 <div class="map-controls">
     <div class="filter-panel">
         <h4><i class="fas fa-filter"></i> Filtres</h4>
-        <div class="form-group">
-            <label for="status-filter">Statut:</label>
-            <select id="status-filter" class="form-control">
+        <div class="mb-3">
+            <label for="pole-filter" class="form-label">Pôle:</label>
+            <select id="pole-filter" class="form-select">
+                <option value="all">Tous les Pôles</option>
+                {% for pole in poles %}
+                <option value="{{ pole.id }}">{{ pole.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="region-filter" class="form-label">Région:</label>
+            <select id="region-filter" class="form-select">
+                <option value="all">Toutes les Régions</option>
+                {% for region in regions %}
+                <option value="{{ region.id }}">{{ region.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="district-filter" class="form-label">District:</label>
+            <select id="district-filter" class="form-select">
+                <option value="all">Tous les Districts</option>
+                {% for district in districts %}
+                <option value="{{ district.id }}">{{ district.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="status-filter" class="form-label">Statut:</label>
+            <select id="status-filter" class="form-select">
                 <option value="all">Tous</option>
                 <option value="pending">À valider</option>
                 <option value="validated">Validé</option>
                 <option value="rejected">Rejeté</option>
             </select>
         </div>
-        <div class="form-group">
-            <label for="type-filter">Type d'incident:</label>
-            <select id="type-filter" class="form-control">
+        <div class="mb-3">
+            <label for="type-filter" class="form-label">Type d'incident:</label>
+            <select id="type-filter" class="form-select">
                 <option value="all">Tous</option>
                 {% for type in incident_types %}
-                <option value="{{ type.id }}">{{ type.name }}</option>
+                    <option value="{{ type.id }}">{{ type.name }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="form-group">
-            <label for="date-filter">Période:</label>
-            <select id="date-filter" class="form-control">
-                <option value="all">Toutes dates</option>
-                <option value="today">Aujourd'hui</option>
-                <option value="week">Cette semaine</option>
-                <option value="month">Ce mois</option>
-            </select>
+        <div class="mb-3">
+            <label for="date-range" class="form-label">Période:</label>
+            <div class="input-group">
+                <input type="date" id="start-date" class="form-control" placeholder="Date début">
+                <span class="input-group-text">à</span>
+                <input type="date" id="end-date" class="form-control" placeholder="Date fin">
+            </div>
         </div>
-        <button id="apply-filters" class="btn-ci w-100">
-            <i class="fas fa-check"></i> Appliquer
+        <button id="apply-filters" class="btn btn-primary w-100">
+            <i class="fas fa-check"></i> Appliquer les filtres
         </button>
     </div>
 
-    <div class="incident-summary">
+
+    <div class="incident-list">
+        <h5><i class="fas fa-list"></i> Derniers incidents</h5>
+        <div id="incident-list-container"></div>
+    </div>
+
+ <div class="incident-summary">
         <h4><i class="fas fa-chart-pie"></i> Résumé</h4>
         <div class="summary-item">
             <span class="badge pending">À valider</span>
@@ -345,222 +275,965 @@ body, html {
             <span id="rejected-count">0</span>
         </div>
     </div>
-<div class="incident-list">
-<div id="incident-list-container"></div>
 </div>
-</div>
-
-{#    <div class="row">#}
-{#        <div class="col-md-6">#}
-{#            <div class="incident-list">#}
-{#                <h4><i class="fas fa-list"></i> Incidents récents</h4>#}
-{#                <div id="incident-list-container"></div>#}
-{#            </div>#}
-{#        </div>#}
-{#    </div>#}
-
 <div class="fullscreen-toggle" id="fullscreen-toggle">
     <i class="fas fa-expand"></i>
 </div>
-
-    <div id="home-button" title="Revenir à l'accueil">
-  <a href="{% url 'home' %}">
-    <i class="fas fa-home"></i>
-  </a>
+<div id="home-button" title="Revenir à l'accueil">
+    <a href="{% url 'home' %}" class="text-decoration-none">
+        <i class="fas fa-home text-dark"></i>
+    </a>
 </div>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.72.0/dist/L.Control.Locate.min.js"></script>
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.72.0/dist/L.Control.Locate.min.css"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+<!-- JavaScript -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.72.0/dist/L.Control.Locate.min.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Initialiser la carte en plein écran
-            const map = L.map('map', {
-                fullscreenControl: true,
-                zoomControl: false
-            }).setView([7.5399, -5.5471], 7);
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Variables globales
+        let map, districtLayer;
+        let currentIncidents = [];
+        let markerCluster = L.markerClusterGroup({
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            maxClusterRadius: 80
+        });
 
-            // Style personnalisé pour la carte
+        // Initialisation de la carte
+        function initMap() {
+            map = L.map('map').setView([7.5399, -5.5471], 7);
+
+            // Couche de base
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                className: 'map-tiles'
+                attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Ajouter le contrôle de localisation
+            // Contrôles
+            L.control.zoom({position: 'topright'}).addTo(map);
             L.control.locate({
                 position: 'topright',
                 drawCircle: true,
                 follow: true,
-                setView: 'always',
-                keepCurrentZoomLevel: true,
-                markerStyle: {
-                    weight: 1,
-                    opacity: 0.8,
-                    fillOpacity: 0.8
-                },
-                icon: 'fas fa-location-arrow',
-                locateOptions: {
-                    maxZoom: 15
-                }
+                setView: 'once',
+                keepCurrentZoomLevel: true
             }).addTo(map);
 
-            // Contrôle de zoom personnalisé
-            L.control.zoom({
-                position: 'topright'
-            }).addTo(map);
+            // Ajouter le cluster de marqueurs
+            map.addLayer(markerCluster);
+        }
 
-            // Style des marqueurs
-            function createMarkerIcon(status) {
-                let iconClass, iconColor;
+        // Style des districts
+        function getDistrictStyle(feature) {
+            const count = feature.properties.incident_count || 0;
+            let fillColor, weight, opacity;
 
-                switch (status) {
-                    case 'validated':
-                        iconClass = 'validated';
-                        iconColor = 'var(--ci-green)';
-                        break;
-                    case 'rejected':
-                        iconClass = 'rejected';
-                        iconColor = '#DF7861';
-                        break;
-                    default:
-                        iconClass = 'pending';
-                        iconColor = 'var(--ci-orange)';
-                }
-
-                return L.divIcon({
-                    className: `incident-marker ${iconClass}`,
-                    html: `<i class="fas fa-exclamation-circle" style="color: ${iconColor}"></i>`,
-                    iconSize: [30, 30]
-                });
+            if (count === 0) {
+                fillColor = '#f8f9fa';
+                weight = 1;
+                opacity = 0.5;
+            } else if (count <= 3) {
+                fillColor = '#ffeda0';
+                weight = 2;
+                opacity = 0.7;
+            } else if (count <= 10) {
+                fillColor = '#feb24c';
+                weight = 2.5;
+                opacity = 0.8;
+            } else {
+                fillColor = '#f03b20';
+                weight = 3;
+                opacity = 0.9;
             }
 
-            // Charger les incidents
-            function loadIncidents() {
-                fetch('{% url "incident_map" %}', {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        updateMap(data.features);
-                        updateSummary(data.features);
-                        updateIncidentList(data.features);
-                    });
-            }
+            return {
+                fillColor: fillColor,
+                weight: weight,
+                opacity: 1,
+                color: '#495057',
+                dashArray: '3',
+                fillOpacity: opacity
+            };
+        }
 
-            // Mettre à jour la carte
-            function updateMap(features) {
-                // Supprimer les anciens marqueurs
-                map.eachLayer(layer => {
-                    if (layer instanceof L.Marker) {
-                        map.removeLayer(layer);
-                    }
-                });
+        // Interactivité des districts
+        function onEachDistrictFeature(feature, layer) {
+            const count = feature.properties.incident_count || 0;
+            const name = feature.properties.name || 'District inconnu';
 
-                // Ajouter les nouveaux marqueurs
-                features.forEach(feature => {
-                    if (!feature.geometry?.coordinates) return;
-
-                    const [lng, lat] = feature.geometry.coordinates;
-                    const status = feature.properties.status === 'Validé' ? 'validated' :
-                        feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';
-
-                    const marker = L.marker([lat, lng], {
-                        icon: createMarkerIcon(status)
-                    }).addTo(map);
-
-                    marker.bindPopup(`
-                <div class="popup-header">
-                    <span>${feature.properties.type}</span>
-                    <span class="popup-status ${status}">
-                        ${feature.properties.status}
-                    </span>
-                </div>
-                <div class="popup-details">
-                    <p><i class="fas fa-calendar-alt"></i> ${feature.properties.date}</p>
-                    <p><i class="fas fa-map-marker-alt"></i> ${feature.properties.location}</p>
-                    <p><i class="fas fa-user-injured"></i> ${feature.properties.people_involved} personne(s)</p>
-                    <p><i class="fas fa-bolt"></i> ${feature.properties.outcome}</p>
-                    <a href="/incidents/${feature.properties.id}/" class="btn-ci text-white">
-                        <i class="fas fa-eye"></i> Voir détails
-                    </a>
-                </div>
-            `);
-                });
-            }
-
-            // Mettre à jour le résumé
-            function updateSummary(features) {
-                document.getElementById('pending-count').textContent =
-                    features.filter(f => f.properties.status === 'À valider').length;
-                document.getElementById('validated-count').textContent =
-                    features.filter(f => f.properties.status === 'Validé').length;
-                document.getElementById('rejected-count').textContent =
-                    features.filter(f => f.properties.status === 'Rejeté').length;
-            }
-
-            // Mettre à jour la liste des incidents
-            function updateIncidentList(features) {
-                const container = document.getElementById('incident-list-container');
-                container.innerHTML = '';
-
-                features.slice(0, 5).forEach(feature => {
-                    const status = feature.properties.status === 'Validé' ? 'validated' :
-                        feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';
-
-                    const card = document.createElement('div');
-                    card.className = `incident-card ${status}`;
-                    card.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <strong>${feature.properties.type}</strong>
-                    <small>${feature.properties.date.split(' ')[0]}</small>
-                </div>
-                <div class="d-flex justify-content-between mt-1">
-                    <span><i class="fas fa-map-marker-alt"></i> ${feature.properties.location}</span>
-                    <span class="badge ${status}">
-                        ${feature.properties.status}
-                    </span>
-                </div>
-            `;
-
-                    card.addEventListener('click', () => {
-                        const [lng, lat] = feature.geometry.coordinates;
-                        map.flyTo([lat, lng], 15);
-
-                        // Ouvrir le popup si disponible
-                        map.eachLayer(layer => {
-                            if (layer instanceof L.Marker &&
-                                layer.getLatLng().lat === lat &&
-                                layer.getLatLng().lng === lng) {
-                                layer.openPopup();
-                            }
-                        });
-                    });
-
-                    container.appendChild(card);
-                });
-            }
-
-            // Gestion du plein écran
-            document.getElementById('fullscreen-toggle').addEventListener('click', () => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        console.error(`Erreur plein écran: ${err.message}`);
-                    });
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    }
-                }
+            layer.bindTooltip(`<b>${name}</b><br>${count} incident(s)`, {
+                permanent: false,
+                direction: 'auto'
             });
 
-            // Charger les données initiales
-            loadIncidents();
+            layer.on({
+                mouseover: function(e) {
+                    const layer = e.target;
+                    layer.setStyle({
+                        weight: 4,
+                        color: '#212529',
+                        fillOpacity: 0.9
+                    });
+                    layer.bringToFront();
+                },
+                mouseout: function(e) {
+                    districtLayer.resetStyle(e.target);
+                },
+                click: function(e) {
+                    map.fitBounds(e.target.getBounds(), {
+                        padding: [50, 50],
+                        maxZoom: 12
+                    });
+                }
+            });
+        }
+
+        // Création des marqueurs d'incidents
+        function createIncidentMarkers(features) {
+            markerCluster.clearLayers();
+
+            features.forEach(feature => {
+                if (!feature.geometry?.coordinates) return;
+
+                const [lng, lat] = feature.geometry.coordinates;
+                const status = feature.properties.status === 'Validé' ? 'validated' :
+                              feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';
+
+                const marker = L.marker([lat, lng], {
+                    icon: createMarkerIcon(status)
+                });
+
+                marker.bindPopup(createPopupContent(feature, status));
+                markerCluster.addLayer(marker);
+            });
+        }
+
+        function createMarkerIcon(status) {
+            const colors = {
+                'validated': 'var(--ci-green)',
+                'rejected': '#DF7861',
+                'pending': 'var(--ci-orange)'
+            };
+            return L.divIcon({
+                className: `incident-marker ${status}`,
+                html: `<i class="fas fa-exclamation-circle" style="color: ${colors[status]}"></i>`,
+                iconSize: [30, 30]
+            });
+        }
+
+        function createPopupContent(feature, status) {
+            return `
+                <div class="popup-content">
+                    <div class="popup-header d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">${feature.properties.type}</h6>
+                        <span class="badge ${status}">${feature.properties.status}</span>
+                    </div>
+                    <div class="popup-details">
+                        <p class="mb-1"><i class="fas fa-calendar-alt me-2"></i> ${feature.properties.date}</p>
+                        <p class="mb-1"><i class="fas fa-map-marker-alt me-2"></i> ${feature.properties.location}</p>
+                        <p class="mb-1"><i class="fas fa-user-injured me-2"></i> ${feature.properties.people_involved} personne(s)</p>
+                        <p class="mb-2"><i class="fas fa-bolt me-2"></i> ${feature.properties.outcome}</p>
+                        <a href="/incidents/${feature.properties.id}/" class="btn btn-sm btn-primary w-100">
+                            <i class="fas fa-eye me-1"></i> Voir détails
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Chargement des données
+        function loadDataWithParams(params = {}) {
+            const query = new URLSearchParams(params).toString();
+            showLoading(true);
+
+            fetch(`{% url 'incident_map' %}?${query}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                currentIncidents = data.incidents.features;
+                updateMap(currentIncidents);
+                updateDistricts(data.districts);
+                updateSummary(currentIncidents);
+                updateIncidentList(currentIncidents);
+                showLoading(false);
+            })
+            .catch(error => {
+                console.error('Error loading data:', error);
+                showLoading(false);
+            });
+        }
+
+        function showLoading(show) {
+            document.querySelector('.loading-overlay').style.display = show ? 'flex' : 'none';
+        }
+
+        // Mise à jour des districts
+        function updateDistricts(districtsData) {
+            if (districtLayer) {
+                map.removeLayer(districtLayer);
+            }
+
+            districtLayer = L.geoJSON(districtsData, {
+                style: getDistrictStyle,
+                onEachFeature: onEachDistrictFeature
+            }).addTo(map);
+        }
+
+        // Mise à jour de la carte
+        function updateMap(features) {
+            createIncidentMarkers(features);
+        }
+
+        // Mise à jour du résumé
+        function updateSummary(features) {
+            document.getElementById('pending-count').textContent =
+                features.filter(f => f.properties.status === 'À valider').length;
+            document.getElementById('validated-count').textContent =
+                features.filter(f => f.properties.status === 'Validé').length;
+            document.getElementById('rejected-count').textContent =
+                features.filter(f => f.properties.status === 'Rejeté').length;
+        }
+
+        // Mise à jour de la liste des incidents
+        function updateIncidentList(features) {
+            const container = document.getElementById('incident-list-container');
+            container.innerHTML = '';
+
+            // Limiter à 50 incidents pour les performances
+            features.slice(0, 50).forEach(feature => {
+                if (!feature.geometry?.coordinates) return;
+
+                const status = feature.properties.status === 'Validé' ? 'validated' :
+                              feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';
+
+                const card = document.createElement('div');
+                card.className = `incident-card ${status}`;
+                card.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>${feature.properties.type}</strong>
+                        <small>${feature.properties.date.split(' ')[0]}</small>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                        <span><i class="fas fa-map-marker-alt me-1"></i> ${feature.properties.location}</span>
+                        <span class="badge ${status}">${feature.properties.status}</span>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => {
+                    const [lng, lat] = feature.geometry.coordinates;
+                    map.flyTo([lat, lng], 15);
+
+                    // Trouver et ouvrir le popup correspondant
+                    markerCluster.eachLayer(layer => {
+                        if (layer instanceof L.Marker &&
+                            layer.getLatLng().lat === lat &&
+                            layer.getLatLng().lng === lng) {
+                            layer.openPopup();
+                        }
+                    });
+                });
+
+                container.appendChild(card);
+            });
+        }
+
+        // Gestion du plein écran
+        document.getElementById('fullscreen-toggle').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error("Erreur plein écran:", err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
         });
-    </script>
-{% endblock %}
+
+        // Appliquer les filtres
+        function applyFilters() {
+            const params = {
+                pole_id: document.getElementById('pole-filter').value,
+                region_id: document.getElementById('region-filter').value,
+                district_id: document.getElementById('district-filter').value,
+                status: document.getElementById('status-filter').value,
+                type_id: document.getElementById('type-filter').value,
+                start_date: document.getElementById('start-date').value,
+                end_date: document.getElementById('end-date').value
+            };
+
+            // Nettoyer les paramètres vides
+            Object.keys(params).forEach(key => {
+                if (params[key] === 'all' || !params[key]) delete params[key];
+            });
+
+            loadDataWithParams(params);
+        }
+
+        // Initialisation
+        initMap();
+        loadDataWithParams();
+
+        // Écouteurs d'événements
+        document.getElementById('apply-filters').addEventListener('click', applyFilters);
+    });
+</script>
+
+</body>
+</html>
+
+
+
+{#{% load static %}#}
+{#<!DOCTYPE html>#}
+{#<html lang="fr">#}
+{#<head>#}
+{#    <meta charset="UTF-8">#}
+{#    <meta name="viewport" content="width=device-width, initial-scale=1.0">#}
+{#    <title>Gestion des Incidents Sanitaires - Côte d'Ivoire</title>#}
+{##}
+{#    <!-- Bootstrap 5 CSS -->#}
+{#    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">#}
+{#    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">#}
+{#    <!-- Font Awesome -->#}
+{#    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">#}
+{##}
+{#    <!-- Google Fonts -->#}
+{#    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@400;500;600;700&display=swap"#}
+{#          rel="stylesheet">#}
+{##}
+{#    <!-- Leaflet CSS -->#}
+{#    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"#}
+{#     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="#}
+{#     crossorigin=""/>#}
+{##}
+{#    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>#}
+{#    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>#}
+{##}
+{#    <!-- Custom CSS -->#}
+{#    <link href="{% static 'assets/plugins/global/plugins.bundle.css' %}" rel="stylesheet" type="text/css"/>#}
+{#    <link href="{% static 'assets/plugins/custom/prismjs/prismjs.bundle.css' %}" rel="stylesheet" type="text/css"/>#}
+{#    <link href="{% static 'assets/css/style.bundle.css' %}" rel="stylesheet" type="text/css"/>#}
+{#    <link rel="shortcut icon" href="{% static 'assets/media/logos/favicon.ico' %}"/>#}
+{##}
+{#    <style>#}
+{#        :root {#}
+{#            --ci-primary: #5D9C59;#}
+{#            --ci-secondary: #C7E8CA;#}
+{#            --ci-accent: #DF7861;#}
+{#            --ci-light: #FCF8E8;#}
+{#            --ci-dark: #2C3639;#}
+{#            --ci-text: #4A4A4A;#}
+{#            --ci-bg: #F9F9F9;#}
+{#            --ci-orange: #FF8200;#}
+{#            --ci-white: #FFFFFF;#}
+{#            --ci-green: #009A44;#}
+{#            --ci-orange-light: rgba(255, 130, 0, 0.1);#}
+{#            --ci-green-light: rgba(0, 154, 68, 0.1);#}
+{#        }#}
+{##}
+{#        body {#}
+{#            font-family: 'Roboto', sans-serif;#}
+{#            background-color: var(--ci-bg);#}
+{#            color: var(--ci-text);#}
+{#            display: flex;#}
+{#            min-height: 100vh;#}
+{#            margin: 0;#}
+{#            padding: 0;#}
+{#        }#}
+{##}
+{#        #map {#}
+{#            position: absolute;#}
+{#            top: 0;#}
+{#            bottom: 0;#}
+{#            width: 100%;#}
+{#            height: 100%;#}
+{#            z-index: 1;#}
+{#        }#}
+{##}
+{#        .map-controls {#}
+{#            position: absolute;#}
+{#            top: 20px;#}
+{#            left: 20px;#}
+{#            z-index: 1000;#}
+{#            display: flex;#}
+{#            flex-direction: column;#}
+{#            gap: 15px;#}
+{#            max-width: 300px;#}
+{#        }#}
+{##}
+{#        .filter-panel {#}
+{#            background: rgba(255, 255, 255, 0.95);#}
+{#            padding: 15px;#}
+{#            border-radius: 8px;#}
+{#            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);#}
+{#            border: 1px solid rgba(0, 0, 0, 0.1);#}
+{#            backdrop-filter: blur(5px);#}
+{#        }#}
+{##}
+{#        .incident-summary {#}
+{#            background: rgba(255, 255, 255, 0.95);#}
+{#            padding: 15px;#}
+{#            border-radius: 8px;#}
+{#            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);#}
+{#            border: 1px solid rgba(0, 0, 0, 0.1);#}
+{#            backdrop-filter: blur(5px);#}
+{#        }#}
+{##}
+{#        .incident-list {#}
+{#            max-height: 200px;#}
+{#            background: rgba(255, 255, 255, 0.95);#}
+{#            padding: 15px;#}
+{#            border-radius: 8px;#}
+{#            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);#}
+{#            border: 1px solid rgba(0, 0, 0, 0.1);#}
+{#            backdrop-filter: blur(5px);#}
+{#            overflow-y: auto;#}
+{#        }#}
+{##}
+{#        .summary-item {#}
+{#            display: flex;#}
+{#            justify-content: space-between;#}
+{#            margin-bottom: 8px;#}
+{#            padding: 5px 0;#}
+{#            border-bottom: 1px solid rgba(0, 0, 0, 0.05);#}
+{#        }#}
+{##}
+{#        .badge {#}
+{#            padding: 4px 10px;#}
+{#            border-radius: 12px;#}
+{#            font-size: 12px;#}
+{#            font-weight: 500;#}
+{#        }#}
+{##}
+{#        .badge.pending {#}
+{#            background-color: rgba(255, 130, 0, 0.15);#}
+{#            color: var(--ci-orange);#}
+{#        }#}
+{##}
+{#        .badge.validated {#}
+{#            background-color: rgba(0, 154, 68, 0.15);#}
+{#            color: var(--ci-green);#}
+{#        }#}
+{##}
+{#        .badge.rejected {#}
+{#            background-color: rgba(223, 120, 97, 0.15);#}
+{#            color: #DF7861;#}
+{#        }#}
+{##}
+{#        .incident-card {#}
+{#            padding: 10px;#}
+{#            margin-bottom: 10px;#}
+{#            border-left: 4px solid;#}
+{#            border-radius: 4px;#}
+{#            background: white;#}
+{#            cursor: pointer;#}
+{#            transition: all 0.2s;#}
+{#        }#}
+{##}
+{#        .incident-card:hover {#}
+{#            transform: translateY(-2px);#}
+{#            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);#}
+{#        }#}
+{##}
+{#        .incident-card.pending {#}
+{#            border-color: var(--ci-orange);#}
+{#        }#}
+{##}
+{#        .incident-card.validated {#}
+{#            border-color: var(--ci-green);#}
+{#        }#}
+{##}
+{#        .incident-card.rejected {#}
+{#            border-color: #DF7861;#}
+{#        }#}
+{##}
+{#        /* Styles pour les districts et la légende */#}
+{#        .district-info {#}
+{#            padding: 6px 8px;#}
+{#            font: 14px/16px Arial, Helvetica, sans-serif;#}
+{#            background: rgba(255,255,255,0.8);#}
+{#            box-shadow: 0 0 15px rgba(0,0,0,0.2);#}
+{#            border-radius: 5px;#}
+{#        }#}
+{##}
+{#        .district-info h4 {#}
+{#            margin: 0 0 5px;#}
+{#            color: #777;#}
+{#        }#}
+{##}
+{#        .legend {#}
+{#            line-height: 18px;#}
+{#            color: #555;#}
+{#            background: rgba(255,255,255,0.8);#}
+{#            padding: 10px;#}
+{#            border-radius: 5px;#}
+{#        }#}
+{##}
+{#        .legend h4 {#}
+{#            margin-top: 0;#}
+{#            margin-bottom: 10px;#}
+{#            color: var(--ci-orange);#}
+{#        }#}
+{##}
+{#        .legend i {#}
+{#            width: 18px;#}
+{#            height: 18px;#}
+{#            float: left;#}
+{#            margin-right: 8px;#}
+{#            opacity: 0.7;#}
+{#        }#}
+{##}
+{#        .fullscreen-toggle {#}
+{#            position: absolute;#}
+{#            bottom: 80px;#}
+{#            right: 20px;#}
+{#            z-index: 1000;#}
+{#            background: rgba(255, 255, 255, 0.95);#}
+{#            border-radius: 4px;#}
+{#            padding: 8px;#}
+{#            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);#}
+{#            cursor: pointer;#}
+{#            color: var(--ci-orange);#}
+{#        }#}
+{##}
+{#        #home-button {#}
+{#            position: fixed;#}
+{#            top: 15px;#}
+{#            left: 15px;#}
+{#            z-index: 1000;#}
+{#            background-color: #fff;#}
+{#            border-radius: 50%;#}
+{#            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);#}
+{#            width: 45px;#}
+{#            height: 45px;#}
+{#            display: flex;#}
+{#            justify-content: center;#}
+{#            align-items: center;#}
+{#            transition: background-color 0.3s;#}
+{#        }#}
+{##}
+{#        #home-button:hover {#}
+{#            background-color: #f0f0f0;#}
+{#        }#}
+{#    </style>#}
+{#</head>#}
+{#<body>#}
+{##}
+{#<div id="map"></div>#}
+{##}
+{#<div class="filters d-flex flex-wrap gap-2 mb-3">#}
+{#    <select id="pole-filter" class="form-select">#}
+{#        <option value="all">Tous les Pôles</option>#}
+{#        {% for pole in poles %}#}
+{#        <option value="{{ pole.id }}">{{ pole.name }}</option>#}
+{#        {% endfor %}#}
+{#    </select>#}
+{#    <select id="region-filter" class="form-select">#}
+{#        <option value="all">Toutes les Régions</option>#}
+{#        {% for region in regions %}#}
+{#        <option value="{{ region.id }}">{{ region.name }}</option>#}
+{#        {% endfor %}#}
+{#    </select>#}
+{#    <select id="district-filter" class="form-select">#}
+{#        <option value="all">Tous les Districts</option>#}
+{#        {% for district in districts %}#}
+{#        <option value="{{ district.id }}">{{ district.nom }}</option>#}
+{#        {% endfor %}#}
+{#    </select>#}
+{#    <input type="date" id="start-date" class="form-control" placeholder="Date début">#}
+{#    <input type="date" id="end-date" class="form-control" placeholder="Date fin">#}
+{#    <button id="apply-filters" class="btn btn-primary">Appliquer</button>#}
+{#</div>#}
+{##}
+{#<div class="map-controls">#}
+{#    <div class="filter-panel">#}
+{#        <h4><i class="fas fa-filter"></i> Filtres</h4>#}
+{#        <div class="form-group">#}
+{#            <label for="status-filter">Statut:</label>#}
+{#            <select id="status-filter" class="form-control">#}
+{#                <option value="all">Tous</option>#}
+{#                <option value="pending">À valider</option>#}
+{#                <option value="validated">Validé</option>#}
+{#                <option value="rejected">Rejeté</option>#}
+{#            </select>#}
+{#        </div>#}
+{#        <div class="form-group">#}
+{#            <label for="type-filter">Type d'incident:</label>#}
+{#            <select id="type-filter" class="form-control">#}
+{#                <option value="all">Tous</option>#}
+{#                {% for type in incident_types %}#}
+{#                    <option value="{{ type.id }}">{{ type.name }}</option>#}
+{#                {% endfor %}#}
+{#            </select>#}
+{#        </div>#}
+{#        <div class="form-group">#}
+{#            <label for="date-filter">Période:</label>#}
+{#            <select id="date-filter" class="form-control">#}
+{#                <option value="all">Toutes dates</option>#}
+{#                <option value="today">Aujourd'hui</option>#}
+{#                <option value="week">Cette semaine</option>#}
+{#                <option value="month">Ce mois</option>#}
+{#            </select>#}
+{#        </div>#}
+{#        <button id="apply-filters" class="btn btn-primary w-100">#}
+{#            <i class="fas fa-check"></i> Appliquer#}
+{#        </button>#}
+{#    </div>#}
+{##}
+{#    <div class="incident-summary">#}
+{#        <h4><i class="fas fa-chart-pie"></i> Résumé</h4>#}
+{#        <div class="summary-item">#}
+{#            <span class="badge pending">À valider</span>#}
+{#            <span id="pending-count">0</span>#}
+{#        </div>#}
+{#        <div class="summary-item">#}
+{#            <span class="badge validated">Validé</span>#}
+{#            <span id="validated-count">0</span>#}
+{#        </div>#}
+{#        <div class="summary-item">#}
+{#            <span class="badge rejected">Rejeté</span>#}
+{#            <span id="rejected-count">0</span>#}
+{#        </div>#}
+{#    </div>#}
+{#    <div class="incident-list">#}
+{#        <div id="incident-list-container"></div>#}
+{#    </div>#}
+{#</div>#}
+{##}
+{#<div class="fullscreen-toggle" id="fullscreen-toggle">#}
+{#    <i class="fas fa-expand"></i>#}
+{#</div>#}
+{##}
+{#<div id="home-button" title="Revenir à l'accueil">#}
+{#    <a href="{% url 'home' %}" class="text-decoration-none">#}
+{#        <i class="fas fa-home text-dark"></i>#}
+{#    </a>#}
+{#</div>#}
+{##}
+{#<!-- Leaflet JS -->#}
+{#<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"#}
+{#        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="#}
+{#        crossorigin=""></script>#}
+{#<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>#}
+{#<script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.72.0/dist/L.Control.Locate.min.js"></script>#}
+{##}
+{#<script>#}
+{#    document.addEventListener('DOMContentLoaded', function () {#}
+{#        // Variables globales#}
+{#        let map, districtLayer, markersLayer;#}
+{#        let currentIncidents = [];#}
+{#        let markerCluster;#}
+{##}
+{#        // Initialisation de la carte#}
+{#        function initMap() {#}
+{#            map = L.map('map').setView([7.5399, -5.5471], 7);#}
+{##}
+{#            // Couche de base#}
+{#            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {#}
+{#                attribution: '© OpenStreetMap contributors'#}
+{#            }).addTo(map);#}
+{##}
+{#            // Contrôles#}
+{#            L.control.zoom({position: 'topright'}).addTo(map);#}
+{#            L.control.locate({#}
+{#                position: 'topright',#}
+{#                drawCircle: true,#}
+{#                follow: true,#}
+{#                setView: 'once',#}
+{#                keepCurrentZoomLevel: true#}
+{#            }).addTo(map);#}
+{##}
+{#            // Initialiser le cluster de marqueurs#}
+{#            markerCluster = L.markerClusterGroup({#}
+{#                spiderfyOnMaxZoom: true,#}
+{#                showCoverageOnHover: false,#}
+{#                zoomToBoundsOnClick: true,#}
+{#                maxClusterRadius: 80#}
+{#            });#}
+{#            map.addLayer(markerCluster);#}
+{#        }#}
+{##}
+{#        // Style des districts#}
+{#        function getDistrictStyle(feature) {#}
+{#            const count = feature.properties.incident_count || 0;#}
+{#            let fillColor, weight, opacity;#}
+{##}
+{#            if (count === 0) {#}
+{#                fillColor = '#f8f9fa';#}
+{#                weight = 1;#}
+{#                opacity = 0.5;#}
+{#            } else if (count <= 3) {#}
+{#                fillColor = '#ffeda0';#}
+{#                weight = 2;#}
+{#                opacity = 0.7;#}
+{#            } else if (count <= 10) {#}
+{#                fillColor = '#feb24c';#}
+{#                weight = 2.5;#}
+{#                opacity = 0.8;#}
+{#            } else {#}
+{#                fillColor = '#f03b20';#}
+{#                weight = 3;#}
+{#                opacity = 0.9;#}
+{#            }#}
+{##}
+{#            return {#}
+{#                fillColor: fillColor,#}
+{#                weight: weight,#}
+{#                opacity: 1,#}
+{#                color: '#495057',#}
+{#                dashArray: '3',#}
+{#                fillOpacity: opacity#}
+{#            };#}
+{#        }#}
+{##}
+{#        // Interactivité des districts#}
+{#        function onEachDistrictFeature(feature, layer) {#}
+{#            const count = feature.properties.incident_count || 0;#}
+{#            const name = feature.properties.name || 'District inconnu';#}
+{#            const region = feature.properties.region || 'Région inconnue';#}
+{##}
+{#            // Tooltip#}
+{#            layer.bindTooltip(`<b>${name}</b><br>${count} incident(s)`, {#}
+{#                permanent: false,#}
+{#                direction: 'auto',#}
+{#                className: 'district-tooltip'#}
+{#            });#}
+{##}
+{#            // Gestion des événements#}
+{#            layer.on({#}
+{#                mouseover: highlightDistrict,#}
+{#                mouseout: resetDistrictHighlight,#}
+{#                click: zoomToDistrict#}
+{#            });#}
+{##}
+{#            function highlightDistrict(e) {#}
+{#                const layer = e.target;#}
+{#                layer.setStyle({#}
+{#                    weight: 4,#}
+{#                    color: '#212529',#}
+{#                    fillOpacity: 0.9#}
+{#                });#}
+{#                layer.bringToFront();#}
+{#            }#}
+{##}
+{#            function resetDistrictHighlight(e) {#}
+{#                districtLayer.resetStyle(e.target);#}
+{#            }#}
+{##}
+{#            function zoomToDistrict(e) {#}
+{#                map.fitBounds(e.target.getBounds(), {#}
+{#                    padding: [50, 50],#}
+{#                    maxZoom: 12#}
+{#                });#}
+{#            }#}
+{#        }#}
+{##}
+{#        // Création des marqueurs d'incidents#}
+{#        function createIncidentMarkers(features) {#}
+{#            // Supprimer les anciens marqueurs#}
+{#            markerCluster.clearLayers();#}
+{##}
+{#            features.forEach(feature => {#}
+{#                if (!feature.geometry?.coordinates) return;#}
+{##}
+{#                const [lng, lat] = feature.geometry.coordinates;#}
+{#                const status = feature.properties.status === 'Validé' ? 'validated' :#}
+{#                    feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';#}
+{##}
+{#                const marker = L.marker([lat, lng], {#}
+{#                    icon: createMarkerIcon(status)#}
+{#                });#}
+{##}
+{#                marker.bindPopup(`#}
+{#                <div class="popup-header">#}
+{#                    <span>${feature.properties.type}</span>#}
+{#                    <span class="popup-status ${status}">${feature.properties.status}</span>#}
+{#                </div>#}
+{#                <div class="popup-details">#}
+{#                    <p><i class="fas fa-calendar-alt"></i> ${feature.properties.date}</p>#}
+{#                    <p><i class="fas fa-map-marker-alt"></i> ${feature.properties.location}</p>#}
+{#                    <p><i class="fas fa-user-injured"></i> ${feature.properties.people_involved} personne(s)</p>#}
+{#                    <p><i class="fas fa-bolt"></i> ${feature.properties.outcome}</p>#}
+{#                    <a href="/incidents/${feature.properties.id}/" class="btn btn-primary btn-sm">#}
+{#                        <i class="fas fa-eye"></i> Voir détails#}
+{#                    </a>#}
+{#                </div>#}
+{#            `);#}
+{##}
+{#                markerCluster.addLayer(marker);#}
+{#            });#}
+{#        }#}
+{##}
+{#        // Icônes des marqueurs#}
+{#        function createMarkerIcon(status) {#}
+{#            const colors = {#}
+{#                'validated': 'var(--ci-green)',#}
+{#                'rejected': '#DF7861',#}
+{#                'pending': 'var(--ci-orange)'#}
+{#            };#}
+{#            return L.divIcon({#}
+{#                className: `incident-marker ${status}`,#}
+{#                html: `<i class="fas fa-exclamation-circle" style="color: ${colors[status]}"></i>`,#}
+{#                iconSize: [30, 30]#}
+{#            });#}
+{#        }#}
+{##}
+{#        // Chargement des données#}
+{#           function loadDataWithParams(params = {}) {#}
+{#        const query = new URLSearchParams(params).toString();#}
+{#        fetch(`{% url 'incident_map' %}?${query}`, {#}
+{#            headers: { 'X-Requested-With': 'XMLHttpRequest' }#}
+{#        })#}
+{#        .then(res => res.json())#}
+{#        .then(data => {#}
+{#            updateMap(data.incidents.features);#}
+{#            updateDistricts(data.districts);#}
+{#            updateSummary(data.incidents.features);#}
+{#            updateIncidentList(data.incidents.features);#}
+{#        });#}
+{#    }#}
+{##}
+{#    document.getElementById('apply-filters').addEventListener('click', () => {#}
+{#        const params = {#}
+{#            pole_id: document.getElementById('pole-filter').value,#}
+{#            region_id: document.getElementById('region-filter').value,#}
+{#            district_id: document.getElementById('district-filter').value,#}
+{#            start_date: document.getElementById('start-date').value,#}
+{#            end_date: document.getElementById('end-date').value#}
+{#        };#}
+{#        Object.keys(params).forEach(key => {#}
+{#            if (params[key] === 'all' || !params[key]) delete params[key];#}
+{#        });#}
+{#        loadDataWithParams(params);#}
+{#    });#}
+{##}
+{#        // Mise à jour des districts#}
+{#        function updateDistricts(districtsData) {#}
+{#            if (districtLayer) {#}
+{#                map.removeLayer(districtLayer);#}
+{#            }#}
+{##}
+{#            districtLayer = L.geoJSON(districtsData, {#}
+{#                style: getDistrictStyle,#}
+{#                onEachFeature: onEachDistrictFeature#}
+{#            }).addTo(map);#}
+{#        }#}
+{##}
+{#        // Mise à jour de la carte#}
+{#        function updateMap(features) {#}
+{#            createIncidentMarkers(features);#}
+{#        }#}
+{##}
+{#        // Mise à jour du résumé#}
+{#        function updateSummary(features) {#}
+{#            document.getElementById('pending-count').textContent =#}
+{#                features.filter(f => f.properties.status === 'À valider').length;#}
+{#            document.getElementById('validated-count').textContent =#}
+{#                features.filter(f => f.properties.status === 'Validé').length;#}
+{#            document.getElementById('rejected-count').textContent =#}
+{#                features.filter(f => f.properties.status === 'Rejeté').length;#}
+{#        }#}
+{##}
+{#        // Mise à jour de la liste des incidents#}
+{#        function updateIncidentList(features) {#}
+{#            const container = document.getElementById('incident-list-container');#}
+{#            container.innerHTML = '';#}
+{##}
+{#            features.slice(0, 50).forEach(feature => {#}
+{#                if (!feature.geometry?.coordinates) return;#}
+{##}
+{#                const status = feature.properties.status === 'Validé' ? 'validated' :#}
+{#                    feature.properties.status === 'Rejeté' ? 'rejected' : 'pending';#}
+{##}
+{#                const card = document.createElement('div');#}
+{#                card.className = `incident-card ${status}`;#}
+{#                card.innerHTML = `#}
+{#                <div class="d-flex justify-content-between align-items-center">#}
+{#                    <strong>${feature.properties.type}</strong>#}
+{#                    <small>${feature.properties.date.split(' ')[0]}</small>#}
+{#                </div>#}
+{#                <div class="d-flex justify-content-between mt-1">#}
+{#                    <span><i class="fas fa-map-marker-alt"></i> ${feature.properties.location}</span>#}
+{#                    <span class="badge ${status}">${feature.properties.status}</span>#}
+{#                </div>#}
+{#`;#}
+{##}
+{#                card.addEventListener('click', () => {#}
+{#                    const [lng, lat] = feature.geometry.coordinates;#}
+{#                    map.flyTo([lat, lng], 15);#}
+{##}
+{#                    // Ouvrir le popup correspondant#}
+{#                    markerCluster.eachLayer(layer => {#}
+{#                        if (layer instanceof L.Marker &&#}
+{#                            layer.getLatLng().lat === lat &&#}
+{#                            layer.getLatLng().lng === lng) {#}
+{#                            layer.openPopup();#}
+{#                        }#}
+{#                    });#}
+{#                });#}
+{##}
+{#                container.appendChild(card);#}
+{#            });#}
+{#        }#}
+{##}
+{#        // Initialisation#}
+{#        initMap();#}
+{#        loadDataWithParams();#}
+{##}
+{#        // Gestion du plein écran#}
+{#        document.getElementById('fullscreen-toggle').addEventListener('click', () => {#}
+{#            if (!document.fullscreenElement) {#}
+{#                document.documentElement.requestFullscreen().catch(err => {#}
+{#                    console.error("Erreur plein écran:", err);#}
+{#                });#}
+{#            } else {#}
+{#                document.exitFullscreen();#}
+{#            }#}
+{#        });#}
+{##}
+{#        // Filtres#}
+{#        document.getElementById('apply-filters').addEventListener('click', applyFilters);#}
+{##}
+{#        function applyFilters() {#}
+{#            const statusFilter = document.getElementById('status-filter').value;#}
+{#            const typeFilter = document.getElementById('type-filter').value;#}
+{#            const dateFilter = document.getElementById('date-filter').value;#}
+{##}
+{#            let filtered = currentIncidents;#}
+{##}
+{#            // Filtre par statut#}
+{#            if (statusFilter !== 'all') {#}
+{#                const statusMap = {#}
+{#                    'pending': 'À valider',#}
+{#                    'validated': 'Validé',#}
+{#                    'rejected': 'Rejeté'#}
+{#                };#}
+{#                filtered = filtered.filter(f => f.properties.status === statusMap[statusFilter]);#}
+{#            }#}
+{##}
+{#            // Filtre par type#}
+{#            if (typeFilter !== 'all') {#}
+{#                filtered = filtered.filter(f => f.properties.type_id == typeFilter);#}
+{#            }#}
+{##}
+{#            // Filtre par date (à implémenter)#}
+{#            if (dateFilter !== 'all') {#}
+{#                // Implémentez la logique de filtrage par date ici#}
+{#            }#}
+{##}
+{#            updateMap(filtered);#}
+{#            updateSummary(filtered);#}
+{#            updateIncidentList(filtered);#}
+{#        }#}
+{#    });#}
+{#</script>#}
+{##}
+{#<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>#}
+{#<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>#}
+{##}
+{#</body>#}
+{#</html>#}

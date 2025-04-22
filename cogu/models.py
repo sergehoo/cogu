@@ -308,6 +308,9 @@ class SanitaryIncident(models.Model):
     OUTCOME_CHOICES = [('mort', 'Décès'),
                        ('blessure', 'Blessure'),
                        ('sauvé', 'Sauvé'),
+                       ('exeat', 'Exeat'),
+                       ('evacue', 'Évacué'),
+                       ('pris_charge', 'Pris en charge'),
                        ('autre', 'Autre'), ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
     incident_type = models.ForeignKey(IncidentType, on_delete=models.CASCADE, db_index=True)

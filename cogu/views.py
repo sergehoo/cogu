@@ -1,7 +1,8 @@
 import calendar
+import csv
+import json
 import os
 from datetime import timedelta
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -9,20 +10,22 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.gis.db.models.functions import AsGeoJSON
 from django.core.paginator import Paginator
 from django.core.serializers import serialize
+from django.db import models
 from django.db.models import Q, Count, F
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.utils.html import format_html
+from django.utils.timezone import localtime
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, ListView, CreateView, DetailView, UpdateView, DeleteView, FormView
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-
 from cogu.filters import PatientFilter
 from cogu.forms import SanitaryIncidentForm, PublicIncidentForm, ContactForm
 from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune, HealthRegion, VictimCare, \
-    WhatsAppMessage, DistrictSanitaire
+    WhatsAppMessage, DistrictSanitaire, PolesRegionaux
 from django.contrib.gis.geos import Point
 from django.http import HttpResponse
 from django.template.loader import get_template
@@ -197,7 +200,7 @@ class PublicIncidentDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
+class CADashborad(LoginRequiredMixin, TemplateView):
     template_name = "pages/dashboard.html"
     login_url = 'account_login'
     allowed_roles = ['National', 'Regional']
@@ -207,7 +210,11 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
         now = timezone.now()
         last_month = now - timedelta(days=30)
 
+        event_id = request.GET.get('event_id')
         incidents_qs = SanitaryIncident.objects.all()
+        if event_id and event_id != 'all':
+            incidents_qs = incidents_qs.filter(event_id=event_id)
+
         incidents_count = incidents_qs.count()
 
         active_cases_qs = incidents_qs.filter(Q(outcome='mort') | Q(outcome='blessure'))
@@ -216,10 +223,9 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
         interventions_qs = incidents_qs.filter(patients_related__isnull=False).distinct()
         interventions_count = interventions_qs.count()
 
-        resolved_cases_qs = incidents_qs.filter(outcome='sauvé')
+        resolved_cases_qs = incidents_qs.filter(outcome='mort')
         resolved_cases_count = resolved_cases_qs.count()
 
-        # Variation mensuelle
         incidents_last_month = incidents_qs.filter(date_time__gte=last_month).count()
         incidents_monthly_change = self.calculate_change(incidents_last_month, incidents_count)
 
@@ -227,46 +233,56 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
         interventions_last_month = interventions_qs.filter(date_time__gte=last_month).count()
         resolved_last_month = resolved_cases_qs.filter(date_time__gte=last_month).count()
 
-        # Pourcentages basés sur des bases réalistes
         incidents_percentage = (incidents_last_month / max(1, incidents_count)) * 100
         active_cases_percentage = (active_cases_count / max(1, incidents_count)) * 100
         interventions_percentage = (interventions_count / max(1, incidents_count)) * 100
         resolved_percentage = (resolved_cases_count / max(1, incidents_count)) * 100
 
-        # Incidents critiques pour alertes
         incidents_critical = incidents_qs.filter(outcome='mort').order_by('-date_time')[:1]
 
-        # Derniers incidents paginés
-        recent_incidents = SanitaryIncident.objects.select_related('incident_type', 'city').order_by('-date_time')
+        recent_incidents = incidents_qs.select_related('incident_type', 'city').order_by('-date_time')
         paginator = Paginator(recent_incidents, 5)
         page = request.GET.get("page")
         recent_incidents_page = paginator.get_page(page)
 
-        # Données pour les graphiques
-        regions_data = self.get_regions_data()
-        monthly_data = self.get_monthly_trends()
-        incident_types_data = self.get_incident_types_data()
+        total_people_involved = incidents_qs.aggregate(total=models.Sum('number_of_people_involved'))['total'] or 0
 
-        # Données carte
-        incidents_map_data = list(
-            SanitaryIncident.objects.filter(location__isnull=False)
-            .annotate(
-                location_json=AsGeoJSON('location')  # Transforme Point en JSON lisible
-            )
-            .values(
-                'id',
-                'incident_type__name',
-                'incident_type_id',
-                'city__name',
-                'date_time',
-                'location_json'  # à utiliser dans le JS
-            )
-        )
+        outcomes = ['mort', 'evacue', 'pris_charge', 'blessure', 'exeat']
+        stats = {}
+        for o in outcomes:
+            count = incidents_qs.filter(outcome=o).count()
+            stats[o] = {
+                'count': count,
+                'percent': round((count / max(1, total_people_involved)) * 100, 2)
+            }
+
+        # Données agrégées à inclure dans le contexte
+        poles_data = self.fetch_poles_data(event_id)
+        regions_data = self.get_regions_data(event_id)
+        districts_data = self.fetch_districts_data(event_id)
+        hierarchical_data = self.get_hierarchical_data(event_id)
+        incident_types_data = self.get_incident_types_data(event_id)
+        event_distribution = self.get_event_distribution()
+        chart_data = self.get_highcharts_data(event_id)
+        monthly_data = self.get_monthly_trends()
+        event_stats = self.get_event_stats()
 
         context = {
-            'available_years': list(range(2019, timezone.now().year + 1)),
-            'event_labels': [e['name'] for e in self.get_event_distribution()],
-            'event_data': [e['count'] for e in self.get_event_distribution()],
+            'events': MajorEvent.objects.all().order_by('-start_date'),
+            'event_id': event_id,
+
+            'people_involved': total_people_involved,
+            'deces_count': stats['mort']['count'],
+            'deces_percentage': stats['mort']['percent'],
+            'evacue_count': stats['evacue']['count'],
+            'evacue_percentage': stats['evacue']['percent'],
+            'pris_charge_count': stats['pris_charge']['count'],
+            'pris_charge_percentage': stats['pris_charge']['percent'],
+            'blessure_count': stats['blessure']['count'],
+            'blessure_percentage': stats['blessure']['percent'],
+            'exeat_count': stats['exeat']['count'],
+            'exeat_percentage': stats['exeat']['percent'],
+
             'incidents_count': incidents_count,
             'active_cases': active_cases_count,
             'interventions_count': interventions_count,
@@ -279,47 +295,282 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
             'interventions_change': self.calculate_change(interventions_last_month, interventions_count),
             'resolved_percentage': round(resolved_percentage, 1),
             'resolved_change': self.calculate_change(resolved_last_month, resolved_cases_count),
+
             'incidents_critical': incidents_critical,
             'recent_incidents': recent_incidents_page,
             'incident_types': IncidentType.objects.all(),
+
+            'poles_labels': [p['name'] for p in poles_data],
+            'poles_data': [p['count'] for p in poles_data],
             'regions_labels': [r['name'] for r in regions_data],
             'regions_data': [r['count'] for r in regions_data],
-            # 'monthly_labels': [m['month'] for m in monthly_data],
-            # 'monthly_data': [m['count'] for m in monthly_data],
-
+            'districts_labels': [d['name'] for d in districts_data],
+            'districts_data': [d['count'] for d in districts_data],
+            'incident_types_labels': [t['name'] for t in incident_types_data],
+            'incident_types_data': [t['count'] for t in incident_types_data],
+            'hierarchical_data': hierarchical_data,
+            'available_years': list(range(2019, timezone.now().year + 1)),
+            'event_labels': [e['name'] for e in event_distribution],
+            'event_data': [e['count'] for e in event_distribution],
+            "highcharts_categories": chart_data["categories"],
+            "highcharts_series": chart_data["series"],
+            "highcharts_outcome_pie": chart_data["pie_data"],
+            'event_stats': event_stats,
             'monthly_labels': monthly_data['labels'],
             'monthly_current_data': monthly_data['current_year'],
             'monthly_previous_data': monthly_data['previous_year'],
             'monthly_current_label': monthly_data['current_year_label'],
             'monthly_previous_label': monthly_data['previous_year_label'],
-
-            'incident_types_labels': [t['name'] for t in incident_types_data],
-            'incident_types_data': [t['count'] for t in incident_types_data],
-            'incidents_map_data': incidents_map_data,
-
         }
 
         return self.render_to_response(context)
 
+    # def get(self, request, *args, **kwargs):
+    #     now = timezone.now()
+    #     last_month = now - timedelta(days=30)
+    #
+    #     selected_event_id = request.GET.get('event_id')
+    #     incidents_qs = SanitaryIncident.objects.all()
+    #
+    #     if selected_event_id and selected_event_id != 'all':
+    #         incidents_qs = incidents_qs.filter(event__id=selected_event_id)
+    #
+    #     incidents_count = incidents_qs.count()
+    #
+    #     active_cases_qs = incidents_qs.filter(Q(outcome='mort') | Q(outcome='blessure'))
+    #     active_cases_count = active_cases_qs.count()
+    #
+    #     interventions_qs = incidents_qs.filter(patients_related__isnull=False).distinct()
+    #     interventions_count = interventions_qs.count()
+    #
+    #     resolved_cases_qs = incidents_qs.filter(outcome='mort')
+    #     resolved_cases_count = resolved_cases_qs.count()
+    #
+    #     incidents_last_month = incidents_qs.filter(date_time__gte=last_month).count()
+    #     active_cases_last_month = active_cases_qs.filter(date_time__gte=last_month).count()
+    #     interventions_last_month = interventions_qs.filter(date_time__gte=last_month).count()
+    #     resolved_last_month = resolved_cases_qs.filter(date_time__gte=last_month).count()
+    #
+    #     incidents_percentage = (incidents_last_month / max(1, incidents_count)) * 100
+    #     active_cases_percentage = (active_cases_count / max(1, incidents_count)) * 100
+    #     interventions_percentage = (interventions_count / max(1, incidents_count)) * 100
+    #     resolved_percentage = (resolved_cases_count / max(1, incidents_count)) * 100
+    #
+    #     incidents_critical = incidents_qs.filter(outcome='mort').order_by('-date_time')[:1]
+    #
+    #     recent_incidents = SanitaryIncident.objects.select_related('incident_type', 'city').order_by('-date_time')
+    #     paginator = Paginator(recent_incidents, 5)
+    #     page = request.GET.get("page")
+    #     recent_incidents_page = paginator.get_page(page)
+    #
+    #     poles_data = self.fetch_poles_data()
+    #     districts_data = self.fetch_districts_data()
+    #     incident_types_data = self.get_incident_types_data()
+    #     regions_data = self.get_regions_data()
+    #     monthly_data = self.get_monthly_trends()
+    #     event_distribution = self.get_event_distribution()
+    #
+    #     incidents = incidents_qs
+    #     total_incidents = incidents.count()
+    #     total_people_involved = incidents.aggregate(total=models.Sum('number_of_people_involved'))['total'] or 0
+    #
+    #     outcomes = ['mort', 'evacue', 'pris_charge', 'blessure', 'exeat']
+    #     stats = {}
+    #     for o in outcomes:
+    #         count = incidents.filter(outcome=o).count()
+    #         stats[o] = {
+    #             'count': count,
+    #             'percent': round((count / total_incidents) * 100, 2) if total_incidents else 0
+    #         }
+    #
+    #     event_stats = self.get_event_stats()
+    #     hierarchical_data = self.get_hierarchical_data()
+    #     chart_data = self.get_highcharts_data()
+    #
+    #     context = {
+    #         'events': MajorEvent.objects.all().order_by('-start_date'),
+    #         'event_id': selected_event_id,
+    #         'people_involved': total_people_involved,
+    #         'deces_count': stats['mort']['count'],
+    #         'deces_percentage': stats['mort']['percent'],
+    #         'evacue_count': stats['evacue']['count'],
+    #         'evacue_percentage': stats['evacue']['percent'],
+    #         'pris_charge_count': stats['pris_charge']['count'],
+    #         'pris_charge_percentage': stats['pris_charge']['percent'],
+    #         'blessure_count': stats['blessure']['count'],
+    #         'blessure_percentage': stats['blessure']['percent'],
+    #         'exeat_count': stats['exeat']['count'],
+    #         'exeat_percentage': stats['exeat']['percent'],
+    #         "highcharts_categories": chart_data["categories"],
+    #         "highcharts_series": chart_data["series"],
+    #         "highcharts_outcome_pie": chart_data["pie_data"],
+    #         'event_stats': event_stats,
+    #         'hierarchical_data': hierarchical_data,
+    #         'available_years': list(range(2019, timezone.now().year + 1)),
+    #         'event_labels': [e['name'] for e in event_distribution],
+    #         'event_data': [e['count'] for e in event_distribution],
+    #         'incidents_count': incidents_count,
+    #         'active_cases': active_cases_count,
+    #         'interventions_count': interventions_count,
+    #         'resolved_cases': resolved_cases_count,
+    #         'incidents_percentage': round(incidents_percentage, 1),
+    #         'incidents_monthly_change': self.calculate_change(incidents_last_month, incidents_count),
+    #         'active_cases_percentage': round(active_cases_percentage, 1),
+    #         'active_cases_change': self.calculate_change(active_cases_last_month, active_cases_count),
+    #         'interventions_percentage': round(interventions_percentage, 1),
+    #         'interventions_change': self.calculate_change(interventions_last_month, interventions_count),
+    #         'resolved_percentage': round(resolved_percentage, 1),
+    #         'resolved_change': self.calculate_change(resolved_last_month, resolved_cases_count),
+    #         'incidents_critical': incidents_critical,
+    #         'recent_incidents': recent_incidents_page,
+    #         'incident_types': IncidentType.objects.all(),
+    #         'regions_labels': [r['name'] for r in regions_data],
+    #         'regions_data': [r['count'] for r in regions_data],
+    #         'monthly_labels': monthly_data['labels'],
+    #         'monthly_current_data': monthly_data['current_year'],
+    #         'monthly_previous_data': monthly_data['previous_year'],
+    #         'monthly_current_label': monthly_data['current_year_label'],
+    #         'monthly_previous_label': monthly_data['previous_year_label'],
+    #         'incident_types_labels': [t['name'] for t in incident_types_data],
+    #         'incident_types_data': [t['count'] for t in incident_types_data],
+    #         'poles_labels': [p['name'] for p in poles_data],
+    #         'poles_data': [p['count'] for p in poles_data],
+    #         'districts_labels': [d['name'] for d in districts_data],
+    #         'districts_data': [d['count'] for d in districts_data],
+    #     }
+    #
+    #     return self.render_to_response(context)
+
+    def get_hierarchical_data(self, event_id=None):
+        from collections import defaultdict
+
+        data = defaultdict(lambda: {
+            'count': 0,
+            'regions': defaultdict(lambda: {
+                'count': 0,
+                'types': defaultdict(int)
+            })
+        })
+
+        qs = SanitaryIncident.objects.select_related('incident_type', 'city__district__region__poles')
+        if event_id and event_id != 'all':
+            qs = qs.filter(event_id=event_id)
+
+        for incident in qs:
+            try:
+                pole_name = incident.city.district.region.poles.name
+                region_name = incident.city.district.region.name
+                incident_type_name = incident.incident_type.name
+            except AttributeError:
+                continue
+
+            data[pole_name]['count'] += 1
+            data[pole_name]['regions'][region_name]['count'] += 1
+            data[pole_name]['regions'][region_name]['types'][incident_type_name] += 1
+
+        poles_list = []
+        for pole_name, pole_data in data.items():
+            regions_list = []
+            for region_name, region_data in pole_data['regions'].items():
+                types_list = sorted([
+                    {'name': tname, 'count': tcount} for tname, tcount in region_data['types'].items()
+                ], key=lambda x: x['count'], reverse=True)
+                regions_list.append({
+                    'name': region_name,
+                    'count': region_data['count'],
+                    'types': types_list
+                })
+
+            regions_list = sorted(regions_list, key=lambda x: x['count'], reverse=True)
+            poles_list.append({
+                'name': pole_name,
+                'count': pole_data['count'],
+                'regions': regions_list
+            })
+
+        return sorted(poles_list, key=lambda x: x['count'], reverse=True)
+
+    def calculate_change(self, last, current):
+        if last == 0:
+            return current * 100 if current else 0
+        return round(((current - last) / last) * 100, 1)
+
+    def get_highcharts_data(self, event_id=None):
+        from collections import defaultdict
+        from django.db.models.functions import TruncDate
+
+        series_by_event = defaultdict(lambda: defaultdict(int))
+        categories_set = set()
+
+        qs = SanitaryIncident.objects.filter(event__isnull=False).annotate(date=TruncDate("date_time"))
+        if event_id and event_id != 'all':
+            qs = qs.filter(event_id=event_id)
+
+        for row in qs.values("event__name", "incident_type__name", "date").annotate(count=Count("id")):
+            event = row["event__name"]
+            inc_type = row["incident_type__name"]
+            date = row["date"].strftime("%Y-%m-%d")
+            categories_set.add(date)
+            key = f"{event} | {inc_type}"
+            series_by_event[key][date] += row["count"]
+
+        categories = sorted(list(categories_set))
+        series_data = []
+        for label, data in series_by_event.items():
+            series_data.append({
+                "name": label,
+                "data": [data.get(date, 0) for date in categories]
+            })
+
+        outcome_data = SanitaryIncident.objects.values("outcome").annotate(count=Count("id")).order_by("-count")
+        pie_data = [{"name": row["outcome"].capitalize(), "y": row["count"]} for row in outcome_data]
+
+        return {
+            "categories": categories,
+            "series": series_data,
+            "pie_data": pie_data,
+        }
+
+    def get_event_stats(self):
+        from collections import defaultdict
+
+        stats = defaultdict(lambda: defaultdict(int))
+
+        incidents = SanitaryIncident.objects.select_related('event', 'incident_type').filter(event__isnull=False)
+
+        for incident in incidents:
+            event_name = incident.event.name if incident.event else "Inconnu"
+            incident_type_name = incident.incident_type.name
+            stats[event_name][incident_type_name] += 1
+
+        # Format final : trié par nombre total d’incidents
+        result = []
+        for event_name, types in stats.items():
+            types_list = [{'name': k, 'count': v} for k, v in types.items()]
+            types_list = sorted(types_list, key=lambda x: x['count'], reverse=True)
+            result.append({
+                'name': event_name,
+                'count': sum(t['count'] for t in types_list),
+                'types': types_list
+            })
+
+        return sorted(result, key=lambda x: x['count'], reverse=True)
+
+    def get_event_distribution(self):
+        return SanitaryIncident.objects.filter(event__isnull=False).values(name=F('event__name')).annotate(
+            count=Count('id')).order_by('-count')
+
     def get_monthly_trends(self):
         from collections import defaultdict
-        import calendar
 
         current_year = timezone.now().year
         previous_year = current_year - 1
-
-        MONTHS_FR = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-                     "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+        MONTHS_FR = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
 
         current_data = defaultdict(int)
         previous_data = defaultdict(int)
 
-        incidents = SanitaryIncident.objects.filter(
-            date_time__year__in=[current_year, previous_year]
-        ).annotate(
-            month=F('date_time__month'),
-            year=F('date_time__year')
-        ).values('month', 'year').annotate(count=Count('id'))
+        incidents = SanitaryIncident.objects.filter(date_time__year__in=[current_year, previous_year]).annotate(month=F('date_time__month'), year=F('date_time__year')).values('month', 'year').annotate(count=Count('id'))
 
         for entry in incidents:
             if entry['year'] == current_year:
@@ -339,19 +590,29 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
             'previous_year_label': previous_year
         }
 
-    def calculate_change(self, last, current):
-        if last == 0:
-            return current * 100 if current else 0
-        return round(((current - last) / last) * 100, 1)
+    def get_incident_types_data(self, event_id=None):
+        qs = SanitaryIncident.objects.all()
+        if event_id and event_id != 'all':
+            qs = qs.filter(event_id=event_id)
+        return qs.values(name=F('incident_type__name')).annotate(count=Count('id')).order_by('-count')
 
-    def get_regions_data(self):
-        return (
-            SanitaryIncident.objects
-            .filter(city__district__region__isnull=False)
-            .values(name=F('city__district__region__name'))
-            .annotate(count=Count('id'))
-            .order_by('-count')
-        )
+    def fetch_poles_data(self, event_id=None):
+        qs = SanitaryIncident.objects.filter(city__district__region__poles__isnull=False)
+        if event_id and event_id != 'all':
+            qs = qs.filter(event_id=event_id)
+        return qs.values(name=F('city__district__region__poles__name')).annotate(count=Count('id')).order_by('-count')
+
+    def fetch_districts_data(self, event_id=None):
+        qs = SanitaryIncident.objects.filter(city__district__isnull=False)
+        if event_id and event_id != 'all':
+            qs = qs.filter(event_id=event_id)
+        return qs.values(name=F('city__district__nom')).annotate(count=Count('id')).order_by('-count')
+
+    def get_regions_data(self, event_id=None):
+        qs = SanitaryIncident.objects.filter(city__district__region__isnull=False)
+        if event_id and event_id != 'all':
+            qs = qs.filter(event_id=event_id)
+        return qs.values(name=F('city__district__region__name')).annotate(count=Count('id')).order_by('-count')
 
     def get_event_distribution(self):
         return (
@@ -362,13 +623,11 @@ class CADashborad(LoginRequiredMixin, RoleRequiredMixin, TemplateView):
             .order_by('-count')
         )
 
-    def get_incident_types_data(self):
-        return (
-            SanitaryIncident.objects
-            .values(name=F('incident_type__name'))
-            .annotate(count=Count('id'))
-            .order_by('-count')
-        )
+    def get_incident_types_data(self, event_id=None):
+        qs = SanitaryIncident.objects.all()
+        if event_id and event_id != 'all':
+            qs = qs.filter(event_id=event_id)
+        return qs.values(name=F('incident_type__name')).annotate(count=Count('id')).order_by('-count')
 
 
 class PatientListView(LoginRequiredMixin, RoleRequiredMixin, ListView):
@@ -482,9 +741,9 @@ class MajorEventGridView(LoginRequiredMixin, RoleRequiredMixin, ListView):
     # ordering = ['-start_date']
     allowed_roles = ['National', 'Regional']
 
-    def get_queryset(self):
-        now = timezone.now()
-        return MajorEvent.objects.filter(start_date__gte=now).order_by('start_date')
+    # def get_queryset(self):
+    #     now = timezone.now()
+    #     return MajorEvent.objects.filter(start_date__gte=now).order_by('start_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -687,6 +946,106 @@ def reject_incident(request, pk):
     return redirect('sanitaryincident_detail', pk=pk)
 
 
+# class IncidentMapView(RoleRequiredMixin, TemplateView):
+#     template_name = 'sanitaryincident/incident_map.html'
+#     allowed_roles = ['National', 'Regional']
+#     redirect_view_if_denied = 'public_dashboard'
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         incidents = SanitaryIncident.objects.all()
+#         context['incidents_geojson'] = serialize('geojson', incidents,
+#                                                  geometry_field='location',
+#                                                  fields=(
+#                                                      'id', 'incident_type__name', 'status', 'date_time', 'city__name'))
+#         return context
+#
+#     def get(self, request, *args, **kwargs):
+#         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+#             if request.GET.get("layer") == "districts":
+#                 return JsonResponse(self.get_districts_geojson())
+#
+#         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+#             incidents = SanitaryIncident.objects.all()
+#             data = {
+#                 'type': 'FeatureCollection',
+#                 'features': [{
+#                     'type': 'Feature',
+#                     'geometry': {
+#                         'type': 'Point',
+#                         'coordinates': [incident.location.x, incident.location.y] if incident.location else None
+#                     },
+#                     'properties': {
+#                         'id': incident.id,
+#                         'type': incident.incident_type.name,
+#                         'status': incident.get_status_display(),
+#                         'date': incident.date_time.strftime('%d/%m/%Y %H:%M'),
+#                         'location': incident.city.name if incident.city else 'Inconnu',
+#                         'outcome': incident.get_outcome_display(),
+#                         'people_involved': incident.number_of_people_involved,
+#                         'icon': self.get_incident_icon(incident)
+#                     }
+#                 } for incident in incidents if incident.location]
+#             }
+#             return JsonResponse(data)
+#         return super().get(request, *args, **kwargs)
+#
+#     def get_incident_icon(self, incident):
+#         if incident.status == 'validated':
+#             return 'validated-icon'
+#         elif incident.status == 'rejected':
+#             return 'rejected-icon'
+#         return 'pending-icon'
+#
+#     def get_districts_geojson(self):
+#         from cogu.models import DistrictSanitaire
+#
+#         qs = DistrictSanitaire.objects.annotate(
+#             incident_count=Count('commune__sanitaryincident')
+#         ).filter(geom__isnull=False)
+#
+#         features = []
+#         for district in qs:
+#             if district.geom:
+#                 features.append({
+#                     "type": "Feature",
+#                     "geometry": json.loads(district.geom.geojson),
+#                     "properties": {
+#                         "id": district.id,
+#                         "name": district.nom,
+#                         "region": district.region.name if district.region else None,
+#                         "incident_count": district.incident_count
+#                     }
+#                 })
+#
+#         return {
+#             "type": "FeatureCollection",
+#             "features": features
+#         }
+
+def export_incidents_csv(request):
+    incidents = SanitaryIncident.objects.all()  # à filtrer selon les paramètres si nécessaire
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="incidents.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['ID', 'Type', 'Date', 'Commune', 'Statut', 'Issue', 'Personnes'])
+
+    for i in incidents:
+        writer.writerow([
+            i.id,
+            i.incident_type.name,
+            localtime(i.date_time).strftime("%d/%m/%Y %H:%M"),
+            i.city.name if i.city else "Inconnu",
+            i.get_status_display(),
+            i.get_outcome_display(),
+            i.number_of_people_involved
+        ])
+
+    return response
+
+
 class IncidentMapView(RoleRequiredMixin, TemplateView):
     template_name = 'sanitaryincident/incident_map.html'
     allowed_roles = ['National', 'Regional']
@@ -695,35 +1054,107 @@ class IncidentMapView(RoleRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         incidents = SanitaryIncident.objects.all()
+
+        # Ajout des districts sanitaires au contexte
+        districts = DistrictSanitaire.objects.all()
+        context['districts_geojson'] = serialize('geojson', districts,
+                                                 geometry_field='geom',
+                                                 fields=('id', 'nom', 'region__name'))
+
         context['incidents_geojson'] = serialize('geojson', incidents,
                                                  geometry_field='location',
                                                  fields=(
                                                      'id', 'incident_type__name', 'status', 'date_time', 'city__name'))
+        # context['poles'] = PolesRegionaux.objects.all()
+        # context['regions'] = HealthRegion.objects.select_related('poles')
+        # context['districts'] = DistrictSanitaire.objects.select_related('region')
+        # context['incident_types'] = IncidentType.objects.only('id', 'name')
+
+        context['poles'] = PolesRegionaux.objects.only('id', 'name')
+        context['regions'] = HealthRegion.objects.select_related('poles').only('id', 'name', 'poles__name')
+        context['districts'] = DistrictSanitaire.objects.select_related('region').only('id', 'nom', 'region__name')
+        context['incident_types'] = IncidentType.objects.only('id', 'name')
+
         return context
 
     def get(self, request, *args, **kwargs):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            incidents = SanitaryIncident.objects.all()
-            data = {
-                'type': 'FeatureCollection',
-                'features': [{
-                    'type': 'Feature',
-                    'geometry': {
-                        'type': 'Point',
-                        'coordinates': [incident.location.x, incident.location.y] if incident.location else None
-                    },
-                    'properties': {
-                        'id': incident.id,
-                        'type': incident.incident_type.name,
-                        'status': incident.get_status_display(),
-                        'date': incident.date_time.strftime('%d/%m/%Y %H:%M'),
-                        'location': incident.city.name if incident.city else 'Inconnu',
-                        'outcome': incident.get_outcome_display(),
-                        'people_involved': incident.number_of_people_involved,
-                        'icon': self.get_incident_icon(incident)
-                    }
-                } for incident in incidents if incident.location]
+            incidents = SanitaryIncident.objects.select_related(
+                'city__district__region__poles', 'incident_type'
+            ).all()
+
+            # Filtres GET
+            start_date = request.GET.get('start_date')
+            end_date = request.GET.get('end_date')
+            pole_id = request.GET.get('pole_id')
+            region_id = request.GET.get('region_id')
+            district_id = request.GET.get('district_id')
+            incident_type__id = request.GET.get('type_id')
+
+            if start_date:
+                incidents = incidents.filter(date_time__date__gte=start_date)
+            if end_date:
+                incidents = incidents.filter(date_time__date__lte=end_date)
+            if pole_id:
+                incidents = incidents.filter(city__district__region__poles__id=pole_id)
+            if region_id:
+                incidents = incidents.filter(city__district__region__id=region_id)
+            if district_id:
+                incidents = incidents.filter(city__district__id=district_id)
+            if incident_type__id:
+                incidents = incidents.filter(incident_type=incident_type__id)
+
+            # Regroupement des districts avec incidents filtrés
+            districts = DistrictSanitaire.objects.exclude(geojson__isnull=True)
+            district_incident_counts = {
+                d.id: incidents.filter(city__district=d).count() for d in districts
             }
+
+            # Construction du GeoJSON
+            data = {
+                'incidents': {
+                    'type': 'FeatureCollection',
+                    'features': [
+                        {
+                            'type': 'Feature',
+                            'geometry': {
+                                'type': 'Point',
+                                'coordinates': [i.location.x, i.location.y] if i.location else None
+                            },
+                            'properties': {
+                                'id': i.id,
+                                'type': i.incident_type.name,
+                                'status': i.get_status_display(),
+                                'date': i.date_time.strftime('%d/%m/%Y %H:%M'),
+                                'location': i.city.name if i.city else 'Inconnu',
+                                'outcome': i.get_outcome_display(),
+                                'people_involved': i.number_of_people_involved,
+                                'icon': self.get_incident_icon(i),
+                                'district_id': i.city.district.id if i.city and i.city.district else None
+                            }
+                        }
+                        for i in incidents if i.location
+                    ]
+                },
+                'districts': {
+                    'type': 'FeatureCollection',
+                    'features': [
+                        {
+                            'type': 'Feature',
+                            'geometry': d.geojson.get("geometry"),
+                            'properties': {
+                                'id': d.id,
+                                'name': d.nom,
+                                'region': d.region.name if d.region else '',
+                                'pole': d.region.poles.name if d.region and d.region.poles else '',
+                                'incident_count': district_incident_counts.get(d.id, 0)
+                            }
+                        }
+                        for d in districts if d.geojson and d.geojson.get("geometry")
+                    ]
+                }
+            }
+
             return JsonResponse(data)
         return super().get(request, *args, **kwargs)
 
@@ -733,6 +1164,64 @@ class IncidentMapView(RoleRequiredMixin, TemplateView):
         elif incident.status == 'rejected':
             return 'rejected-icon'
         return 'pending-icon'
+
+
+#     def get(self, request, *args, **kwargs):
+#         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+#             incidents = SanitaryIncident.objects.all()
+#             districts = DistrictSanitaire.objects.exclude(geojson__isnull=True)
+#
+#             # Compter les incidents par district
+#             district_incident_counts = {
+#                 d.id: incidents.filter(city__district=d).count() for d in districts
+#             }
+#
+#             data = {
+#                 'incidents': {
+#                     'type': 'FeatureCollection',
+#                     'features': [
+#                         {
+#                             'type': 'Feature',
+#                             'geometry': {
+#                                 'type': 'Point',
+#                                 'coordinates': [i.location.x, i.location.y] if i.location else None
+#                             },
+#                             'properties': {
+#                                 'id': i.id,
+#                                 'type': i.incident_type.name,
+#                                 'status': i.get_status_display(),
+#                                 'date': i.date_time.strftime('%d/%m/%Y %H:%M'),
+#                                 'location': i.city.name if i.city else 'Inconnu',
+#                                 'outcome': i.get_outcome_display(),
+#                                 'people_involved': i.number_of_people_involved,
+#                                 'icon': self.get_incident_icon(i),
+#                                 'district_id': i.city.district.id if i.city and i.city.district else None
+#                             }
+#                         }
+#                         for i in incidents if i.location
+#                     ]
+#                 },
+#                 'districts': {
+#                     'type': 'FeatureCollection',
+#                     'features': [
+#                         {
+#                             'type': 'Feature',
+#                             'geometry': d.geojson['geometry'],  # ✅ ici on extrait uniquement la géométrie
+#                             'properties': {
+#                                 'id': d.id,
+#                                 'name': d.nom,
+#                                 'region': d.region.name if d.region else '',
+#                                 'incident_count': district_incident_counts.get(d.id, 0)
+#                             }
+#                         }
+#                         for d in districts
+#         if d.geojson and d.geojson.get("geometry")  # ✅ s'assurer que c'est un Feature
+#     ]
+# }
+#             }
+#
+#             return JsonResponse(data)
+#         return super().get(request, *args, **kwargs)
 
 
 class SanitaryIncidentDetailView(LoginRequiredMixin, RoleRequiredMixin, DetailView):

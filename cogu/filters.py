@@ -36,6 +36,3 @@ class PatientFilter(django_filters.FilterSet):
         return queryset.filter(date_naissance__gte=min_date)
 
 
-@register.filter
-def filter_by_status(queryset, status):
-    return queryset.filter(status=status).count()
