@@ -2,9 +2,10 @@ import random
 import string
 import uuid
 from datetime import date
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, User
 
 from django.contrib.gis.db import models as gis_models
+from django.core.validators import MinValueValidator
 from django.utils import timezone
 from djgeojson.fields import PointField
 from simple_history.models import HistoricalRecords
@@ -89,7 +90,7 @@ class EmployeeUser(AbstractUser):
     photo = models.ImageField(upload_to='users/images/', default='users/images/user.webp', blank=True, null=True)
     roleemployee = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Public')
 
-    # centre = models.ForeignKey('CentreAntirabique', on_delete=models.CASCADE, null=True, blank=True)
+    centre = models.ForeignKey('ServiceSanitaire', on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f"{self.username} - {self.roleemployee}"
@@ -323,6 +324,9 @@ class SanitaryIncident(models.Model):
     outcome = models.CharField(max_length=100, choices=OUTCOME_CHOICES, db_index=True)
     deces_nbr = models.PositiveIntegerField()
     blessure_nbr = models.PositiveIntegerField()
+    evacues_nbr = models.PositiveIntegerField(default=0)
+    pris_en_charge_nbr = models.PositiveIntegerField(default=0)
+    exeat_nbr = models.PositiveIntegerField(default=0)
     source = models.CharField(max_length=255)
     event = models.ForeignKey(
         MajorEvent, null=True, blank=True,
@@ -503,3 +507,332 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"Message de {self.name} - {self.subject}"
+
+
+#--------Gestion des kits
+
+class Fournisseur(models.Model):
+    """Modèle pour les fournisseurs comme NPSP"""
+    nom = models.CharField(max_length=100, unique=True)
+    code_fournisseur = models.CharField(max_length=50, unique=True)
+    contact = models.CharField(max_length=100)
+    telephone = models.CharField(max_length=20)
+    email = models.EmailField(blank=True)
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Fournisseur"
+        verbose_name_plural = "Fournisseurs"
+        ordering = ['nom']
+
+    def __str__(self):
+        return f"{self.nom} ({self.code_fournisseur})"
+
+
+class KitCategorie(models.Model):
+    """Catégorie de kits (ex: Premiers soins, Choléra, COVID-19)"""
+    nom = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    niveau_urgence = models.CharField(
+        max_length=20,
+        choices=[('routine', 'Routine'), ('urgence', 'Urgence'), ('critique', 'Critique')],
+        default='urgence'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Catégorie de kit"
+        verbose_name_plural = "Catégories de kits"
+        ordering = ['niveau_urgence', 'nom']
+
+    def __str__(self):
+        return f"{self.nom} ({self.get_niveau_urgence_display()})"
+
+
+class ComposantKit(models.Model):
+    """Composants individuels des kits"""
+    nom = models.CharField(max_length=100)
+    kit_type = models.ForeignKey(KitCategorie, on_delete=models.SET_NULL, null=True, blank=True)
+    description = models.TextField(blank=True)
+    code_produit = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    unite_mesure = models.CharField(max_length=20, choices=[
+        ('unite', 'Unité'),
+        ('boite', 'Boîte'),
+        ('carton', 'Carton'),
+        ('kg', 'Kilogramme'),
+        ('litre', 'Litre')
+    ])
+    duree_conservation = models.PositiveIntegerField(
+        help_text="Durée en mois avant péremption",
+        validators=[MinValueValidator(1)]
+    )
+    temperature_stockage = models.CharField(
+        max_length=50,
+        help_text="Conditions de stockage recommandées",
+        default="Ambiance"
+    )
+    seuil_alerte = models.PositiveIntegerField(
+        default=10,
+        help_text="Seuil minimum pour déclencher une alerte"
+    )
+
+    class Meta:
+        verbose_name = "Composant de kit"
+        verbose_name_plural = "Composants de kits"
+        ordering = ['nom']
+
+    def __str__(self):
+        return f"{self.nom} ({self.unite_mesure})"
+
+
+class Kit(models.Model):
+    """Modèle principal pour les kits d'urgence"""
+    reference = models.CharField(max_length=50, unique=True)
+    categorie = models.ForeignKey(KitCategorie, on_delete=models.PROTECT)
+    composants = models.ManyToManyField(
+        ComposantKit,
+        through='KitComposition',
+        through_fields=('kit', 'composant'),
+        related_name='kits'
+    )
+    description = models.TextField(blank=True)
+    instructions = models.TextField(blank=True, help_text="Instructions d'utilisation")
+    capacite_personnes = models.PositiveIntegerField(
+        default=1,
+        help_text="Nombre de personnes que le kit peut couvrir"
+    )
+    actif = models.BooleanField(default=True)
+    created_by = models.ForeignKey(EmployeeUser, on_delete=models.SET_NULL, null=True, related_name='kits_crees')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Kit d'urgence"
+        verbose_name_plural = "Kits d'urgence"
+        ordering = ['categorie', 'reference']
+
+    def __str__(self):
+        return f"{self.reference} - {self.categorie.nom}"
+
+    @property
+    def statut_stock(self):
+        """Calcule le statut global du stock basé sur les composants"""
+        compositions = self.compositions.all()
+        if not compositions.exists():
+            return 'inconnu'
+
+        statuts = [comp.statut_stock for comp in compositions]
+        if any(s == 'critique' for s in statuts):
+            return 'critique'
+        elif any(s == 'alerte' for s in statuts):
+            return 'alerte'
+        return 'suffisant'
+
+
+class KitComposition(models.Model):
+    """Table de liaison entre Kit et Composant avec quantités"""
+    kit = models.ForeignKey(Kit, on_delete=models.CASCADE, related_name='compositions')
+    composant = models.ForeignKey(ComposantKit, on_delete=models.CASCADE)
+    quantite_standard = models.PositiveIntegerField(
+        default=1,
+        validators=[MinValueValidator(1)]
+    )
+
+    class Meta:
+        unique_together = ('kit', 'composant')
+        verbose_name = "Composition de kit"
+        verbose_name_plural = "Compositions de kits"
+
+    def __str__(self):
+        return f"{self.kit.reference} - {self.composant.nom} x{self.quantite_standard}"
+
+
+class StockCentre(models.Model):
+    """Centre de stockage des kits"""
+    nom = models.CharField(max_length=100)
+    region = models.ForeignKey('ServiceSanitaire', on_delete=models.PROTECT)
+    adresse = models.TextField()
+    responsable = models.ForeignKey(EmployeeUser, on_delete=models.PROTECT, related_name='centres_responsables')
+    capacite_max = models.PositiveIntegerField(help_text="Capacité totale en unités de stockage")
+    temperature_controlee = models.BooleanField(default=False)
+    actif = models.BooleanField(default=True)
+    date_creation = models.DateField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Centre de stockage"
+        verbose_name_plural = "Centres de stockage"
+        ordering = ['region', 'nom']
+
+    def __str__(self):
+        return f"{self.nom} ({self.region.nom})"
+
+    @property
+    def taux_remplissage(self):
+        """Calcule le pourcentage d'occupation du stock"""
+        total = self.stocks.aggregate(total=models.Sum('quantite'))['total'] or 0
+        return round((total / self.capacite_max) * 100, 2)
+
+
+class Stock(models.Model):
+    """Stock physique des composants dans les centres"""
+    centre = models.ForeignKey(StockCentre, on_delete=models.CASCADE, related_name='stocks')
+    composant = models.ForeignKey(ComposantKit, on_delete=models.CASCADE, related_name='stocks')
+    quantite = models.PositiveIntegerField(default=0)
+    lot = models.CharField(max_length=50, blank=True)
+    date_expiration = models.DateField()
+    date_reception = models.DateField(default=timezone.now)
+    fournisseur = models.CharField(max_length=100, blank=True)
+    created_by = models.ForeignKey(EmployeeUser, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        verbose_name = "Stock"
+        verbose_name_plural = "Stocks"
+        ordering = ['composant', 'date_expiration']
+        unique_together = ('centre', 'composant', 'lot')
+
+    def __str__(self):
+        return f"{self.composant.nom} x{self.quantite} ({self.centre.nom})"
+
+    @property
+    def statut_stock(self):
+        """Détermine le statut du stock"""
+        if self.quantite <= 0:
+            return 'epuise'
+        elif self.quantite <= self.composant.seuil_alerte:
+            return 'critique'
+        elif self.quantite <= (self.composant.seuil_alerte * 2):
+            return 'alerte'
+        return 'suffisant'
+
+    @property
+    def jours_avant_expiration(self):
+        """Calcule le nombre de jours avant expiration"""
+        delta = self.date_expiration - timezone.now().date()
+        return delta.days
+
+
+class MouvementStock(models.Model):
+    """Trace toutes les transactions de stock"""
+    TYPE_MOUVEMENT = [
+        ('entree', 'Entrée'),
+        ('sortie', 'Sortie'),
+        ('transfert', 'Transfert'),
+        ('ajustement', 'Ajustement'),
+        ('perte', 'Perte')
+    ]
+
+    composant = models.ForeignKey(ComposantKit, on_delete=models.PROTECT, related_name='mouvements')
+    quantite = models.PositiveIntegerField()
+    type_mouvement = models.CharField(max_length=20, choices=TYPE_MOUVEMENT)
+    centre_source = models.ForeignKey(
+        StockCentre,
+        on_delete=models.PROTECT,
+        related_name='sorties',
+        null=True,
+        blank=True
+    )
+    centre_destination = models.ForeignKey(
+        StockCentre,
+        on_delete=models.PROTECT,
+        related_name='entrees',
+        null=True,
+        blank=True
+    )
+    kit = models.ForeignKey(
+        Kit,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Si lié à un kit spécifique"
+    )
+    incident = models.ForeignKey(
+        'SanitaryIncident',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Si lié à un incident sanitaire"
+    )
+    created_by = models.ForeignKey(EmployeeUser, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Mouvement de stock"
+        verbose_name_plural = "Mouvements de stock"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_type_mouvement_display()} {self.composant.nom} x{self.quantite}"
+
+    def save(self, *args, **kwargs):
+        """Met à jour automatiquement les stocks après un mouvement"""
+        super().save(*args, **kwargs)
+        self.update_stock()
+
+    def update_stock(self):
+        """Met à jour les stocks selon le type de mouvement"""
+        if self.type_mouvement == 'entree':
+            stock, created = Stock.objects.get_or_create(
+                centre=self.centre_destination,
+                composant=self.composant,
+                defaults={
+                    'quantite': self.quantite,
+                    'date_expiration': timezone.now() + timezone.timedelta(days=365)
+                }
+            )
+            if not created:
+                stock.quantite += self.quantite
+                stock.save()
+        elif self.type_mouvement == 'sortie':
+            stock = Stock.objects.get(centre=self.centre_source, composant=self.composant)
+            stock.quantite -= self.quantite
+            stock.save()
+
+
+class DeploiementKit(models.Model):
+    """Enregistre les déploiements de kits sur le terrain"""
+    STATUT_DEPLOIEMENT = [
+        ('preparation', 'En préparation'),
+        ('envoye', 'Envoyé'),
+        ('recu', 'Reçu'),
+        ('utilise', 'Utilisé'),
+        ('retourne', 'Retourné'),
+        ('perdu', 'Perdu')
+    ]
+
+    kit = models.ForeignKey(Kit, on_delete=models.PROTECT, related_name='deploiements')
+    quantite = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    centre_source = models.ForeignKey(StockCentre, on_delete=models.PROTECT, related_name='envois')
+    destination = models.ForeignKey('DistrictSanitaire', on_delete=models.PROTECT)
+    date_envoi = models.DateTimeField()
+    date_reception = models.DateTimeField(null=True, blank=True)
+    statut = models.CharField(max_length=20, choices=STATUT_DEPLOIEMENT, default='preparation')
+    incident = models.ForeignKey(
+        'SanitaryIncident',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='kits_deployes'
+    )
+    responsable = models.ForeignKey(EmployeeUser, on_delete=models.PROTECT, related_name='deploiements')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Déploiement de kit"
+        verbose_name_plural = "Déploiements de kits"
+        ordering = ['-date_envoi']
+
+    def __str__(self):
+        return f"{self.kit.reference} x{self.quantite} vers {self.destination.nom}"
+
+    @property
+    def delai_livraison(self):
+        """Calcule le délai de livraison si reçu"""
+        if self.date_reception:
+            return (self.date_reception - self.date_envoi).total_seconds() / 3600  # en heures
+        return None
+
+
+

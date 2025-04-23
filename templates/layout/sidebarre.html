@@ -29,9 +29,6 @@
                     Patients
                 </a>
             </li>
-
-
-
             <!-- Menu déroulant Incidents sanitaires -->
             <li class="nav-item has-submenu {% if 'sanitaryincident' in request.resolver_match.url_name or 'whatsapp_list' in request.resolver_match.url_name %}menu-open{% endif %}">
                 <a href="#" class="nav-link text-white d-flex justify-content-between align-items-center {% if 'sanitaryincident' in request.resolver_match.url_name or 'whatsapp_list' in request.resolver_match.url_name %}active bg-primary{% endif %}">
@@ -74,7 +71,7 @@
                         <a href="{% url 'whatsapp_list' %}" class="nav-link text-white d-flex justify-content-between align-items-center {% if request.resolver_match.url_name == 'whatsapp_list' %}active bg-primary{% endif %}">
                             <span>
                                 <i class="fas fa-comment me-2"></i>
-                                WhatsApp
+                                Messages
                             </span>
                             <span class="badge bg-success">{{ incident_stats.whatsapp }}</span>
                         </a>
@@ -88,6 +85,32 @@
                     Rapports
                 </a>
             </li>
+        
+        <li class="nav-item has-submenu {% if 'stock_districts' in request.resolver_match.url_name or 'stock_districts' in request.resolver_match.url_name %}menu-open{% endif %}">
+                <a href="#" class="nav-link text-white d-flex justify-content-between align-items-center {% if 'stock_districts' in request.resolver_match.url_name or 'stock_districts' in request.resolver_match.url_name %}active bg-primary{% endif %}">
+                    <span>
+                        <i class="fas fa-bell me-2"></i>
+                        Gestions des kits
+                    </span>
+                    <i class="fas fa-chevron-{% if 'stock_districts' in request.resolver_match.url_name or 'stock_districts' in request.resolver_match.url_name %}up{% else %}down{% endif %} ms-auto"></i>
+                </a>
+                <ul class="submenu nav flex-column ps-4" style="{% if 'stock_districts' not in request.resolver_match.url_name and 'stock_districts' not in request.resolver_match.url_name %}display: none;{% endif %}">
+                    <li class="nav-item">
+                <a href="{% url 'stock_districts' %}" class="nav-link text-white {% if request.resolver_match.url_name == 'stock_districts' %}active bg-primary{% endif %}">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Stock districts
+                </a>
+            </li>
+                     <li class="nav-item">
+                <a href="{% url 'incidenttype_list' %}" class="nav-link text-white {% if request.resolver_match.url_name == 'incidenttype_list' %}active bg-primary{% endif %}">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Commandes
+                </a>
+            </li>
+                   
+                </ul>
+            </li>
+       
 
          <li class="nav-item has-submenu {% if 'majorevent_list' in request.resolver_match.url_name or 'incidenttype_list' in request.resolver_match.url_name %}menu-open{% endif %}">
                 <a href="#" class="nav-link text-white d-flex justify-content-between align-items-center {% if 'incidenttype_list' in request.resolver_match.url_name or 'majorevent_list' in request.resolver_match.url_name %}active bg-primary{% endif %}">

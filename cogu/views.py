@@ -11,7 +11,7 @@ from django.contrib.gis.db.models.functions import AsGeoJSON
 from django.core.paginator import Paginator
 from django.core.serializers import serialize
 from django.db import models
-from django.db.models import Q, Count, F
+from django.db.models import Q, Count, F, Sum, Min
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -25,7 +25,7 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from cogu.filters import PatientFilter
 from cogu.forms import SanitaryIncidentForm, PublicIncidentForm, ContactForm
 from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune, HealthRegion, VictimCare, \
-    WhatsAppMessage, DistrictSanitaire, PolesRegionaux
+    WhatsAppMessage, DistrictSanitaire, PolesRegionaux, Kit, Fournisseur, Stock, KitCategorie
 from django.contrib.gis.geos import Point
 from django.http import HttpResponse
 from django.template.loader import get_template
@@ -245,16 +245,32 @@ class CADashborad(LoginRequiredMixin, TemplateView):
         page = request.GET.get("page")
         recent_incidents_page = paginator.get_page(page)
 
-        total_people_involved = incidents_qs.aggregate(total=models.Sum('number_of_people_involved'))['total'] or 0
+        # total_people_involved = incidents_qs.aggregate(total=models.Sum('number_of_people_involved'))['total'] or 0
+        #
+        # outcomes = ['mort', 'evacue', 'pris_charge', 'blessure', 'exeat']
+        # stats = {}
+        # for o in outcomes:
+        #     count = incidents_qs.filter(outcome=o).count()
+        #     stats[o] = {
+        #         'count': count,
+        #         'percent': round((count / max(1, total_people_involved)) * 100, 2)
+        #     }
 
-        outcomes = ['mort', 'evacue', 'pris_charge', 'blessure', 'exeat']
-        stats = {}
-        for o in outcomes:
-            count = incidents_qs.filter(outcome=o).count()
-            stats[o] = {
-                'count': count,
-                'percent': round((count / max(1, total_people_involved)) * 100, 2)
-            }
+        # Total des personnes impliquées
+        total_people_involved = incidents_qs.aggregate(total=Sum('number_of_people_involved'))['total'] or 0
+
+        # Totaux par type
+        sums = incidents_qs.aggregate(
+            deces_total=Sum('deces_nbr'),
+            evacues_total=Sum('evacues_nbr'),
+            pris_en_charge_total=Sum('pris_en_charge_nbr'),
+            blessure_total=Sum('blessure_nbr'),
+            exeat_total=Sum('exeat_nbr'),
+        )
+
+        # Pourcentage helper
+        def percent(value):
+            return round((value / total_people_involved) * 100, 2) if total_people_involved > 0 else 0.0
 
         # Données agrégées à inclure dans le contexte
         poles_data = self.fetch_poles_data(event_id)
@@ -272,16 +288,20 @@ class CADashborad(LoginRequiredMixin, TemplateView):
             'event_id': event_id,
 
             'people_involved': total_people_involved,
-            'deces_count': stats['mort']['count'],
-            'deces_percentage': stats['mort']['percent'],
-            'evacue_count': stats['evacue']['count'],
-            'evacue_percentage': stats['evacue']['percent'],
-            'pris_charge_count': stats['pris_charge']['count'],
-            'pris_charge_percentage': stats['pris_charge']['percent'],
-            'blessure_count': stats['blessure']['count'],
-            'blessure_percentage': stats['blessure']['percent'],
-            'exeat_count': stats['exeat']['count'],
-            'exeat_percentage': stats['exeat']['percent'],
+            'deces_count': sums['deces_total'] or 0,
+            'deces_percentage': percent(sums['deces_total'] or 0),
+
+            'evacue_count': sums['evacues_total'] or 0,
+            'evacue_percentage': percent(sums['evacues_total'] or 0),
+
+            'pris_charge_count': sums['pris_en_charge_total'] or 0,
+            'pris_charge_percentage': percent(sums['pris_en_charge_total'] or 0),
+
+            'blessure_count': sums['blessure_total'] or 0,
+            'blessure_percentage': percent(sums['blessure_total'] or 0),
+
+            'exeat_count': sums['exeat_total'] or 0,
+            'exeat_percentage': percent(sums['exeat_total'] or 0),
 
             'incidents_count': incidents_count,
             'active_cases': active_cases_count,
@@ -1712,3 +1732,214 @@ class IncidentReportView(LoginRequiredMixin, TemplateView):
         })
 
         return context
+
+
+
+# Gestion des kits
+
+class FournisseurListView(ListView):
+    model = Fournisseur
+    template_name = 'kits/fournisseur_list.html'
+
+class FournisseurDetailView(DetailView):
+    model = Fournisseur
+    template_name = 'kits/fournisseur_detail.html'
+
+class FournisseurCreateView(CreateView):
+    model = Fournisseur
+    fields = '__all__'
+    template_name = 'kits/fournisseur_form.html'
+    success_url = reverse_lazy('fournisseur_list')
+
+class FournisseurUpdateView(UpdateView):
+    model = Fournisseur
+    fields = '__all__'
+    template_name = 'kits/fournisseur_form.html'
+    success_url = reverse_lazy('fournisseur_list')
+
+class FournisseurDeleteView(DeleteView):
+    model = Fournisseur
+    template_name = 'kits/fournisseur_confirm_delete.html'
+    success_url = reverse_lazy('fournisseur_list')
+
+class KitListView(ListView):
+    model = Kit
+    template_name = 'kits/kit_list.html'
+
+class KitDetailView(DetailView):
+    model = Kit
+    template_name = 'kits/kit_detail.html'
+
+class KitCreateView(CreateView):
+    model = Kit
+    fields = '__all__'
+    template_name = 'kits/kit_form.html'
+    success_url = reverse_lazy('kit_list')
+
+class KitUpdateView(UpdateView):
+    model = Kit
+    fields = '__all__'
+    template_name = 'kits/kit_form.html'
+    success_url = reverse_lazy('kit_list')
+
+class KitDeleteView(DeleteView):
+    model = Kit
+    template_name = 'kits/kit_confirm_delete.html'
+    success_url = reverse_lazy('kit_list')
+
+
+# class StockDistrictView(TemplateView):
+#     template_name = 'kits/stock_district.html'
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#
+#         # Agrégation par district
+#         stocks = (
+#             Stock.objects
+#             .select_related('centre__region__district')
+#             .values(
+#                 district_id=F('centre__region__district__id'),
+#                 district_nom=F('centre__region__district__nom'),
+#                 composant_nom=F('composant__nom'),
+#                 unite=F('composant__unite_mesure')
+#             )
+#             .annotate(
+#                 total_quantite=Sum('quantite')
+#             )
+#             .order_by('district_nom', 'composant_nom')
+#         )
+#
+#         # Organiser par district
+#         data = {}
+#         for s in stocks:
+#             district = s['district_nom']
+#             if district not in data:
+#                 data[district] = []
+#             data[district].append({
+#                 'composant': s['composant_nom'],
+#                 'quantite': s['total_quantite'],
+#                 'unite': s['unite']
+#             })
+#
+#         context['stocks_par_district'] = data
+#         return context
+class StockDistrictView(LoginRequiredMixin, TemplateView):
+    template_name = 'kits/stock_district.html'
+    login_url = 'account_login'
+    allowed_roles = ['National', 'Regional', 'District']
+    redirect_view_if_denied = 'public_dashboard'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        user = self.request.user
+        user_district = user.centre.district if user.roleemployee == 'DistrictSanitaire' else None
+
+        # Filtres
+        district_id = self.request.GET.get('district_id')
+        kit_type_id = self.request.GET.get('kit_type_id')
+        statut_stock = self.request.GET.get('statut_stock')
+
+        # Base queryset
+        stocks = Stock.objects.select_related(
+            'composant',
+            'centre',
+            'centre__region__district'
+        ).filter(centre__region__district__isnull=False)
+
+        if district_id:
+            stocks = stocks.filter(centre__region__district_id=district_id)
+        elif user_district:
+            stocks = stocks.filter(centre__region__district=user_district)
+
+        if kit_type_id:
+            stocks = stocks.filter(composant__kit_type_id=kit_type_id)
+
+        if statut_stock:
+            if statut_stock == 'critique':
+                stocks = stocks.filter(quantite__lte=F('composant__seuil_alerte'))
+            elif statut_stock == 'alerte':
+                stocks = stocks.filter(
+                    quantite__gt=F('composant__seuil_alerte'),
+                    quantite__lte=F('composant__seuil_alerte') * 2
+                )
+            elif statut_stock == 'suffisant':
+                stocks = stocks.filter(quantite__gt=F('composant__seuil_alerte') * 2)
+
+        # Résumé par district et kit type
+        summary = (
+            stocks
+            .values('centre__region__district__nom', 'composant__kit_type__nom')
+            .annotate(
+                total_quantite=Sum('quantite'),
+                centres_count=models.Count('centre', distinct=True)
+            )
+            .order_by('centre__region__district__nom')
+        )
+
+        # Détails par composant
+        details = (
+            stocks
+            .values(
+                'centre__region__district__nom',
+                'composant__nom',
+                'composant__kit_type__nom',
+                'composant__unite_mesure',
+                'composant__seuil_alerte'
+            )
+            .annotate(
+                total_quantite=Sum('quantite'),
+                min_expiration=Min('date_expiration')
+            )
+            .order_by('centre__region__district__nom', 'composant__nom')
+        )
+
+        # Graphiques : quantités par district et par kit type
+        districts_data = (
+            stocks
+            .values('centre__region__district__nom')
+            .annotate(total=Sum('quantite'))
+            .order_by('-total')
+        )
+
+        kit_types_data = (
+            stocks
+            .values('composant__kit_type__nom')
+            .annotate(total=Sum('quantite'))
+            .order_by('-total')
+        )
+
+        # Alerte stock bas ou expiration proche
+        alertes = stocks.filter(
+            Q(quantite__lte=F('composant__seuil_alerte')) |
+            Q(date_expiration__lte=timezone.now().date() + timedelta(days=30))
+        ).order_by('date_expiration')[:10]
+
+        context.update({
+            'summary': summary,
+            'details': details,
+            'districts_data': districts_data,
+            'kit_types_data': kit_types_data,
+            'alertes': alertes,
+
+            'districts': DistrictSanitaire.objects.all().order_by('nom'),
+            'kit_types': KitCategorie.objects.all().order_by('nom'),
+            'statut_stock_choices': [
+                ('all', 'Tous'),
+                ('critique', 'Critique'),
+                ('alerte', 'Alerte'),
+                ('suffisant', 'Suffisant')
+            ],
+
+            'current_district': district_id,
+            'current_kit_type': kit_type_id,
+            'current_statut': statut_stock,
+
+            'can_export': user.roleemployee in ['National', 'Regional'],
+            'can_manage': user.roleemployee == 'National',
+        })
+        return context
+
+
+

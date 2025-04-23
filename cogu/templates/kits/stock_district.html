@@ -1,0 +1,364 @@
+{% extends "layout/base.html" %}
+{% load static humanize %}
+
+{% block content %}
+        <div class="main-content ">
+    {% include 'layout/nav-head.html' %}
+
+    <div class="container-fluid pt-4 px-4">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2 class="mb-0">
+                    <i class="fas fa-warehouse me-2"></i>
+                    Stocks par District Sanitaire
+                </h2>
+            </div>
+            <div class="col-md-4 text-end">
+                {% if can_export %}
+                    <a href="?export=excel{% if current_district %}&district_id={{ current_district }}{% endif %}"
+                       class="btn btn-success me-2">
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                    </a>
+                {% endif %}
+                {% if can_manage %}
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#transfertModal">
+                        <i class="fas fa-exchange-alt me-1"></i> Transfert
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="district_id" class="form-label">District</label>
+                        <select id="district_id" name="district_id" class="form-select">
+                            <option value="">Tous les districts</option>
+                            {% for district in districts %}
+                                <option value="{{ district.id }}"
+                                        {% if current_district == district.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ district.nom }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="kit_type_id" class="form-label">Type de Kit</label>
+                        <select id="kit_type_id" name="kit_type_id" class="form-select">
+                            <option value="">Tous les types</option>
+                            {% for type in kit_types %}
+                                <option value="{{ type.id }}"
+                                        {% if current_kit_type == type.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ type.nom }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="statut_stock" class="form-label">Statut du stock</label>
+                        <select id="statut_stock" name="statut_stock" class="form-select">
+                            {% for value, label in statut_stock_choices %}
+                                <option value="{{ value }}"
+                                        {% if current_statut == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i> Filtrer
+                        </button>
+                        <a href="" class="btn btn-outline-secondary">
+                            <i class="fas fa-sync-alt me-1"></i> Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Résumé -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-primary">Districts couverts</h5>
+                        <h2 class="mb-0">{{ summary|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-success">Kits disponibles</h5>
+                        <h2 class="mb-0">
+                            {{ details|length }}
+                        </h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-warning">Alertes actives</h5>
+                        <h2 class="mb-0">{{ alertes|length }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphiques -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+  <!-- Graphique Barres : par District -->
+  <div class="bg-white p-4 shadow rounded">
+    <h3 class="text-lg font-semibold mb-2">Stocks par District</h3>
+    <canvas id="chart-districts" width="400" height="200"></canvas>
+  </div></div>
+                </div>
+
+<div class="col-md-4">
+  <!-- Graphique Doughnut : par Type de Kit -->
+  <div class="bg-white p-4 shadow rounded">
+    <h3 class="text-lg font-semibold mb-2">Répartition par Type de Kit</h3>
+    <canvas id="chart-kit-types" width="400" height="200"></canvas>
+  </div>
+</div>
+
+        </div>
+
+        <!-- Tableau des stocks -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Détail des stocks</h5>
+                <small class="text-muted">Mis à jour: {% now "DATETIME_FORMAT" %}</small>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>District</th>
+                            <th>Type de Kit</th>
+                            <th>Composant</th>
+                            <th class="text-end">Quantité</th>
+                            <th class="text-end">Seuil d'alerte</th>
+                            <th>Statut</th>
+                            <th class="text-end">Jours avant expiration</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in details %}
+                            <tr>
+                                <td>{{ item.centre__district__nom }}</td>
+                                <td>{{ item.composant__kit_type__nom }}</td>
+                                <td>{{ item.composant__nom }}</td>
+                                <td class="text-end">{{ item.total_quantite|intcomma }} {{ item.composant__unite_mesure }}</td>
+                                <td class="text-end">{{ item.composant__seuil_alerte|intcomma }}</td>
+                                <td>
+                                    {% if item.total_quantite <= item.composant__seuil_alerte %}
+                                        <span class="badge bg-danger">Critique</span>
+                                    {% elif item.total_quantite <= item.composant__seuil_alerte|add:item.composant__seuil_alerte %}
+                                        <span class="badge bg-warning text-dark">Alerte</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Suffisant</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if item.jours_avant_expiration_min <= 30 %}
+                                        <span class="text-danger">{{ item.jours_avant_expiration_min }}</span>
+                                    {% else %}
+                                        {{ item.jours_avant_expiration_min }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">Aucun stock trouvé avec les critères sélectionnés
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertes -->
+        <div class="card">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0 text-white"><i class="fas fa-exclamation-triangle me-2"></i> Alertes</h5>
+            </div>
+            <div class="card-body">
+                {% if alertes %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                            <tr>
+                                <th>Composant</th>
+                                <th>District</th>
+                                <th class="text-end">Stock</th>
+                                <th class="text-end">Seuil</th>
+                                <th>Type alerte</th>
+                                <th class="text-end">Jours restants</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for alerte in alertes %}
+                                <tr>
+                                    <td>{{ alerte.composant.nom }}</td>
+                                    <td>{{ alerte.centre.district.nom }}</td>
+                                    <td class="text-end">{{ alerte.quantite }} {{ alerte.composant.unite_mesure }}</td>
+                                    <td class="text-end">{{ alerte.composant.seuil_alerte }}</td>
+                                    <td>
+                                        {% if alerte.quantite <= alerte.composant.seuil_alerte %}
+                                            <span class="badge bg-danger">Stock critique</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Péremption proche</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if alerte.jours_avant_expiration <= 0 %}
+                                            <span class="badge bg-dark">Expiré</span>
+                                        {% else %}
+                                            {{ alerte.jours_avant_expiration }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Aucune alerte active pour les critères sélectionnés
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour transfert -->
+    <div class="modal fade" id="transfertModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nouveau transfert de stock</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="">
+                    <div class="modal-body">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Composant</label>
+                            <select name="composant_id" class="form-select" required>
+                                <option value="">Sélectionner un composant</option>
+                                {% for item in details %}
+                                    <option value="{{ item.composant_id }}">{{ item.composant__nom }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Depuis</label>
+                                <select name="source_id" class="form-select" required>
+                                    <option value="">District source</option>
+                                    {% for district in districts %}
+                                        <option value="{{ district.id }}">{{ district.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Vers</label>
+                                <select name="destination_id" class="form-select" required>
+                                    <option value="">District destination</option>
+                                    {% for district in districts %}
+                                        <option value="{{ district.id }}">{{ district.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantité</label>
+                            <input type="number" name="quantite" class="form-control" required min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Motif</label>
+                            <textarea name="motif" class="form-control" rows="2" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Valider le transfert</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+            {% include 'layout/footer.html' %}
+        </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+  // Chart Bar: Quantité de stock par district
+  new Chart(document.getElementById('chart-districts'), {
+    type: 'bar',
+    data: {
+      labels: [{% for d in districts_data %}'{{ d.centre__region__district__nom|default:"Inconnu"|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+      datasets: [{
+        label: 'Quantité totale',
+        data: [{% for d in districts_data %}{{ d.total }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Quantité'
+          }
+        }
+      }
+    }
+  });
+
+  // Chart Doughnut: Répartition par type de kit
+  new Chart(document.getElementById('chart-kit-types'), {
+    type: 'doughnut',
+    data: {
+      labels: [{% for k in kit_types_data %}'{{ k.composant__kit_type__nom|default:"Inconnu"|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+      datasets: [{
+        data: [{% for k in kit_types_data %}{{ k.total }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.7)',
+          'rgba(54, 162, 235, 0.7)',
+          'rgba(255, 206, 86, 0.7)',
+          'rgba(75, 192, 192, 0.7)',
+          'rgba(153, 102, 255, 0.7)',
+          'rgba(255, 159, 64, 0.7)'
+        ],
+        borderWidth: 1,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

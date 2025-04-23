@@ -5,7 +5,8 @@ from leaflet.admin import LeafletGeoAdmin
 
 from cogu.models import IncidentType, SanitaryIncident, MajorEvent, Patient, Commune, DistrictSanitaire, HealthRegion, \
     PolesRegionaux, EmployeeUser, WhatsAppMessage, IncidentMedia, ContactMessage, ReportRecipient, ServiceSanitaire, \
-    TypeServiceSanitaire
+    TypeServiceSanitaire, MouvementStock, Stock, DeploiementKit, StockCentre, Kit, KitComposition, ComposantKit, \
+    KitCategorie, Fournisseur
 
 
 @admin.register(ContactMessage)
@@ -168,3 +169,57 @@ class ServiceSanitaireDistrictAdmin(ImportExportModelAdmin):
     list_display = ('nom', 'commune')
     search_fields = ['nom', 'commune__name', 'type__acronyme']
     list_filter = ['type__acronyme', 'commune__name']
+
+
+@admin.register(Fournisseur)
+class FournisseurAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'code_fournisseur', 'telephone', 'actif')
+    search_fields = ('nom', 'code_fournisseur')
+    list_filter = ('actif',)
+
+@admin.register(KitCategorie)
+class KitCategorieAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'niveau_urgence', 'created_at')
+    search_fields = ('nom',)
+    list_filter = ('niveau_urgence',)
+
+@admin.register(ComposantKit)
+class ComposantKitAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'unite_mesure', 'seuil_alerte', 'duree_conservation', 'temperature_stockage')
+    search_fields = ('nom', 'code_produit')
+    list_filter = ('unite_mesure',)
+
+class KitCompositionInline(admin.TabularInline):
+    model = KitComposition
+    extra = 1
+
+@admin.register(Kit)
+class KitAdmin(admin.ModelAdmin):
+    list_display = ('reference', 'categorie', 'capacite_personnes', 'actif', 'created_at')
+    search_fields = ('reference',)
+    list_filter = ('categorie', 'actif')
+    inlines = [KitCompositionInline]
+
+@admin.register(StockCentre)
+class StockCentreAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'region', 'capacite_max', 'temperature_controlee', 'actif')
+    search_fields = ('nom',)
+    list_filter = ('region', 'actif')
+
+@admin.register(Stock)
+class StockAdmin(admin.ModelAdmin):
+    list_display = ('composant', 'centre', 'quantite', 'lot', 'date_expiration', 'statut_stock')
+    search_fields = ('composant__nom', 'lot')
+    list_filter = ('centre', 'date_expiration')
+
+@admin.register(MouvementStock)
+class MouvementStockAdmin(admin.ModelAdmin):
+    list_display = ('composant', 'type_mouvement', 'quantite', 'centre_source', 'centre_destination', 'created_at')
+    search_fields = ('composant__nom',)
+    list_filter = ('type_mouvement', 'created_at')
+
+@admin.register(DeploiementKit)
+class DeploiementKitAdmin(admin.ModelAdmin):
+    list_display = ('kit', 'quantite', 'centre_source', 'destination', 'statut', 'date_envoi', 'date_reception')
+    search_fields = ('kit__reference', 'destination__nom')
+    list_filter = ('statut', 'centre_source', 'destination')

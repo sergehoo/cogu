@@ -70,6 +70,10 @@ class Command(BaseCommand):
                 n_deces = self.safe_int(row.get("nombre de dece"))
                 n_blesses = self.safe_int(row.get("nombre de blesse"))
 
+                evacues_nbr = self.safe_int(row.get("evacues"))
+                pris_en_charge_nbr = self.safe_int(row.get("pris en charge"))
+                exeat_nbr = self.safe_int(row.get("exeat"))
+
                 incident_type, _ = IncidentType.objects.get_or_create(
                     name__iexact=type_name, defaults={"name": type_name}
                 )
@@ -101,6 +105,9 @@ class Command(BaseCommand):
                     centre_sante=centre,
                     number_of_people_involved=n_victimes,
                     deces_nbr=n_deces,
+                    evacues_nbr=evacues_nbr,
+                    pris_en_charge_nbr=pris_en_charge_nbr,
+                    exeat_nbr=exeat_nbr,
                     blessure_nbr=n_blesses,
                     outcome=outcome,
                     status="pending",

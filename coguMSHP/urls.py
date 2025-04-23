@@ -30,7 +30,9 @@ from cogu.views import (
     SanitaryIncidentUpdateView, SanitaryIncidentDeleteView, CADashborad, LandingView, IncidentToValidListView,
     WhatsAppMessageListView, validate_incident, reject_incident, IncidentMapView, PublicUserDashboard,
     PublicIncidentCreateView, PublicIncidentListView, PublicIncidentDetailView, PolitiqueConfidentialiteView,
-    MajorEventGridView, contact, generate_cogu_report, IncidentReportView,
+    MajorEventGridView, contact, generate_cogu_report, IncidentReportView, FournisseurDeleteView, FournisseurUpdateView,
+    FournisseurDetailView, FournisseurListView, FournisseurCreateView, KitListView, KitCreateView, KitDetailView,
+    KitUpdateView, KitDeleteView, StockDistrictView,
 )
 from coguMSHP.services import twilio_whatsapp_webhook, meta_whatsapp_webhook
 from coguMSHP.utils import notifications
@@ -107,6 +109,23 @@ urlpatterns = [
 
                   re_path(r'^mon-espace/incident/detail/incident-(?P<pk>\d+)/$', PublicIncidentDetailView.as_view(),
                           name='public_incidentdetail'),
+
+    # Gestion des kits
+                  path('fournisseurs/', FournisseurListView.as_view(), name='fournisseur_list'),
+                  path('fournisseurs/create/', FournisseurCreateView.as_view(), name='fournisseur_create'),
+                  path('fournisseurs/<int:pk>/', FournisseurDetailView.as_view(),
+                       name='fournisseur_detail'),
+                  path('fournisseurs/<int:pk>/edit/', FournisseurUpdateView.as_view(),
+                       name='fournisseur_edit'),
+                  path('fournisseurs/<int:pk>/delete/', FournisseurDeleteView.as_view(),
+                       name='fournisseur_delete'),
+
+                  path('kits/stock/districts', StockDistrictView.as_view(), name='stock_districts'),
+                  path('kits/', KitListView.as_view(), name='kit_list'),
+                  path('kits/create/', KitCreateView.as_view(), name='kit_create'),
+                  path('kits/<int:pk>/', KitDetailView.as_view(), name='kit_detail'),
+                  path('kits/<int:pk>/edit/', KitUpdateView.as_view(), name='kit_edit'),
+                  path('kits/<int:pk>/delete/', KitDeleteView.as_view(), name='kit_delete'),
               ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
