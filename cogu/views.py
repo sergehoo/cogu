@@ -26,7 +26,7 @@ from cogu.filters import PatientFilter
 from cogu.forms import SanitaryIncidentForm, PublicIncidentForm, ContactForm
 from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune, HealthRegion, VictimCare, \
     WhatsAppMessage, DistrictSanitaire, PolesRegionaux, Kit, Fournisseur, Stock, KitCategorie
-from django.contrib.gis.geos import Point
+from django.contrib.gis.geos import Point, GEOSGeometry
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.shortcuts import render
@@ -585,12 +585,14 @@ class CADashborad(LoginRequiredMixin, TemplateView):
 
         current_year = timezone.now().year
         previous_year = current_year - 1
-        MONTHS_FR = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+        MONTHS_FR = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre",
+                     "Octobre", "Novembre", "Décembre"]
 
         current_data = defaultdict(int)
         previous_data = defaultdict(int)
 
-        incidents = SanitaryIncident.objects.filter(date_time__year__in=[current_year, previous_year]).annotate(month=F('date_time__month'), year=F('date_time__year')).values('month', 'year').annotate(count=Count('id'))
+        incidents = SanitaryIncident.objects.filter(date_time__year__in=[current_year, previous_year]).annotate(
+            month=F('date_time__month'), year=F('date_time__year')).values('month', 'year').annotate(count=Count('id'))
 
         for entry in incidents:
             if entry['year'] == current_year:
@@ -1076,7 +1078,9 @@ class IncidentMapView(RoleRequiredMixin, TemplateView):
         incidents = SanitaryIncident.objects.all()
 
         # Ajout des districts sanitaires au contexte
-        districts = DistrictSanitaire.objects.all()
+        # districts = DistrictSanitaire.objects.all()
+        districts = DistrictSanitaire.objects.exclude(geom__isnull=True)
+        districts = [d for d in districts if isinstance(d.geom, GEOSGeometry)]
         context['districts_geojson'] = serialize('geojson', districts,
                                                  geometry_field='geom',
                                                  fields=('id', 'nom', 'region__name'))
@@ -1321,8 +1325,10 @@ def contact(request):
 
 
 def generate_cogu_report(request, *args, **kwargs):
+    # today = timezone.now().date()
     today = timezone.now().date()
     yesterday = today - timedelta(days=1)
+    today = yesterday
 
     output_format = request.GET.get('format') or kwargs.get('format', 'pdf')
 
@@ -1734,16 +1740,17 @@ class IncidentReportView(LoginRequiredMixin, TemplateView):
         return context
 
 
-
 # Gestion des kits
 
 class FournisseurListView(ListView):
     model = Fournisseur
     template_name = 'kits/fournisseur_list.html'
 
+
 class FournisseurDetailView(DetailView):
     model = Fournisseur
     template_name = 'kits/fournisseur_detail.html'
+
 
 class FournisseurCreateView(CreateView):
     model = Fournisseur
@@ -1751,24 +1758,29 @@ class FournisseurCreateView(CreateView):
     template_name = 'kits/fournisseur_form.html'
     success_url = reverse_lazy('fournisseur_list')
 
+
 class FournisseurUpdateView(UpdateView):
     model = Fournisseur
     fields = '__all__'
     template_name = 'kits/fournisseur_form.html'
     success_url = reverse_lazy('fournisseur_list')
 
+
 class FournisseurDeleteView(DeleteView):
     model = Fournisseur
     template_name = 'kits/fournisseur_confirm_delete.html'
     success_url = reverse_lazy('fournisseur_list')
 
+
 class KitListView(ListView):
     model = Kit
     template_name = 'kits/kit_list.html'
 
+
 class KitDetailView(DetailView):
     model = Kit
     template_name = 'kits/kit_detail.html'
+
 
 class KitCreateView(CreateView):
     model = Kit
@@ -1776,11 +1788,13 @@ class KitCreateView(CreateView):
     template_name = 'kits/kit_form.html'
     success_url = reverse_lazy('kit_list')
 
+
 class KitUpdateView(UpdateView):
     model = Kit
     fields = '__all__'
     template_name = 'kits/kit_form.html'
     success_url = reverse_lazy('kit_list')
+
 
 class KitDeleteView(DeleteView):
     model = Kit
@@ -1940,6 +1954,3 @@ class StockDistrictView(LoginRequiredMixin, TemplateView):
             'can_manage': user.roleemployee == 'National',
         })
         return context
-
-
-

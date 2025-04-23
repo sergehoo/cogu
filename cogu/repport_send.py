@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from celery import shared_task
 from django.contrib import messages
 from django.core.mail import EmailMessage
@@ -63,25 +63,53 @@ def send_generate_cogu_report(request, *args, **kwargs):
         return HttpResponse("Invalid format specified", status=400)
 
 
-def generate_cogu_report_context():
-    today = timezone.now().date()
-    yesterday = today - timedelta(days=1)
+def generate_cogu_report_context(report_date=None):
+    """
+    Génère le contexte du rapport COGU pour une date donnée.
 
+    :param report_date: str ou date (optionnel). Si c'est une chaîne, le format attendu est "dd/mm/yyyy" ou "dd-mm-yyyy".
+                        Si None, la date du jour est utilisée.
+    :return: dict
+    """
+    # Détermine la date du rapport
+    if report_date:
+        if isinstance(report_date, str):
+            # Essaie de parser la date au format "dd/mm/yyyy" ou "dd-mm-yyyy"
+            try:
+                report_date_obj = datetime.strptime(report_date, "%d/%m/%Y").date()
+            except ValueError:
+                try:
+                    report_date_obj = datetime.strptime(report_date, "%d-%m-%Y").date()
+                except ValueError:
+                    # Si le format ne correspond à aucun, on utilise la date du jour
+                    report_date_obj = timezone.now().date()
+        else:
+            report_date_obj = report_date
+    else:
+        report_date_obj = timezone.now().date()
+
+    # On définit "yesterday" pour le rapport précédent
+    yesterday = report_date_obj - timedelta(days=1)
+
+    # Queryset pour les incidents du jour choisi
     daily_incidents = SanitaryIncident.objects.filter(
-        date_time__date=today
+        date_time__date=report_date_obj
     ).select_related('incident_type', 'city__district__region')
 
     total_incidents = daily_incidents.count()
     validated_incidents = daily_incidents.filter(status='validated').count()
     pending_incidents = daily_incidents.filter(status='pending').count()
 
+    # Incidents résolus hier
     resolved_incidents = SanitaryIncident.objects.filter(
         date_time__date=yesterday,
         status='validated'
     ).count()
 
     region_data = []
+    # Itérer sur toutes les régions de santé
     for region in HealthRegion.objects.all():
+        # Sélectionne les incidents liés à la région
         region_incidents = daily_incidents.filter(city__district__region=region)
         incident_types = {}
         for incident in region_incidents:
@@ -101,7 +129,7 @@ def generate_cogu_report_context():
         })
 
     return {
-        'date': today.strftime("%d %B %Y"),
+        'date': report_date_obj.strftime("%d %B %Y"),
         'total_incidents': total_incidents,
         'validated_incidents': validated_incidents,
         'pending_incidents': pending_incidents,
@@ -111,6 +139,54 @@ def generate_cogu_report_context():
         'recommendations': get_recommendations(),
         'next_steps': get_next_steps(),
     }
+# def generate_cogu_report_context():
+#     today = timezone.now().date()
+#     yesterday = today - timedelta(days=1)
+#
+#     daily_incidents = SanitaryIncident.objects.filter(
+#         date_time__date=today
+#     ).select_related('incident_type', 'city__district__region')
+#
+#     total_incidents = daily_incidents.count()
+#     validated_incidents = daily_incidents.filter(status='validated').count()
+#     pending_incidents = daily_incidents.filter(status='pending').count()
+#
+#     resolved_incidents = SanitaryIncident.objects.filter(
+#         date_time__date=yesterday,
+#         status='validated'
+#     ).count()
+#
+#     region_data = []
+#     for region in HealthRegion.objects.all():
+#         region_incidents = daily_incidents.filter(city__district__region=region)
+#         incident_types = {}
+#         for incident in region_incidents:
+#             name = incident.incident_type.name
+#             if name not in incident_types:
+#                 incident_types[name] = {'validated': 0, 'pending': 0, 'total': 0}
+#             incident_types[name]['total'] += 1
+#             if incident.status == 'validated':
+#                 incident_types[name]['validated'] += 1
+#             else:
+#                 incident_types[name]['pending'] += 1
+#         region_data.append({
+#             'name': region.name,
+#             'total_incidents': region_incidents.count(),
+#             'incident_types': incident_types,
+#             'actions': get_actions_for_region(region.name)
+#         })
+#
+#     return {
+#         'date': today.strftime("%d %B %Y"),
+#         'total_incidents': total_incidents,
+#         'validated_incidents': validated_incidents,
+#         'pending_incidents': pending_incidents,
+#         'resolved_incidents': resolved_incidents,
+#         'region_data': region_data,
+#         'actions_taken': get_actions_taken(),
+#         'recommendations': get_recommendations(),
+#         'next_steps': get_next_steps(),
+#     }
 
 
 def generate_word_report_file(context):
