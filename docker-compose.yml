@@ -41,6 +41,8 @@ services:
 #networks:
 #  cogu_default:
 
+
+
 volumes:
   pgdata:
     driver: local

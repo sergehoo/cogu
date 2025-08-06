@@ -4,131 +4,199 @@
     <meta charset="UTF-8">
     <title>RAPPORT JOURNALIER COGU</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-        }
-        h1 {
-            text-align: center;
-            font-size: 18pt;
-        }
-        h2 {
-            font-size: 14pt;
-            margin-top: 20px;
-            border-bottom: 1px solid #000;
-            padding-bottom: 5px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-        }
-        table, th, td {
-            border: 1px solid black;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-        }
-        .signature {
-            margin-top: 50px;
-        }
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        h1 { text-align: center; font-size: 18pt; }
+        h2 { font-size: 14pt; margin-top: 20px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        table, th, td { border: 1px solid black; }
+        th, td { padding: 8px; text-align: left; }
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
+        .stat-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9f9f9; }
+        .stat-value { font-size: 24px; font-weight: bold; text-align: center; }
+        .stat-label { text-align: center; margin-top: 5px; }
+        .map-container { margin: 20px 0; text-align: center; }
+        .signature { margin-top: 50px; }
+        .chart { margin: 20px 0; text-align: center; }
     </style>
 </head>
 <body>
-<div class="header">
-        <div class="logo-container">
-            <img src="{{ logo_armoirie_path }}" class="logo" alt="Armoiries de la Côte d'Ivoire">
-            <img src="{{ logo_sante_path }}" class="logo" alt="Ministère de la Santé">
-        </div>
-        <div class="title">
-            <h1>RAPPORT JOURNALIER COGU</h1>
-            <p>Ministère de la Santé, de l'Hygiène Publique et de la Couverture Maladie Universelle</p>
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <img src="{{ logo_paths.armoirie }}" style="height: 80px;" alt="Armoiries">
+            <div style="text-align: center;">
+                <h1>RAPPORT JOURNALIER COGU</h1>
+                <p>Ministère de la Santé et de l'Hygiène Publique</p>
+                <p>Période du {{ start_date }} au {{ end_date }}</p>
+            </div>
+            <img src="{{ logo_paths.sante }}" style="height: 80px;" alt="Ministère Santé">
         </div>
     </div>
 
-
-    <p><strong>Date</strong> : {{ date }}</p>
-    <p><strong>Destinataires</strong> : Monsieur le Ministre de la Santé, Membres du COGU</p>
-    <p><strong>Émetteur</strong> : Directeur Général de la Santé et de l'Hygiène Publique (DGSHP)</p>
-
     <h2>RÉCAPITULATIF GLOBAL</h2>
-    <ul>
-        <li>Nombre total d'incidents signalés (aujourd'hui) : <strong>{{ total_incidents }}</strong></li>
-        <li>Incidents validés : <strong>{{ validated_incidents }}</strong></li>
-        <li>Incidents en cours de validation : <strong>{{ pending_incidents }}</strong></li>
-        <li>Incidents résolus (depuis hier) : <strong>{{ resolved_incidents }}</strong></li>
-    </ul>
-    <p><strong>Commentaire</strong> : Les signalements reçus concernent principalement des suspicions de maladies à potentiel épidémique et quelques cas isolés d'intoxications alimentaires.</p>
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ global_stats.total_incidents }}</div>
+            <div class="stat-label">Incidents signalés</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ global_stats.total_victims }}</div>
+            <div class="stat-label">Personnes impliquées</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ global_stats.total_deaths }}</div>
+            <div class="stat-label">Décès</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ global_stats.total_injuries }}</div>
+            <div class="stat-label">Blessures</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ global_stats.total_evacuations }}</div>
+            <div class="stat-label">Évacuations</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ global_stats.validated_incidents }}</div>
+            <div class="stat-label">Incidents validés</div>
+        </div>
+    </div>
 
-    <h2>DÉTAILS PAR RÉGION SANITAIRE</h2>
+    <h2>RÉPARTITION PAR ÉVÉNEMENT MAJEUR</h2>
     <table>
         <tr>
-            <th>Région Sanitaire</th>
-            <th>Incidents signalés</th>
-            <th>Type principal d'incident</th>
-            <th>Statut</th>
-            <th>Actions en cours</th>
+            <th>Événement</th>
+            <th>Période</th>
+            <th>Incidents</th>
+            <th>Décès</th>
+            <th>Blessures</th>
         </tr>
-        {% for region in region_data %}
+        {% for item in events_stats %}
         <tr>
-            <td>{{ region.name }}</td>
-            <td>{{ region.total_incidents }}</td>
-            <td>
-                {% for incident_type, counts in region.incident_types.items %}
-                - {{ counts.total }} cas de {{ incident_type }}<br>
-                {% endfor %}
-            </td>
-            <td>
-                {% for incident_type, counts in region.incident_types.items %}
-                - {{ counts.validated }} validés, {{ counts.pending }} en cours<br>
-                {% endfor %}
-            </td>
-            <td>
-                {% for action in region.actions %}
-                - {{ action }}<br>
-                {% endfor %}
-            </td>
+            <td>{{ item.event.name }}</td>
+            <td>{{ item.event.start_date|date:"d/m/Y" }} - {{ item.event.end_date|date:"d/m/Y" }}</td>
+            <td>{{ item.stats.count }}</td>
+            <td>{{ item.stats.deaths|default:0 }}</td>
+            <td>{{ item.stats.injuries|default:0 }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">Aucun événement majeur sur cette période</td>
         </tr>
         {% endfor %}
     </table>
 
-    <h2>ACTIONS MENÉES ET INTERVENTIONS EN COURS</h2>
-    <ol>
-        {% for action in actions_taken %}
-        <li>{{ action }}</li>
+    <h2>RÉPARTITION PAR PÔLE RÉGIONAL</h2>
+    <table>
+        <tr>
+            <th>Pôle Régional</th>
+            <th>Incidents</th>
+            <th>Décès</th>
+            <th>Blessures</th>
+        </tr>
+        {% for item in poles_stats %}
+        <tr>
+            <td>{{ item.pole.name }}</td>
+            <td>{{ item.stats.count }}</td>
+            <td>{{ item.stats.deaths|default:0 }}</td>
+            <td>{{ item.stats.injuries|default:0 }}</td>
+        </tr>
         {% endfor %}
-    </ol>
+    </table>
 
-    <h2>RECOMMANDATIONS ET PERSPECTIVES</h2>
-    <ol>
-        {% for recommendation in recommendations %}
-        <li>{{ recommendation }}</li>
+    <h2>DÉTAILS PAR RÉGION SANITAIRE</h2>
+    {% for region in regions_data %}
+    <h3>{{ region.region.name }}</h3>
+    <p>Total incidents: {{ region.stats.total }} | Décès: {{ region.stats.deaths }} | Blessures: {{ region.stats.injuries }}</p>
+
+    <h4>Par type d'incident</h4>
+    <table>
+        <tr>
+            <th>Type</th>
+            <th>Total</th>
+            <th>Validés</th>
+            <th>En attente</th>
+            <th>Décès</th>
+            <th>Blessures</th>
+        </tr>
+        {% for type_name, stats in region.incident_types.items %}
+        <tr>
+            <td>{{ type_name }}</td>
+            <td>{{ stats.total }}</td>
+            <td>{{ stats.validated }}</td>
+            <td>{{ stats.pending }}</td>
+            <td>{{ stats.deaths }}</td>
+            <td>{{ stats.injuries }}</td>
+        </tr>
         {% endfor %}
-    </ol>
+    </table>
 
-    <h2>PROCHAINES ÉTAPES</h2>
-    <ul>
-        {% for step in next_steps %}
-        <li>{{ step }}</li>
+    <h4>Par district sanitaire</h4>
+    <table>
+        <tr>
+            <th>District</th>
+            <th>Incidents</th>
+            <th>Décès</th>
+            <th>Blessures</th>
+        </tr>
+        {% for district in region.districts %}
+        <tr>
+            <td>{{ district.district.nom }}</td>
+            <td>{{ district.stats.count }}</td>
+            <td>{{ district.stats.deaths|default:0 }}</td>
+            <td>{{ district.stats.injuries|default:0 }}</td>
+        </tr>
         {% endfor %}
-    </ul>
+    </table>
+    {% endfor %}
 
-    <h2>Conclusion</h2>
-    <p>La situation reste <strong>sous contrôle</strong>, avec un bon niveau de réactivité de la part des équipes de terrain. Les investigations se poursuivent pour confirmer ou écarter toute menace épidémique. Nous maintiendrons un <strong>suivi quotidien</strong> et informerons régulièrement Monsieur le Ministre et les membres du COGU de l'évolution de la situation.</p>
-
-    <div class="signature">
-        <p>Fait à Abidjan, le {{ date }}</p>
-        <p><strong>Signature</strong> :</p>
-        <p>Pr. SAMBA Mamadou</p>
-        <p>Directeur Général de la Santé et de l'Hygiène Publique</p>
-    </div>
- <div class="footer">
-        <p>© {% now "Y" %} Ministère de la Santé - Tous droits réservés</p>
-        <div class="footer-logos">
-            <img src="{{ logo_afriqconsulting_path }}" class="footer-logo" alt="Afriq Consulting">
-            <p>Solution développée par Afriq Consulting</p>
+    <h2>CARTE DES INCIDENTS PAR DISTRICT</h2>
+    <div class="map-container">
+        <!-- La carte sera générée comme image et insérée ici -->
+        <img src="data:image/png;base64,{{ map_image|safe }}" style="max-width: 100%;">
+        <div class="map-legend">
+            <p><strong>Légende :</strong></p>
+            <p>■ 0 incident ■ 1-5 incidents ■ 6-10 incidents ■ 10+ incidents</p>
         </div>
     </div>
+
+    <h2>VISUALISATIONS STATISTIQUES</h2>
+    <div class="chart">
+        <h3>Répartition des incidents par type</h3>
+        <img src="data:image/png;base64,{{ chart_type_image|safe }}" style="max-width: 100%;">
+    </div>
+
+    <div class="chart">
+        <h3>Incidents par région sanitaire</h3>
+        <img src="data:image/png;base64,{{ chart_region_image|safe }}" style="max-width: 100%;">
+    </div>
+    <h2>POLYGONES DES DISTRICTS SANITAIRES & STATISTIQUES</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Nom du District</th>
+            <th>Polygone (GeoJSON)</th>
+            <th>Nombre d'incidents</th>
+            <th>Nombre de décès</th>
+            <th>Nombre de blessures</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for feature in districts_geojson.features %}
+        <tr>
+            <td>{{ feature.properties.name }}</td>
+            <td>
+                <pre style="white-space: pre-wrap; font-size: 10px;">
+                    {{ feature.geometry|safe }}
+                </pre>
+            </td>
+            <td>{{ feature.properties.incidents }}</td>
+            <td>{{ feature.properties.deaths }}</td>
+            <td>{{ feature.properties.injuries }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+    <!-- Reste du template (actions, recommandations, conclusion) -->
+{#    {% include 'reports/report_footer.html' %}#}
 </body>
 </html>

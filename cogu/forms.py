@@ -1,6 +1,7 @@
 from allauth.account.forms import SignupForm
 from django import forms
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV2Checkbox
 from django_select2.forms import Select2MultipleWidget
@@ -235,3 +236,27 @@ class CustomSignupForm(SignupForm):
 
     def save(self, request):
         return super().save(request)
+
+
+
+class CoguReportForm(forms.Form):
+    start_date = forms.DateField(
+        label="Date de début",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        initial=timezone.now().date() - timezone.timedelta(days=1)
+    )
+    end_date = forms.DateField(
+        label="Date de fin",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        initial=timezone.now().date()
+    )
+    comments = forms.CharField(
+        label="Commentaires",
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        required=False
+    )
+    format = forms.ChoiceField(
+        label="Format",
+        choices=[('pdf', 'PDF'), ('word', 'Word')],
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )

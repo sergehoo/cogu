@@ -835,4 +835,26 @@ class DeploiementKit(models.Model):
         return None
 
 
+class CoguReport(models.Model):
+    REPORT_FORMAT_CHOICES = [
+        ('pdf', 'PDF'),
+        ('word', 'Word'),
+    ]
 
+    created_by = models.ForeignKey(EmployeeUser, on_delete=models.SET_NULL, null=True)
+    report_date = models.DateField(verbose_name="Date du rapport")
+    start_date = models.DateField(verbose_name="Date de début")
+    end_date = models.DateField(verbose_name="Date de fin")
+    comments = models.TextField(verbose_name="Commentaires", blank=True, null=True)
+    format = models.CharField(max_length=10, choices=REPORT_FORMAT_CHOICES)
+    file = models.FileField(upload_to='reports/cogu/', null=True, blank=True)
+    sent_by_email = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Rapport COGU du {self.report_date.strftime('%d/%m/%Y')}"
+
+    class Meta:
+        verbose_name = "Rapport COGU"
+        verbose_name_plural = "Rapports COGU"

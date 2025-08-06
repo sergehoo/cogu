@@ -1,19 +1,26 @@
+import base64
 import calendar
 import csv
 import json
 import os
+import time
+from collections import defaultdict
 from datetime import timedelta
+
+import folium
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.gis.db.models.functions import AsGeoJSON
+from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
 from django.core.serializers import serialize
 from django.db import models
 from django.db.models import Q, Count, F, Sum, Min
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from django.template import context
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -22,10 +29,13 @@ from django.utils.timezone import localtime
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, ListView, CreateView, DetailView, UpdateView, DeleteView, FormView
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
 from cogu.filters import PatientFilter
-from cogu.forms import SanitaryIncidentForm, PublicIncidentForm, ContactForm
+from cogu.forms import SanitaryIncidentForm, PublicIncidentForm, ContactForm, CoguReportForm
 from cogu.models import Patient, MajorEvent, IncidentType, SanitaryIncident, Commune, HealthRegion, VictimCare, \
-    WhatsAppMessage, DistrictSanitaire, PolesRegionaux, Kit, Fournisseur, Stock, KitCategorie
+    WhatsAppMessage, DistrictSanitaire, PolesRegionaux, Kit, Fournisseur, Stock, KitCategorie, CoguReport
 from django.contrib.gis.geos import Point, GEOSGeometry
 from django.http import HttpResponse
 from django.template.loader import get_template
@@ -37,6 +47,11 @@ from docx.shared import Inches, Pt
 from xhtml2pdf import pisa
 from io import BytesIO
 from .models import SanitaryIncident, IncidentType, MajorEvent, Commune
+import matplotlib
+
+matplotlib.use('Agg')  # Important pour les serveurs/django/macos
+import matplotlib.pyplot as plt
+import io
 
 
 # Create your views here.
@@ -1324,91 +1339,435 @@ def contact(request):
     return render(request, 'pages/landing.html', {'form': form})
 
 
-def generate_cogu_report(request, *args, **kwargs):
-    # today = timezone.now().date()
-    today = timezone.now().date()
-    yesterday = today - timedelta(days=1)
-    today = yesterday
+# def generate_cogu_report(request, *args, **kwargs):
+#     # today = timezone.now().date()
+#     today = timezone.now().date()
+#     yesterday = today - timedelta(days=1)
+#     today = yesterday
+#
+#     output_format = request.GET.get('format') or kwargs.get('format', 'pdf')
+#
+#     daily_incidents = SanitaryIncident.objects.filter(
+#         date_time__date=today
+#     ).select_related(
+#         'incident_type', 'city__district__region'
+#     )
+#
+#     total_incidents = daily_incidents.count()
+#     validated_incidents = daily_incidents.filter(status='validated').count()
+#     pending_incidents = daily_incidents.filter(status='pending').count()
+#
+#     resolved_incidents = SanitaryIncident.objects.filter(
+#         date_time__date=yesterday,
+#         status='validated'
+#     ).count()
+#
+#     regions = HealthRegion.objects.all()
+#     region_data = []
+#
+#     for region in regions:
+#         region_incidents = daily_incidents.filter(city__district__region=region)
+#
+#         incident_types = {}
+#         for incident in region_incidents:
+#             type_name = incident.incident_type.name
+#             if type_name not in incident_types:
+#                 incident_types[type_name] = {
+#                     'validated': 0,
+#                     'pending': 0,
+#                     'total': 0
+#                 }
+#             incident_types[type_name]['total'] += 1
+#             if incident.status == 'validated':
+#                 incident_types[type_name]['validated'] += 1
+#             else:
+#                 incident_types[type_name]['pending'] += 1
+#
+#         region_data.append({
+#             'name': region.name,
+#             'total_incidents': region_incidents.count(),
+#             'incident_types': incident_types,
+#             'actions': get_actions_for_region(region.name)
+#         })
+#
+#     context = {
+#         'date': today.strftime("%d %B %Y"),
+#         'total_incidents': total_incidents,
+#         'validated_incidents': validated_incidents,
+#         'pending_incidents': pending_incidents,
+#         'resolved_incidents': resolved_incidents,
+#         'region_data': region_data,
+#         'actions_taken': get_actions_taken(),
+#         'recommendations': get_recommendations(),
+#         'next_steps': get_next_steps(),
+#         'logo_armoirie_path': '/static/assets/media/armoirie_ci.png',
+#         'logo_sante_path': '/static/assets/media/logoMSHPCMU.png',
+#         'logo_afriqconsulting_path': '/static/assets/media/logo-AFRIQ-CONSULTING.png',
+#     }
+#
+#     if output_format == 'pdf':
+#         return generate_pdf_report(context)
+#     elif output_format == 'word':
+#         return generate_word_report(context)
+#     else:
+#         return HttpResponse("Invalid format specified", status=400)
+#
+def generate_cogu_report(request):
+    if request.method == 'POST':
+        form = CoguReportForm(request.POST)
+        if form.is_valid():
+            start_date = form.cleaned_data['start_date']
+            end_date = form.cleaned_data['end_date']
+            comments = form.cleaned_data['comments']
+            output_format = form.cleaned_data['format']
 
-    output_format = request.GET.get('format') or kwargs.get('format', 'pdf')
+            context = prepare_report_context(start_date, end_date, comments)
 
-    daily_incidents = SanitaryIncident.objects.filter(
-        date_time__date=today
+            if output_format == 'pdf':
+                result = generate_pdf_report(context, return_bytes=True)
+                if result:
+                    report = CoguReport.objects.create(
+                        created_by=request.user,
+                        report_date=timezone.now().date(),
+                        start_date=start_date,
+                        end_date=end_date,
+                        comments=comments,
+                        format=output_format
+                    )
+                    filename = f"COGU_Report_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+                    report.file.save(filename, ContentFile(result))
+                    return HttpResponse(result, content_type='application/pdf')
+                return HttpResponse('Erreur génération PDF', status=500)
+
+            elif output_format == 'word':
+                response = generate_word_report(context)
+                return response
+
+            else:
+                return HttpResponse("Invalid format specified", status=400)
+    else:
+        form = CoguReportForm()
+
+    return render(request, 'reports/generate_report_form.html', {'form': form})
+
+
+def prepare_report_context(start_date, end_date, comments=None):
+    # Filtre de base pour les incidents
+    incidents = SanitaryIncident.objects.filter(
+        date_time__date__range=[start_date, end_date]
     ).select_related(
-        'incident_type', 'city__district__region'
+        'incident_type', 'city__district__region', 'event'
     )
 
-    total_incidents = daily_incidents.count()
-    validated_incidents = daily_incidents.filter(status='validated').count()
-    pending_incidents = daily_incidents.filter(status='pending').count()
+    # Statistiques globales
+    stats = incidents.aggregate(
+        total_incidents=Count('id'),
+        total_victims=Sum('number_of_people_involved'),
+        total_deaths=Sum('deces_nbr'),
+        total_injuries=Sum('blessure_nbr'),
+        total_evacuations=Sum('evacues_nbr'),
+        total_treated=Sum('pris_en_charge_nbr'),
+        total_exeat=Sum('exeat_nbr'),
+        validated_incidents=Count('id', filter=models.Q(status='validated')),
+        pending_incidents=Count('id', filter=models.Q(status='pending'))
+    )
 
-    resolved_incidents = SanitaryIncident.objects.filter(
-        date_time__date=yesterday,
-        status='validated'
-    ).count()
+    # Statistiques par événement majeur
+    events_stats = []
+    major_events = MajorEvent.objects.filter(
+        start_date__lte=end_date,
+        end_date__gte=start_date
+    )
 
-    regions = HealthRegion.objects.all()
-    region_data = []
+    for event in major_events:
+        event_incidents = incidents.filter(event=event)
+        event_stats = event_incidents.aggregate(
+            count=Count('id'),
+            deaths=Sum('deces_nbr'),
+            injuries=Sum('blessure_nbr'),
+            evacuations=Sum('evacues_nbr')
+        )
+        events_stats.append({
+            'event': event,
+            'stats': event_stats
+        })
 
-    for region in regions:
-        region_incidents = daily_incidents.filter(city__district__region=region)
+    # Statistiques par pôle régional
+    poles_stats = []
+    for pole in PolesRegionaux.objects.all():
+        pole_incidents = incidents.filter(city__district__region__poles=pole)
+        pole_stats = pole_incidents.aggregate(
+            count=Count('id'),
+            deaths=Sum('deces_nbr'),
+            injuries=Sum('blessure_nbr')
+        )
+        poles_stats.append({
+            'pole': pole,
+            'stats': pole_stats
+        })
 
-        incident_types = {}
+    # Statistiques par région et district
+    regions_data = []
+    districts_geojson = {
+        "type": "FeatureCollection",
+        "features": []
+    }
+
+    for region in HealthRegion.objects.all():
+        region_incidents = incidents.filter(city__district__region=region)
+
+        # Stats par type d'incident
+        incident_types = defaultdict(lambda: {
+            'total': 0, 'validated': 0, 'pending': 0,
+            'deaths': 0, 'injuries': 0, 'evacuations': 0
+        })
+
         for incident in region_incidents:
             type_name = incident.incident_type.name
-            if type_name not in incident_types:
-                incident_types[type_name] = {
-                    'validated': 0,
-                    'pending': 0,
-                    'total': 0
-                }
             incident_types[type_name]['total'] += 1
             if incident.status == 'validated':
                 incident_types[type_name]['validated'] += 1
             else:
                 incident_types[type_name]['pending'] += 1
 
-        region_data.append({
-            'name': region.name,
-            'total_incidents': region_incidents.count(),
-            'incident_types': incident_types,
+            incident_types[type_name]['deaths'] += incident.deces_nbr
+            incident_types[type_name]['injuries'] += incident.blessure_nbr
+            incident_types[type_name]['evacuations'] += incident.evacues_nbr
+
+        # Stats par district
+        districts_data = []
+        for district in region.districts.all():
+            district_incidents = region_incidents.filter(city__district=district)
+            district_stats = district_incidents.aggregate(
+                count=Count('id'),
+                deaths=Sum('deces_nbr'),
+                injuries=Sum('blessure_nbr'),
+                evacuations=Sum('evacues_nbr')
+            )
+
+            districts_data.append({
+                'district': district,
+                'stats': district_stats
+            })
+
+            # Ajout au GeoJSON si le district a des incidents
+            if district.geojson and district_stats['count'] > 0:
+                districts_geojson['features'].append({
+                    "type": "Feature",
+                    "geometry": district.geojson.get("geometry"),
+                    "properties": {
+                        "name": district.nom,
+                        "incidents": district_stats['count'],
+                        "deaths": district_stats['deaths'] or 0,
+                        "injuries": district_stats['injuries'] or 0
+                    }
+                })
+
+        regions_data.append({
+            'region': region,
+            'stats': {
+                'total': region_incidents.count(),
+                'deaths': region_incidents.aggregate(s=Sum('deces_nbr'))['s'] or 0,
+                'injuries': region_incidents.aggregate(s=Sum('blessure_nbr'))['s'] or 0
+            },
+            'incident_types': dict(incident_types),
+            'districts': districts_data,
             'actions': get_actions_for_region(region.name)
         })
 
-    context = {
-        'date': today.strftime("%d %B %Y"),
-        'total_incidents': total_incidents,
-        'validated_incidents': validated_incidents,
-        'pending_incidents': pending_incidents,
-        'resolved_incidents': resolved_incidents,
-        'region_data': region_data,
+    # Préparation des données pour les graphiques
+    chart_data = {'incidents_by_type': list(
+        incidents.values('incident_type__name').annotate(count=Count('id')).order_by('-count')[:5]),
+                  'incidents_by_region': list(
+                      incidents.values('city__district__region__name').annotate(count=Count('id')))}
+    districts_geojson_str = json.dumps(districts_geojson)
+    map_image = generate_map_image(
+        json.loads(districts_geojson_str))  # ou directement : generate_map_image(districts_geojson)
+    return {
+        'start_date': start_date.strftime("%d %B %Y"),
+        'end_date': end_date.strftime("%d %B %Y"),
+        'report_date': timezone.now().date().strftime("%d %B %Y"),
+        'global_stats': stats,
+        'events_stats': events_stats,
+        'poles_stats': poles_stats,
+        'regions_data': regions_data,
+        'districts_geojson': json.dumps(districts_geojson),
+        'map_image':   map_image,
+        'chart_data': chart_data,
         'actions_taken': get_actions_taken(),
         'recommendations': get_recommendations(),
         'next_steps': get_next_steps(),
-        'logo_armoirie_path': '/static/assets/media/armoirie_ci.png',
-        'logo_sante_path': '/static/assets/media/logoMSHPCMU.png',
-        'logo_afriqconsulting_path': '/static/assets/media/logo-AFRIQ-CONSULTING.png',
+        'comments': comments,
+        'logo_paths': {
+            'armoirie': '/static/assets/media/armoirie_ci.png',
+            'sante': '/static/assets/media/logoMSHPCMU.png',
+            'afriqconsulting': '/static/assets/media/logo-AFRIQ-CONSULTING.png'
+        }
     }
 
-    if output_format == 'pdf':
-        return generate_pdf_report(context)
-    elif output_format == 'word':
-        return generate_word_report(context)
-    else:
-        return HttpResponse("Invalid format specified", status=400)
 
+def generate_pdf_report(context, return_bytes=False):
+    context['chart_type_image'] = generate_chart_image(
+        data=context['chart_data']['incidents_by_type'],
+        title="Répartition par type d'incident",
+        x_field='incident_type__name',
+        y_field='count'
+    )
 
-def generate_pdf_report(context):
+    context['chart_region_image'] = generate_chart_image(
+        data=context['chart_data']['incidents_by_region'],
+        title="Incidents par région",
+        x_field='city__district__region__name',
+        y_field='count'
+    )
+
+    context['map_image'] = generate_map_image(json.loads(context['districts_geojson']))
+
     template = get_template('reports/cogu_report.html')
     html = template.render(context)
     result = BytesIO()
     pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
 
-    if not pdf.err:
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="COGU_Report_{context["date"]}.pdf"'
-        return response
-    return HttpResponse('Error generating PDF', status=500)
+    if pdf.err:
+        return None
+
+    if return_bytes:
+        return result.getvalue()
+
+    response = HttpResponse(result.getvalue(), content_type='application/pdf')
+    filename = f"COGU_Report_{context['start_date']}_{context['end_date']}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+def generate_chart_image(data, title, x_field, y_field):
+    if not data:
+        return ""  # ou une image par défaut
+
+    try:
+        plt.figure(figsize=(8, 4))
+        x = [item[x_field] for item in data]
+        y = [item[y_field] for item in data]
+        plt.bar(x, y)
+        plt.title(title)
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150)
+        plt.close()
+        buf.seek(0)
+
+        return base64.b64encode(buf.read()).decode('utf-8')
+    except Exception as e:
+        print(f"Erreur lors de la génération du graphique : {e}")
+        return ""
+
+
+# def generate_map_image(geojson_data):
+#     """Génère une image de carte à partir des données GeoJSON"""
+#     # Utilisez la même fonction que précédemment avec selenium
+#     # ou une alternative comme folium pour générer une image
+#     temp_path = os.path.join(settings.MEDIA_ROOT, 'temp_map.png')
+#     generate_map_image_with_selenium(geojson_data, temp_path)
+#
+#     with open(temp_path, 'rb') as f:
+#         img_data = base64.b64encode(f.read()).decode('utf-8')
+#
+#     os.remove(temp_path)
+#     return img_data
+def generate_map_image(geojson_data):
+    try:
+        def generate_map_image_with_selenium(geojson_data, output_path):
+            import folium
+            from selenium import webdriver
+            from selenium.webdriver.chrome.options import Options
+            import time
+
+            # Création de la carte
+            m = folium.Map(location=[7.54, -5.55], zoom_start=6)
+
+            # Ajout des polygones avec couleurs dynamiques
+            def style_function(feature):
+                incidents = feature['properties'].get('incidents', 0)
+                color = (
+                    '#ff0000' if incidents > 10 else
+                    '#ffa500' if incidents > 5 else
+                    '#ffff00' if incidents > 0 else
+                    '#d3d3d3'
+                )
+                return {
+                    'fillColor': color,
+                    'color': 'black',
+                    'weight': 1,
+                    'fillOpacity': 0.6,
+                }
+
+            folium.GeoJson(
+                geojson_data,
+                name="Districts",
+                style_function=style_function,
+                tooltip=folium.GeoJsonTooltip(fields=['name', 'incidents', 'deaths', 'injuries'])
+            ).add_to(m)
+
+            # Sauvegarde HTML temporaire
+            html_path = os.path.join(settings.MEDIA_ROOT, 'temp_map.html')
+            m.save(html_path)
+
+            # Capture avec Selenium
+            options = Options()
+            options.add_argument('--headless')
+            options.add_argument('--disable-gpu')
+            options.add_argument('--window-size=1200x800')
+            driver = webdriver.Chrome(options=options)
+            driver.get(f'file://{html_path}')
+            time.sleep(2)
+            driver.save_screenshot(output_path)
+            driver.quit()
+            os.remove(html_path)
+        # def generate_map_image_with_selenium(geojson_data, output_path):
+        #     m = folium.Map(location=[7.54, -5.55], zoom_start=6)
+        #     folium.GeoJson(
+        #         geojson_data,
+        #         name="Districts",
+        #         style_function=lambda feature: {
+        #             'fillColor': '#ff0000' if feature['properties']['incidents'] > 10 else (
+        #                 '#ffa500' if feature['properties']['incidents'] > 5 else (
+        #                     '#ffff00' if feature['properties']['incidents'] > 0 else '#d3d3d3'
+        #                 )
+        #             ),
+        #             'color': 'black',
+        #             'weight': 1,
+        #             'fillOpacity': 0.6,
+        #         },
+        #         tooltip=folium.GeoJsonTooltip(fields=['name', 'incidents', 'deaths', 'injuries'])
+        #     ).add_to(m)
+        #     html_path = os.path.join(settings.MEDIA_ROOT, 'temp_map.html')
+        #     m.save(html_path)
+        #
+        #     options = Options()
+        #     options.add_argument('--headless')
+        #     options.add_argument('--disable-gpu')
+        #     options.add_argument('--window-size=1200x800')
+        #     driver = webdriver.Chrome(options=options)
+        #     driver.get(f'file://{html_path}')
+        #     time.sleep(2)
+        #     driver.save_screenshot(output_path)
+        #     driver.quit()
+        #     os.remove(html_path)
+
+        output_path = os.path.join(settings.MEDIA_ROOT, 'temp_map.png')
+        generate_map_image_with_selenium(geojson_data, output_path)
+
+        with open(output_path, 'rb') as f:
+            img_data = base64.b64encode(f.read()).decode('utf-8')
+
+        os.remove(output_path)
+        return img_data
+
+    except Exception as e:
+        print(f"Erreur lors de la génération de la carte : {e}")
+        return ""
 
 
 def generate_word_report(context):
@@ -1608,6 +1967,36 @@ def get_next_steps():
     ]
 
 
+class CoguReportListView(ListView):
+    model = CoguReport
+    template_name = 'reports/report_list.html'
+    context_object_name = 'reports'
+    paginate_by = 10
+    ordering = ['-created_at']
+
+
+def download_report(request, pk):
+    report = get_object_or_404(CoguReport, pk=pk)
+    # Ici, vous devrez implémenter la logique pour regénérer ou servir le rapport
+    # Cela dépend de comment vous stockez les fichiers
+
+    # Exemple simplifié:
+    context = prepare_report_context(report.start_date, report.end_date, report.comments)
+    if report.format == 'pdf':
+        return generate_pdf_report(context)
+    else:
+        return generate_word_report(context)
+
+
+def view_report(request, pk):
+    report = get_object_or_404(CoguReport, pk=pk)
+    context = {
+        'report': report,
+        'details': prepare_report_context(report.start_date, report.end_date, report.comments)
+    }
+    return render(request, 'reports/report_details.html', context)
+
+
 class IncidentReportView(LoginRequiredMixin, TemplateView):
     template_name = "reports/incident_report.html"
 
@@ -1700,7 +2089,7 @@ class IncidentReportView(LoginRequiredMixin, TemplateView):
 
         # Ajout au contexte
         context.update({
-
+            'form': CoguReportForm(),
             'total_count': total_count,
             'validated_count': validated_count,
             'pending_count': pending_count,

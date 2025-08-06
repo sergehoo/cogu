@@ -1,0 +1,52 @@
+<!-- templates/reports/report_list.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Historique des rapports COGU</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date du rapport</th>
+                        <th>Période couverte</th>
+                        <th>Format</th>
+                        <th>Créé par</th>
+                        <th>Date création</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td>{{ report.report_date|date:"d/m/Y" }}</td>
+                        <td>
+                            Du {{ report.start_date|date:"d/m/Y" }}
+                            au {{ report.end_date|date:"d/m/Y" }}
+                        </td>
+                        <td>{{ report.get_format_display }}</td>
+                        <td>{{ report.created_by.get_full_name|default:report.created_by.username }}</td>
+                        <td>{{ report.created_at|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'download_report' report.id %}" class="btn btn-sm btn-primary" title="Télécharger">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            <a href="{% url 'view_report' report.id %}" class="btn btn-sm btn-info" title="Voir les détails">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">Aucun rapport généré pour le moment</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

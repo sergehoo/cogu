@@ -1,0 +1,79 @@
+<!-- templates/reports/report_details.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Détails du rapport COGU</h5>
+            <div class="btn-group">
+                <a href="{% url 'download_report' report.id %}?format=pdf" class="btn btn-danger btn-sm">
+                    <i class="fas fa-file-pdf me-1"></i> PDF
+                </a>
+                <a href="{% url 'download_report' report.id %}?format=word" class="btn btn-primary btn-sm">
+                    <i class="fas fa-file-word me-1"></i> Word
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <p><strong>Date du rapport:</strong> {{ report.report_date|date:"d/m/Y" }}</p>
+            </div>
+            <div class="col-md-4">
+                <p><strong>Période couverte:</strong> Du {{ report.start_date|date:"d/m/Y" }} au {{ report.end_date|date:"d/m/Y" }}</p>
+            </div>
+            <div class="col-md-4">
+                <p><strong>Créé par:</strong> {{ report.created_by.get_full_name|default:report.created_by.username }}</p>
+            </div>
+        </div>
+
+        {% if report.comments %}
+        <div class="mb-4">
+            <h6>Commentaires:</h6>
+            <div class="border p-3 bg-light">{{ report.comments|linebreaks }}</div>
+        </div>
+        {% endif %}
+
+        <h5 class="mb-3">Récapitulatif des données</h5>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h6 class="card-title">Total incidents</h6>
+                        <p class="card-text display-6">{{ details.total_incidents }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h6 class="card-title">Validés</h6>
+                        <p class="card-text display-6">{{ details.validated_incidents }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <h6 class="card-title">En attente</h6>
+                        <p class="card-text display-6">{{ details.pending_incidents }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h6 class="card-title">Résolus</h6>
+                        <p class="card-text display-6">{{ details.resolved_incidents }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vous pouvez ajouter plus de détails ici selon vos besoins -->
+    </div>
+</div>
+{% endblock %}

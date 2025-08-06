@@ -32,14 +32,16 @@ from cogu.views import (
     PublicIncidentCreateView, PublicIncidentListView, PublicIncidentDetailView, PolitiqueConfidentialiteView,
     MajorEventGridView, contact, generate_cogu_report, IncidentReportView, FournisseurDeleteView, FournisseurUpdateView,
     FournisseurDetailView, FournisseurListView, FournisseurCreateView, KitListView, KitCreateView, KitDetailView,
-    KitUpdateView, KitDeleteView, StockDistrictView,
+    KitUpdateView, KitDeleteView, StockDistrictView, CoguReportListView, download_report, view_report,
 )
 from coguMSHP.services import twilio_whatsapp_webhook, meta_whatsapp_webhook
 from coguMSHP.utils import notifications
 from coguMSHP.utils.notifications import send_whatsapp_message
 
 urlpatterns = [
-                  path("__reload__/", include("django_browser_reload.urls")),
+                  # path("__reload__/", include("django_browser_reload.urls")),
+                  path('', include('django_prometheus.urls')),
+
                   path('backend/admin/v1', admin.site.urls),
                   path('api-auth/', include('rest_framework.urls')),
                   path('accounts/', include('allauth.urls')),
@@ -92,6 +94,10 @@ urlpatterns = [
                   path('cogu-report/send/', send_report_view, name='send_generate_cogu_report'),
                   # path('cogu-report/pdf/', generate_cogu_report, {'format': 'pdf'}, name='generate_cogu_report_pdf'),
                   # path('cogu-report/word/', generate_cogu_report, {'format': 'word'}, name='generate_cogu_report_word'),
+                  path('generate-cogu-report/', generate_cogu_report, name='generate_cogu_report'),
+                  path('reports/', CoguReportListView.as_view(), name='report_list'),
+                  path('reports/<int:pk>/download/', download_report, name='download_report'),
+                  path('reports/<int:pk>/', view_report, name='view_report'),
 
                   path('incidents/report/', IncidentReportView.as_view(), name='incident_report'),
                   # path('incidents/export/excel/', ExportIncidentsExcel.as_view(), name='export_incidents'),
@@ -110,7 +116,7 @@ urlpatterns = [
                   re_path(r'^mon-espace/incident/detail/incident-(?P<pk>\d+)/$', PublicIncidentDetailView.as_view(),
                           name='public_incidentdetail'),
 
-    # Gestion des kits
+                  # Gestion des kits
                   path('fournisseurs/', FournisseurListView.as_view(), name='fournisseur_list'),
                   path('fournisseurs/create/', FournisseurCreateView.as_view(), name='fournisseur_create'),
                   path('fournisseurs/<int:pk>/', FournisseurDetailView.as_view(),
