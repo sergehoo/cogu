@@ -8,8 +8,8 @@ os.makedirs(LOG_DIR, exist_ok=True)
 
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', default='localhost').split(',')
-
+# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', default='localhost').split(',')
+ALLOWED_HOSTS = ["cogu.ci", "www.cogu.ci"]
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
