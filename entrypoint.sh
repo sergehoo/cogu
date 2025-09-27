@@ -14,7 +14,7 @@ python manage.py migrate --noinput
 
 # Collecter les fichiers statiques
 echo "🎨 Collecte des statiques..."
-python manage.py collectstatic --noinput
+#python manage.py collectstatic --noinput
 
 # Démarrer l’application (par défaut Daphne ici)
 exec "$@"
