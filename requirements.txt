@@ -115,3 +115,4 @@ zipp==3.21.0
 gunicorn
 psycopg2-binary
 matplotlib~=3.9.4
+django_prometheus
