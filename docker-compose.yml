@@ -23,9 +23,9 @@ services:
     #   - "2522:8000"
     env_file:
       - ./.env
-    command: ["/cogu-app/entrypoint.sh", "daphne",
-              "--access-log", "off", "--verbosity", "1",
-              "-b", "0.0.0.0", "-p", "8000", "cogu.asgi:application"]
+    command: [ "/bin/sh", "/cogu-app/entrypoint.sh", "daphne",
+               "--access-log", "off", "--verbosity", "1",
+               "-b", "0.0.0.0", "-p", "8000", "cogu.asgi:application" ]
     depends_on:
       - coguDB
     volumes:
