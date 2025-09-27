@@ -137,3 +137,4 @@ xhtml2pdf==0.2.17
 xyzservices==2025.1.0
 yarl==1.19.0
 zipp==3.21.0
+daphne
