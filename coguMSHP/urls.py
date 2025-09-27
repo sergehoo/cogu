@@ -44,7 +44,7 @@ urlpatterns = [
                   path("healthz", lambda r: HttpResponse("ok")),
                   path('', include('django_prometheus.urls')),
 
-                  path('backend/admin/v1', admin.site.urls),
+                  path('backend/admin/v1/', admin.site.urls),
                   path('api-auth/', include('rest_framework.urls')),
                   path('accounts/', include('allauth.urls')),
 
