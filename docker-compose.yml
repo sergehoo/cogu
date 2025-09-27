@@ -33,7 +33,8 @@ services:
       - static_volume:/cogu-app/staticfiles
       - media_volume:/cogu-app/media
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/healthz || exit 1"]
+#      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/healthz || exit 1"]
+      test: [ "CMD-SHELL", "python - <<'PY'\nimport urllib.request,sys\ntry:\n  urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)\n  sys.exit(0)\nexcept Exception:\n  sys.exit(1)\nPY" ]
       interval: 10s
       timeout: 5s
       retries: 20
