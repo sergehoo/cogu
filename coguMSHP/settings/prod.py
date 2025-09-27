@@ -9,7 +9,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', default='localhost').split(',')
-# ALLOWED_HOSTS = ["cogu.ci", "www.cogu.ci"]
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
@@ -24,8 +24,8 @@ DATABASES = {
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+
+
 CSRF_TRUSTED_ORIGINS = [
     "https://cogu.ci",
     "https://www.cogu.ci",
@@ -36,6 +36,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://cogu.ci",
     "https://www.cogu.ci",
 ]
+
+
 CORS_ALLOW_CREDENTIALS = True
 MPI_API_KEY = os.environ.get('MPI_API_KEY', default='key')
 
