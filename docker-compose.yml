@@ -31,7 +31,7 @@ services:
     volumes:
       - .:/cogu-app/
       - static_volume:/cogu-app/staticfiles
-      - media_volume:/cogu-app/mediafiles
+      - media_volume:/cogu-app/media
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/healthz || exit 1"]
       interval: 10s
