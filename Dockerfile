@@ -30,9 +30,13 @@ ENV GDAL_LIBRARY_PATH=/usr/lib/libgdal.so
 ENV PYTHONUNBUFFERED=1
 WORKDIR /cogu-app
 
+
 COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt
 RUN mkdir -p /cogu-app/logs
+
+COPY entrypoint.sh /cogu-app/entrypoint.sh
+RUN sed -i 's/\r$//' /cogu-app/entrypoint.sh && chmod +x /cogu-app/entrypoint.sh
 
 COPY . .
 
