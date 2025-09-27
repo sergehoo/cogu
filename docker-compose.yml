@@ -1,50 +1,153 @@
+# docker-compose.yml (COGU + Traefik integration)
+
+networks:
+  cogunet:              # réseau interne de l’app
+    driver: bridge
+  proxy:            # réseau Traefik (doit exister déjà)
+    external: true
+
+volumes:
+  pgdata:
+  static_volume:
+  media_volume:
 
 services:
 
+  # --- Django/ASGI app ---
   coguweb:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - 2522:8000  # port du server : port de l'application
+    # ⚠️ Ne mappe pas de ports si tu passes par Traefik
+    # ports:
+    #   - "2522:8000"
+    env_file:
+      - ./.env
+    command: ["/app/docker/entrypoint.sh", "daphne",
+              "--access-log", "off", "--verbosity", "1",
+              "-b", "0.0.0.0", "-p", "8000", "cogu.asgi:application"]
+    depends_on:
+      - coguDB
     volumes:
       - .:/cogu-app/
       - static_volume:/cogu-app/staticfiles
       - media_volume:/cogu-app/mediafiles
-    env_file:
-      - ./.env
-    restart: always
-    depends_on:
-      - coguDB
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
 
+      # Router public HTTPS (domain depuis .env)
+      # .env : COGU_HOST=cogu.example.com
+      - traefik.http.routers.coguweb.rule=Host(`${COGU_HOST}`)
+      - traefik.http.routers.coguweb.entrypoints=websecure
+      - traefik.http.routers.coguweb.tls.certresolver=lets
+      - traefik.http.routers.coguweb.service=coguweb-svc
+
+      # Service amont HTTP:8000
+      - traefik.http.services.coguweb-svc.loadbalancer.server.port=8000
+      - traefik.http.services.coguweb-svc.loadbalancer.server.scheme=http
+
+      # Middlewares utiles
+      - traefik.http.routers.coguweb.middlewares=coguweb-sec-headers@docker,coguweb-compress@docker,coguweb-rl@docker
+      - traefik.http.middlewares.coguweb-sec-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.coguweb-sec-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.coguweb-sec-headers.headers.stsPreload=true
+      - traefik.http.middlewares.coguweb-sec-headers.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.coguweb-sec-headers.headers.frameDeny=true
+      - traefik.http.middlewares.coguweb-sec-headers.headers.referrerPolicy=no-referrer
+      - traefik.http.middlewares.coguweb-compress.compress=true
+      - traefik.http.middlewares.coguweb-rl.ratelimit.average=150
+      - traefik.http.middlewares.coguweb-rl.ratelimit.burst=250
+
+    restart: always
+    networks:
+      - cogunet
+      - proxy
+
+  # --- Postgres/PostGIS ---
   coguDB:
     image: postgis/postgis:16-3.4
-    platform: linux/amd64
-    restart: always
+    # Supprime "platform: linux/amd64" sauf si tu as vraiment besoin de forcer l’archi
+    # platform: linux/amd64
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
-#    networks:
-#      - cogu_default
-
-  adminer:
-    image: adminer
     restart: always
-    ports:
-      - 2310:8080
-#    networks:
-#      - cogu_default
+    networks:
+      - cogunet
 
-#networks:
-#  cogu_default:
+  # --- Adminer (exposé via Traefik) ---
+  adminer:
+    image: adminer:latest
+    restart: always
+    # Pas de ports directs; on passe par Traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      # .env : ADMINER_HOST=adminer.cogu.example.com
+      - traefik.http.routers.adminer.rule=Host(`${ADMINER_HOST}`)
+      - traefik.http.routers.adminer.entrypoints=websecure
+      - traefik.http.routers.adminer.tls.certresolver=lets
+      - traefik.http.services.adminer-svc.loadbalancer.server.port=8080
+    networks:
+      - cogunet
+      - proxy
 
-
-
-volumes:
-  pgdata:
-    driver: local
-  static_volume:
-  media_volume:
+#
+#services:
+#
+#  coguweb:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    ports:
+#      - 2522:8000  # port du server : port de l'application
+#    volumes:
+#      - .:/cogu-app/
+#      - static_volume:/cogu-app/staticfiles
+#      - media_volume:/cogu-app/mediafiles
+#    env_file:
+#      - ./.env
+#    restart: always
+#    depends_on:
+#      - coguDB
+#
+#  coguDB:
+#    image: postgis/postgis:16-3.4
+#    platform: linux/amd64
+#    restart: always
+#    environment:
+#      POSTGRES_DB: ${DATABASE_NAME}
+#      POSTGRES_USER: ${DATABASE_USER}
+#      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+#    volumes:
+#      - pgdata:/var/lib/postgresql/data
+##    networks:
+##      - cogu_default
+#
+#  adminer:
+#    image: adminer
+#    restart: always
+#    ports:
+#      - 2310:8080
+##    networks:
+##      - cogu_default
+#
+##networks:
+##  cogu_default:
+#
+#
+#
+#volumes:
+#  pgdata:
+#    driver: local
+#  static_volume:
+#  media_volume:
