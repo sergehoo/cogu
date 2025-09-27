@@ -17,6 +17,7 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import path, include, re_path
 
 from cogu.api.views import DistrictListAPIView
@@ -40,6 +41,7 @@ from coguMSHP.utils.notifications import send_whatsapp_message
 
 urlpatterns = [
                   # path("__reload__/", include("django_browser_reload.urls")),
+                  path("healthz", lambda r: HttpResponse("ok")),
                   path('', include('django_prometheus.urls')),
 
                   path('backend/admin/v1', admin.site.urls),
