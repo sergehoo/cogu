@@ -77,6 +77,7 @@ MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware'
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -85,7 +86,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     "allauth.account.middleware.AccountMiddleware",
     'django_prometheus.middleware.PrometheusAfterMiddleware',
-    'corsheaders.middleware.CorsMiddleware'
+
 ]
 
 ROOT_URLCONF = 'coguMSHP.urls'

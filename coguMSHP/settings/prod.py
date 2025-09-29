@@ -8,7 +8,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', default='localhost').split(',')
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "cogu.ci,www.cogu.ci").split(",")
 
 DATABASES = {
     'default': {
@@ -25,6 +25,11 @@ DATABASES = {
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "Lax"
 
 CSRF_TRUSTED_ORIGINS = [
     "https://cogu.ci",
